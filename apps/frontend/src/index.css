@@ -5259,7 +5259,7 @@ textarea {
 .JobSearch-nativeInput,
 .JobSearch-nativeSelect {
   width: 100%;
-  padding: 0.85rem 1rem 0.85rem 2.75rem;
+  padding: 0.85rem 2.5rem 0.85rem 2.75rem;
   font-size: 0.875rem;
   font-weight: 500;
   border-radius: 10px;
@@ -5268,6 +5268,19 @@ textarea {
   color: #0f172a;
   outline: none;
   transition: all 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 16px;
+  cursor: pointer;
+}
+
+.JobSearch-nativeInput {
+  background-image: none;
+  padding-right: 1rem;
 }
 
 .JobSearch-nativeInput:focus,
@@ -5275,6 +5288,11 @@ textarea {
   border-color: #2563eb;
   background-color: #ffffff;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.JobSearch-nativeSelect:hover {
+  border-color: #94a3b8;
+  background-color: #f1f5f9;
 }
 
 .JobSearch-clearBtn {
@@ -5391,13 +5409,28 @@ textarea {
 }
 
 .JobSearch-sortSelect {
-  padding: 0.25rem 0.5rem;
+  padding: 0.4rem 2rem 0.4rem 0.75rem;
   border-radius: 6px;
   border: 1px solid #cbd5e1;
   background-color: #ffffff;
   font-size: 0.8125rem;
   font-weight: 600;
   color: #0f172a;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 14px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.JobSearch-sortSelect:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 /* --- FeaturedPositions Header (Figma Matched) --- */
@@ -6548,6 +6581,63 @@ textarea {
   border: 1px solid #e2e8f0;
 }
 
+/* ── JobCard Share & Download Action Bar ── */
+.JobCard-shareActionBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.6rem;
+  margin-top: 0.875rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid #f1f5f9;
+  margin-bottom: 0.5rem;
+}
+
+.JobCard-downloadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #475569;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.JobCard-downloadBtn:hover {
+  color: #2563eb;
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.JobCard-whatsappBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #15803d;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  white-space: nowrap;
+}
+
+.JobCard-whatsappBtn:hover {
+  color: #166534;
+  background-color: #dcfce7;
+  border-color: #86efac;
+}
+
 .JobCard-cardFooterRow {
   display: flex;
   align-items: center;
@@ -6926,7 +7016,7 @@ textarea {
 
 .CareerBenefits-cardGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
 }
 
@@ -6939,6 +7029,20 @@ textarea {
   transition:
     transform 0.2s,
     border-color 0.2s;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1024px) {
+  .CareerBenefits-cardGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .CareerBenefits-cardGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .CareerBenefits-itemCard:hover {
@@ -7040,8 +7144,21 @@ textarea {
 
 .CareerInsights-cardsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
+  align-items: stretch;
+}
+
+@media (max-width: 1024px) {
+  .CareerInsights-cardsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .CareerInsights-cardsGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .CareerInsights-articleCard {
@@ -7096,6 +7213,7 @@ textarea {
   flex-direction: column;
   flex-grow: 1;
   justify-content: space-between;
+  gap: 0;
 }
 
 .CareerInsights-metaRow {
@@ -7119,7 +7237,31 @@ textarea {
   font-size: 0.875rem;
   color: #64748b;
   line-height: 1.5;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.CareerInsights-readStoryRow {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.CareerInsights-readStoryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #2563eb;
+  text-decoration: none;
+  transition: color 0.2s ease, gap 0.2s ease;
+  cursor: pointer;
+}
+
+.CareerInsights-readStoryBtn:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+  gap: 0.5rem;
 }
 
 .CareerInsights-authorRow {

@@ -13,6 +13,7 @@ const CareerInsights = () => {
         'Sustainable high performance depends on feeling healthy, respected, and empowered to deliver world-class code without burn-out.',
       image:
         'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80',
+      slug: 'employee-wellness-work-life-balance',
     },
     {
       id: 2,
@@ -23,6 +24,7 @@ const CareerInsights = () => {
         'Recap of Thinkwires landmark hiring drive in Dehradun, selecting high-potential graduate talent across Cloud and Full-Stack cohorts.',
       image:
         'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80',
+      slug: 'campus-drive-next-gen-tech',
     },
     {
       id: 3,
@@ -34,6 +36,7 @@ const CareerInsights = () => {
         'Learn how our team combines cutting-edge engineering consulting with purposeful community initiatives in healthcare and rural...',
       image:
         'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
+      slug: 'csr-environmental-sustainability-1000-trees',
     },
   ];
 
@@ -44,10 +47,10 @@ const CareerInsights = () => {
         <div className="CareerInsights-headerRow">
           <div className="CareerInsights-headerLeftCol">
             <div className="CareerInsights-knowledgeBadge">
-              KNOWLEDGE BASE & TECH CULTURE
+              KNOWLEDGE BASE &amp; TECH CULTURE
             </div>
             <h2 className="CareerInsights-headingTitle">
-              Career Insights & Tech Culture
+              Career Insights &amp; Tech Culture
             </h2>
           </div>
 
@@ -84,19 +87,24 @@ const CareerInsights = () => {
               </div>
 
               <div className="CareerInsights-cardBody">
-                <div className="CareerInsights-metaRow">
-                  <span>{item.date}</span>
-                  <span className="CareerInsights-dotSep">•</span>
-                  <span className="CareerInsights-tagText">{item.tag}</span>
+                <div>
+                  <div className="CareerInsights-metaRow">
+                    <span>{item.date}</span>
+                    <span className="CareerInsights-dotSep">•</span>
+                    <span className="CareerInsights-tagText">{item.tag}</span>
+                  </div>
+
+                  <h3 className="CareerInsights-articleTitle">{item.title}</h3>
+                  <p className="CareerInsights-articleSnippet">{item.snippet}</p>
                 </div>
 
-                <h3 className="CareerInsights-articleTitle">{item.title}</h3>
-                <p className="CareerInsights-articleSnippet">{item.snippet}</p>
-
                 <div className="CareerInsights-readStoryRow">
-                  <span className="CareerInsights-readStoryBtn">
+                  <Link
+                    to={`/blog/${item.slug}`}
+                    className="CareerInsights-readStoryBtn"
+                  >
                     Read Story ›
-                  </span>
+                  </Link>
                 </div>
               </div>
             </article>
