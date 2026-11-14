@@ -14,341 +14,228 @@ const JobCard = ({ job, onApplyClick, onViewSpecClick }) => {
 
   const getIndustryDisplayName = (slug) => {
     switch (slug) {
-      case 'information-technology':
-        return 'Tech & Cloud';
-      case 'bfsi':
-        return 'BFSI & FinTech';
-      case 'healthcare-life-sciences':
-        return 'Healthcare & Bio';
-      case 'automobile-manufacturing':
-        return 'Industrial & Mfg';
-      case 'automotive-mobility':
-        return 'Automotive & Mobility';
-      case 'telecommunications':
-        return 'Telecom & 5G';
-      case 'retail-ecommerce':
-        return 'Retail & Commerce';
-      case 'energy-utilities':
-        return 'Energy & CleanTech';
-      case 'education-edtech':
-        return 'EdTech';
-      case 'professional-services':
-        return 'Consulting';
-      case 'aerospace-defense':
-        return 'Aerospace & Defense';
-      default:
-        return 'Enterprise Sector';
+      case 'information-technology': return 'Tech & Cloud';
+      case 'bfsi': return 'BFSI & FinTech';
+      case 'healthcare-life-sciences': return 'Healthcare & Bio';
+      case 'automobile-manufacturing': return 'Industrial & Mfg';
+      case 'automotive-mobility': return 'Automotive & Mobility';
+      case 'telecommunications': return 'Telecom & 5G';
+      case 'retail-ecommerce': return 'Retail & Commerce';
+      case 'energy-utilities': return 'Energy & CleanTech';
+      case 'education-edtech': return 'EdTech';
+      case 'professional-services': return 'Consulting';
+      case 'aerospace-defense': return 'Aerospace & Defense';
+      default: return 'Enterprise Sector';
     }
   };
 
   const industryName = job.industrySector || getIndustryDisplayName(industrySlug);
 
-  const getBadgeStyle = (badgeColor = 'green') => {
-    if (badgeColor === 'green') {
-      return {
-        background: '#e6f4ea',
-        color: '#137333',
-        border: '1px solid #ceead6',
-      };
-    }
-    if (badgeColor === 'blue') {
-      return {
-        background: '#e8f0fe',
-        color: '#1a73e8',
-        border: '1px solid #d2e3fc',
-      };
-    }
-    if (badgeColor === 'purple') {
-      return {
-        background: '#f3e8ff',
-        color: '#7e22ce',
-        border: '1px solid #e9d5ff',
-      };
-    }
-    if (badgeColor === 'red') {
-      return {
-        background: '#fce8e6',
-        color: '#c5221f',
-        border: '1px solid #fad2cf',
-      };
-    }
-    return {
-      background: '#f1f5f9',
-      color: '#475569',
-      border: '1px solid #e2e8f0',
-    };
+  /* ── Logo background gradient ── */
+  const getLogoBg = (logo = '') => {
+    if (logo === 'SAP') return 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)';
+    if (logo === 'ACH') return 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)';
+    if (logo === 'AEM') return 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)';
+    if (logo === 'AI')  return 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
+    if (logo === 'K8S') return 'linear-gradient(135deg, #2563eb 0%, #0284c7 100%)';
+    if (logo === 'AWS') return 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)';
+    return 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
   };
 
-  const getLogoBg = (logo = '') => {
-    if (logo === 'SAP') return 'linear-gradient(135deg, #0284c7, #0369a1)';
-    if (logo === 'ACH') return 'linear-gradient(135deg, #0d9488, #0f766e)';
-    if (logo === 'AEM') return 'linear-gradient(135deg, #2563eb, #1d4ed8)';
-    if (logo === 'AI') return 'linear-gradient(135deg, #7c3aed, #6d28d9)';
-    if (logo === 'K8S') return 'linear-gradient(135deg, #2563eb, #0284c7)';
-    return 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
+  /* ── Badge colour map ── */
+  const getJobModeBadge = (mode) => {
+    if (!mode) return null;
+    const map = {
+      Permanent:        { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+      Contract:         { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
+      'Contract to Hire': { bg: '#fdf4ff', color: '#7e22ce', border: '#e9d5ff' },
+    };
+    return map[mode] || { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0' };
   };
+
+  const getStatusBadge = (badge) => {
+    if (!badge) return null;
+    const lc = badge.toLowerCase();
+    if (lc.includes('hot'))       return { bg: '#fef2f2', color: '#dc2626', border: '#fecaca' };
+    if (lc.includes('urgent'))    return { bg: '#fff7ed', color: '#ea580c', border: '#fed7aa' };
+    if (lc.includes('immediate')) return { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' };
+    if (lc.includes('high'))      return { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' };
+    return { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0' };
+  };
+
+  const modeBadge   = getJobModeBadge(job.jobMode);
+  const statusBadge = getStatusBadge(job.badge || job.tag);
+
+  const logoLabel = job.logo || (job.title ? job.title.substring(0, 2).toUpperCase() : 'TW');
 
   return (
-    <div className="JobCard-figmaCard">
-      {/* Top Header Row: Category, Industry Domain & Status Badge */}
-      <div className="JobCard-topCategoryRow">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span className="JobCard-categoryText">
-            {job.category || 'ENTERPRISE SYSTEMS • CONTRACT'}
+    <div className="JC-card">
+
+      {/* ── HEADER: category row + badges ── */}
+      <div className="JC-header">
+        {/* Left: category + industry pill */}
+        <div className="JC-headerLeft">
+          <span className="JC-category">
+            {job.category || 'ENTERPRISE • CONTRACT'}
           </span>
           <Link
             to={`/industries/${industrySlug}`}
-            className="JobCard-industryPill"
+            className="JC-industryPill"
             onClick={(e) => e.stopPropagation()}
-            title={`Explore ${industryName} practice details and hiring pods`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-              padding: '0.15rem 0.55rem',
-              borderRadius: '9999px',
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              background: 'rgba(37, 99, 235, 0.08)',
-              color: '#1d4ed8',
-              border: '1px solid rgba(37, 99, 235, 0.22)',
-              textDecoration: 'none',
-              transition: 'all 0.2s ease',
-            }}
+            title={`Explore ${industryName}`}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>
-              domain
-            </span>
-            <span>{industryName}</span>
+            <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>domain</span>
+            {industryName}
           </Link>
         </div>
-        <div
-          style={{
-            display: 'flex',
-            gap: '0.4rem',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-          }}
-        >
-          {job.jobMode && (
+
+        {/* Right: job-mode + status badges */}
+        <div className="JC-badgesRow">
+          {modeBadge && (
             <span
-              className="JobCard-modePill"
-              style={{
-                fontSize: '0.72rem',
-                padding: '0.2rem 0.55rem',
-                borderRadius: '4px',
-                fontWeight: 600,
-                background: 'rgba(37, 99, 235, 0.08)',
-                color: '#2563eb',
-                border: '1px solid rgba(37, 99, 235, 0.2)',
-              }}
+              className="JC-badge"
+              style={{ background: modeBadge.bg, color: modeBadge.color, borderColor: modeBadge.border }}
             >
               {job.jobMode}
             </span>
           )}
-          <span
-            className="JobCard-badgePill"
-            style={getBadgeStyle(job.badgeColor)}
-          >
-            {job.badge || job.tag || 'Immediate Joining'}
-          </span>
+          {statusBadge && (job.badge || job.tag) && (
+            <span
+              className="JC-badge JC-badgeStatus"
+              style={{ background: statusBadge.bg, color: statusBadge.color, borderColor: statusBadge.border }}
+            >
+              {job.badge || job.tag}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Main Title & Logo Row */}
-      <div className="JobCard-titleAndLogoRow">
+      {/* ── TITLE ROW: logo + job title ── */}
+      <div className="JC-titleRow">
         <div
-          className="JobCard-logoSquare"
+          className="JC-logo"
           style={{ background: getLogoBg(job.logo) }}
+          aria-hidden="true"
         >
-          {job.logo ||
-            (job.title ? job.title.substring(0, 2).toUpperCase() : 'TW')}
+          {logoLabel}
         </div>
-        <h3 className="JobCard-cardJobTitle">{job.title}</h3>
+        <h3 className="JC-title">{job.title}</h3>
       </div>
 
-      {/* Description Snippet */}
-      <p className="JobCard-cardDescription">{job.description}</p>
+      {/* ── DESCRIPTION ── */}
+      <p className="JC-description">{job.description}</p>
 
-      {/* 4 Specs Grid */}
-      <div className="JobCard-specsGrid">
-        <div className="JobCard-specItem">
-          <span className="JobCard-specLabel">Location & Mode</span>
-          <span className="JobCard-specVal">
-            <span
-              className="material-symbols-outlined"
-              style={{
-                fontSize: '15px',
-                verticalAlign: 'middle',
-                marginRight: '4px',
-              }}
-            >
-              {job.workMode === 'Work From Home'
-                ? 'home'
-                : job.workMode === 'Work From Office'
-                  ? 'domain'
-                  : 'location_on'}
-            </span>
-            {job.location} ({job.workMode || 'Hybrid'})
+      {/* ── INFO GRID ── */}
+      <div className="JC-infoGrid">
+
+        {/* Location & Mode */}
+        <div className="JC-infoItem">
+          <span className="JC-infoLabel">
+            <span className="material-symbols-outlined JC-infoIcon">location_on</span>
+            Location &amp; Mode
+          </span>
+          <span className="JC-infoValue">
+            {job.location}
+            {job.workMode ? ` (${job.workMode})` : ''}
           </span>
         </div>
 
-        <div className="JobCard-specItem">
-          <span className="JobCard-specLabel">Experience & Type</span>
-          <span className="JobCard-specVal">
-            <span
-              className="material-symbols-outlined"
-              style={{
-                fontSize: '15px',
-                verticalAlign: 'middle',
-                marginRight: '4px',
-              }}
-            >
-              work
-            </span>
-            {job.experience} • {job.jobMode || 'Permanent'}
+        {/* Experience & Type */}
+        <div className="JC-infoItem">
+          <span className="JC-infoLabel">
+            <span className="material-symbols-outlined JC-infoIcon">work</span>
+            Experience &amp; Type
+          </span>
+          <span className="JC-infoValue">
+            {job.experience}
+            {job.jobMode ? ` • ${job.jobMode}` : ''}
           </span>
         </div>
 
-        <div className="JobCard-specItem">
-          <span className="JobCard-specLabel">Budget Range</span>
-          <span className="JobCard-specVal JobCard-salaryVal">
-            <span
-              className="material-symbols-outlined"
-              style={{
-                fontSize: '15px',
-                verticalAlign: 'middle',
-                marginRight: '4px',
-              }}
-            >
-              payments
-            </span>
-            {job.salary}
+        {/* Budget Range */}
+        <div className="JC-infoItem">
+          <span className="JC-infoLabel">
+            <span className="material-symbols-outlined JC-infoIcon">payments</span>
+            Budget Range
           </span>
+          <span className="JC-infoValue JC-salary">{job.salary}</span>
         </div>
 
-        <div className="JobCard-specItem">
-          <span className="JobCard-specLabel">Notice Period</span>
-          <span className="JobCard-specVal">
-            <span
-              className="material-symbols-outlined"
-              style={{
-                fontSize: '15px',
-                verticalAlign: 'middle',
-                marginRight: '4px',
-              }}
-            >
-              timer
-            </span>
+        {/* Notice Period */}
+        <div className="JC-infoItem">
+          <span className="JC-infoLabel">
+            <span className="material-symbols-outlined JC-infoIcon">timer</span>
+            Notice Period
+          </span>
+          <span className="JC-infoValue">
             {job.noticePeriod || job.joining || 'Immediate'}
           </span>
         </div>
       </div>
 
-      {/* Skill Chips */}
+      {/* ── SKILLS ── */}
       {job.skills && job.skills.length > 0 && (
-        <div className="JobCard-skillChipsRow">
+        <div className="JC-skills">
           {job.skills.map((skill, idx) => (
-            <span key={idx} className="JobCard-chip">
-              {skill}
-            </span>
+            <span key={idx} className="JC-skill">{skill}</span>
           ))}
         </div>
       )}
 
-      {/* Quick Action Share & Download Bar */}
-      <div className="JobCard-shareActionBar flex items-center justify-between gap-2 mt-3 pt-3 border-t border-slate-100">
+      {/* ── ACTION BAR: Download + WhatsApp ── */}
+      <div className="JC-actionBar">
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            downloadJobDescriptionPdf(job);
-          }}
-          className="JobCard-actionMiniBtn flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-blue-600 bg-slate-50 hover:bg-blue-50 py-1.5 px-2.5 rounded border border-slate-200 transition-colors"
-          title={`Download PDF Job Description for ${job.title}`}
-          aria-label={`Download PDF Job Description for ${job.title}`}
+          className="JC-actionBtn JC-downloadBtn"
+          onClick={(e) => { e.stopPropagation(); downloadJobDescriptionPdf(job); }}
+          title={`Download PDF JD for ${job.title}`}
+          aria-label={`Download Job Description for ${job.title}`}
         >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
+          {/* Download icon */}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
-          <span>Download JD</span>
+          Download JD
         </button>
 
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            shareJobOnWhatsApp(job);
-          }}
-          className="JobCard-actionMiniBtn flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 py-1.5 px-2.5 rounded border border-emerald-200 transition-colors"
+          className="JC-actionBtn JC-whatsappBtn"
+          onClick={(e) => { e.stopPropagation(); shareJobOnWhatsApp(job); }}
           title={`Share ${job.title} on WhatsApp`}
           aria-label={`Share ${job.title} on WhatsApp`}
         >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          {/* WhatsApp icon */}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
           </svg>
-          <span>WhatsApp</span>
+          WhatsApp
         </button>
       </div>
 
-      {/* Footer Row: View Job Spec & Apply Button */}
-      <div className="JobCard-cardFooterRow">
+      {/* ── FOOTER: View Spec + Apply Now ── */}
+      <div className="JC-footer">
         <button
           type="button"
-          className="JobCard-viewSpecBtn"
-          onClick={() => {
-            if (onViewSpecClick) {
-              onViewSpecClick(job);
-            } else {
-              onApplyClick(job);
-            }
-          }}
+          className="JC-viewSpecBtn"
+          onClick={() => onViewSpecClick ? onViewSpecClick(job) : onApplyClick(job)}
           title="View Complete Job Specifications"
         >
-          <span>View Job Spec</span>
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-            <polyline points="15 3 21 3 21 9"></polyline>
-            <line x1="10" y1="14" x2="21" y2="3"></line>
+          View Job Spec
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
           </svg>
         </button>
 
         <button
           type="button"
-          className="JobCard-applyNowBlueBtn"
+          className="JC-applyBtn"
           onClick={() => onApplyClick(job)}
-          title="Apply directly for this position"
+          title="Apply for this position"
         >
           Apply Now
         </button>
