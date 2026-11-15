@@ -1041,11 +1041,6 @@ export const getCandidates = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
-  } catch (err) {
-    console.error('getCandidates error:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-};
 
 /**
  * Retrieve Full Unredacted Candidate Evaluation Dossier for Admins
