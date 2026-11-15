@@ -2995,8 +2995,8 @@ export const getCmsPages = async (req, res) => {
     let items = [];
     let total = 0;
     if (isMongoActive()) {
-      total = await Page.countDocuments();
-      items = await Page.find()
+      total = await Page.countDocuments({ isDeleted: { $ne: true } });
+      items = await Page.find({ isDeleted: { $ne: true } })
         .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -3249,7 +3249,9 @@ export const deleteCmsPage = async (req, res) => {
 
     if (isMongoActive()) {
       const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { id };
-      await Page.findOneAndDelete(query);
+      await Page.findOneAndUpdate(query, {
+        $set: { isDeleted: true, deletedAt: new Date() },
+      });
     }
 
     await logActivity(
@@ -3416,8 +3418,8 @@ export const getCmsMedia = async (req, res) => {
     let items = [];
     let total = 0;
     if (isMongoActive()) {
-      total = await Media.countDocuments();
-      items = await Media.find()
+      total = await Media.countDocuments({ isDeleted: { $ne: true } });
+      items = await Media.find({ isDeleted: { $ne: true } })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -3524,7 +3526,9 @@ export const deleteCmsMedia = async (req, res) => {
 
     if (isMongoActive()) {
       const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { id };
-      await Media.findOneAndDelete(query);
+      await Media.findOneAndUpdate(query, {
+        $set: { isDeleted: true, deletedAt: new Date() },
+      });
     }
 
     res.json({ success: true, message: 'Media asset deleted successfully' });
@@ -3626,8 +3630,8 @@ export const getAnnouncements = async (req, res) => {
     let items = [];
     let total = 0;
     if (isMongoActive()) {
-      total = await Announcement.countDocuments();
-      items = await Announcement.find()
+      total = await Announcement.countDocuments({ isDeleted: { $ne: true } });
+      items = await Announcement.find({ isDeleted: { $ne: true } })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -3752,7 +3756,9 @@ export const deleteAnnouncement = async (req, res) => {
 
     if (isMongoActive()) {
       const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { id };
-      await Announcement.findOneAndDelete(query);
+      await Announcement.findOneAndUpdate(query, {
+        $set: { isDeleted: true, deletedAt: new Date() },
+      });
     }
 
     res.json({ success: true, message: 'Announcement deleted successfully' });
@@ -3792,16 +3798,16 @@ export const getCmsStats = async (req, res) => {
         recentArts,
         annList,
       ] = await Promise.all([
-        Page.countDocuments(),
-        Page.countDocuments({ status: 'published' }),
+        Page.countDocuments({ isDeleted: { $ne: true } }),
+        Page.countDocuments({ status: 'published', isDeleted: { $ne: true } }),
         Article.countDocuments({ isDeleted: { $ne: true } }),
         Article.countDocuments({
           status: 'published',
           isDeleted: { $ne: true },
         }),
-        Media.countDocuments(),
-        Announcement.countDocuments(),
-        Page.find()
+        Media.countDocuments({ isDeleted: { $ne: true } }),
+        Announcement.countDocuments({ isDeleted: { $ne: true } }),
+        Page.find({ isDeleted: { $ne: true } })
           .select('title slug status lastUpdatedBy author updatedAt createdAt')
           .sort({ updatedAt: -1 })
           .limit(6)
@@ -3811,7 +3817,7 @@ export const getCmsStats = async (req, res) => {
           .sort({ updatedAt: -1 })
           .limit(6)
           .lean(),
-        Announcement.find({ status: 'published' })
+        Announcement.find({ status: 'published', isDeleted: { $ne: true } })
           .sort({ createdAt: -1 })
           .limit(5)
           .lean(),

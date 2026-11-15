@@ -91,6 +91,36 @@ export const up = async ({ db }) => {
     console.warn('   Note on employees ESR index:', e.message);
   }
 
+  // 8. Pages ESR Index
+  try {
+    await db.collection('pages').createIndex(
+      { status: 1, isDeleted: 1, updatedAt: -1 },
+      { name: 'idx_pages_status_del_date_esr' }
+    );
+  } catch (e) {
+    console.warn('   Note on pages ESR index:', e.message);
+  }
+
+  // 9. Media ESR Index
+  try {
+    await db.collection('media').createIndex(
+      { isDeleted: 1, createdAt: -1 },
+      { name: 'idx_media_del_date_esr' }
+    );
+  } catch (e) {
+    console.warn('   Note on media ESR index:', e.message);
+  }
+
+  // 10. Announcements ESR Index
+  try {
+    await db.collection('announcements').createIndex(
+      { status: 1, isDeleted: 1, createdAt: -1 },
+      { name: 'idx_announcements_status_del_date_esr' }
+    );
+  } catch (e) {
+    console.warn('   Note on announcements ESR index:', e.message);
+  }
+
   console.log('   ✓ Compound ESR and text search indexes established successfully.');
 };
 
@@ -108,6 +138,9 @@ export const down = async ({ db }) => {
     { col: 'placements', idx: 'idx_placements_client_date_esr' },
     { col: 'articles', idx: 'idx_articles_cat_status_date_esr' },
     { col: 'employees', idx: 'idx_employees_status_date_esr' },
+    { col: 'pages', idx: 'idx_pages_status_del_date_esr' },
+    { col: 'media', idx: 'idx_media_del_date_esr' },
+    { col: 'announcements', idx: 'idx_announcements_status_del_date_esr' },
   ];
 
   for (const { col, idx } of drops) {

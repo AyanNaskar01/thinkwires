@@ -148,7 +148,10 @@ const getHomeSection = async (sectionKey, fallbackValue) => {
 router.get('/pages', async (req, res) => {
   if (isMongoActive()) {
     try {
-      const dbPages = await Page.find({ status: 'published' })
+      const dbPages = await Page.find({
+        status: 'published',
+        isDeleted: { $ne: true },
+      })
         .select('-__v')
         .sort({ title: 1 })
         .limit(100)
@@ -169,6 +172,7 @@ router.get('/pages/:slug', async (req, res) => {
       const page = await Page.findOne({
         slug: cleanSlug,
         status: 'published',
+        isDeleted: { $ne: true },
       }).lean();
       if (page) return res.json(page);
     } catch (err) {

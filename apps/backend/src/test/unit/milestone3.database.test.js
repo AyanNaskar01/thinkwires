@@ -7,6 +7,9 @@ import Client from '../../models/client.mongo.model.js';
 import Placement from '../../models/placement.mongo.model.js';
 import Employee from '../../models/employee.mongo.model.js';
 import Article from '../../models/article.mongo.model.js';
+import Page from '../../models/page.mongo.model.js';
+import Media from '../../models/media.mongo.model.js';
+import Announcement from '../../models/announcement.mongo.model.js';
 import * as esrMigration from '../../migrations/scripts/002_create_esr_and_text_indexes.js';
 import * as pgUserMigration from '../../migrations/pg_scripts/001_create_users_table.js';
 
@@ -156,6 +159,9 @@ describe('Milestone 3: Database Query Hygiene, ESR Indexing & Migrations', () =>
       { name: 'Placement', model: Placement },
       { name: 'Employee', model: Employee },
       { name: 'Article', model: Article },
+      { name: 'Page', model: Page },
+      { name: 'Media', model: Media },
+      { name: 'Announcement', model: Announcement },
     ];
 
     modelsWithSoftDelete.forEach(({ name, model }) => {
