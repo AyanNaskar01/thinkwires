@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSelector, useDispatch } from 'react-redux';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
@@ -147,6 +147,9 @@ const renderArticleContent = (content) => {
 const BlogPage = () => {
   const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
+  const { slug } = useParams();
+  const navigate = useNavigate();
+
   const {
     articles,
     featuredArticle,
@@ -162,9 +165,22 @@ const BlogPage = () => {
 
   const [activeArticleModal, setActiveArticleModal] = useState(null);
 
+  const handleCloseModal = () => {
+    setActiveArticleModal(null);
+    if (slug) {
+      navigate('/blog', { replace: false });
+    }
+  };
+
   const handleArticleClick = async (art) => {
     if (!art) return;
     setActiveArticleModal(art);
+
+    // Sync URL to /blog/:slug if not already matching
+    if (art.slug && slug !== art.slug) {
+      navigate(`/blog/${art.slug}`, { replace: false });
+    }
+
     // If body or content isn't loaded (e.g. pruned in listing endpoint), fetch full article
     if (!art.body && !art.content) {
       try {
@@ -186,6 +202,37 @@ const BlogPage = () => {
       }
     }
   };
+
+  // Handle /blog/:slug URL path
+  useEffect(() => {
+    if (!slug) return;
+    const found =
+      articles.find(
+        (a) =>
+          a.slug === slug ||
+          a.id === slug ||
+          a.articleId === slug
+      ) ||
+      (featuredArticle &&
+      (featuredArticle.slug === slug ||
+        featuredArticle.id === slug ||
+        featuredArticle.articleId === slug)
+        ? featuredArticle
+        : null);
+
+    if (found) {
+      setTimeout(() => handleArticleClick(found), 0);
+    } else {
+      fetch(`${API_BASE}/articles/${encodeURIComponent(slug)}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((art) => {
+          if (art) {
+            setActiveArticleModal(art);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [slug, articles, featuredArticle]);
 
   // Handle ?category= URL param — map to a known BlogFilters key
   useEffect(() => {
@@ -367,14 +414,14 @@ const BlogPage = () => {
       {activeArticleModal && (
         <div
           className="BlogPage-modalOverlay"
-          onClick={() => setActiveArticleModal(null)}
+          onClick={handleCloseModal}
         >
           <div
             className="BlogPage-modalContent"
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              onClick={() => setActiveArticleModal(null)}
+              onClick={handleCloseModal}
               className="BlogPage-modalCloseBtn"
               aria-label="Close reader"
             >
@@ -405,7 +452,7 @@ const BlogPage = () => {
                       color: 'var(--color-outline)',
                     }}
                   >
-                    Published on {activeArticleModal.publishedAt ? new Date(activeArticleModal.publishedAt).toLocaleDateString() : 'Recent'} •{' '}
+                    Published on {activeArticleModal.publishedAt ? new Date(activeArticleModal.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent'} •{' '}
                     {activeArticleModal.readTime || '4 min read'}
                   </div>
                 </div>

@@ -30,17 +30,45 @@ const FeaturedArticle = ({
   };
 
   const currentArticle = article || defaultArticle;
-  // Always prioritize local generated asset image over default remote urls
-  const displayImage =
-    currentArticle.imageUrl && !currentArticle.imageUrl.includes('unsplash')
-      ? currentArticle.imageUrl
-      : featuredImgAsset;
 
-  const categoriesList = currentArticle.categories || [
-    { name: 'AI & Data Science', bg: '#dbeafe', color: '#1e40af' },
-    { name: 'GCC Trends', bg: '#f1f5f9', color: '#475569' },
-    { name: 'Strategic Shift', bg: '#dcfce7', color: '#166534' },
-  ];
+  const displayImage =
+    currentArticle.featuredImageUrl ||
+    (currentArticle.imageUrl && !currentArticle.imageUrl.includes('unsplash')
+      ? currentArticle.imageUrl
+      : featuredImgAsset);
+
+  const categoriesList =
+    Array.isArray(currentArticle.categories) && currentArticle.categories.length > 0
+      ? currentArticle.categories
+      : [
+          {
+            name: currentArticle.category || 'Industry Insights',
+            bg: '#dbeafe',
+            color: '#1e40af',
+          },
+          ...(Array.isArray(currentArticle.tags)
+            ? currentArticle.tags.slice(0, 2).map((t) => ({
+                name: t,
+                bg: '#f1f5f9',
+                color: '#475569',
+              }))
+            : []),
+        ];
+
+  const formatFeaturedDate = (dateVal) => {
+    if (!dateVal) return 'Recent';
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return dateVal;
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    } catch {
+      return dateVal;
+    }
+  };
 
   return (
     <section className="FeaturedArticle-section">
@@ -96,7 +124,7 @@ const FeaturedArticle = ({
 
           {/* Bottom Right Date Overlay */}
           <div className="FeaturedArticle-dateOverlayBottomRight">
-            {currentArticle.publishedAt || 'Sep 16, 2026'}
+            {formatFeaturedDate(currentArticle.publishedAt)}
           </div>
         </div>
 
@@ -144,6 +172,8 @@ const FeaturedArticle = ({
             </div>
             <p className="FeaturedArticle-findingText">
               {currentArticle.primaryFinding ||
+                currentArticle.summary ||
+                currentArticle.excerpt ||
                 'Global GCC capability share in tier-1 Indian centers rose from 24% maintenance to 68% high-order machine learning IP generation in 2026.'}
             </p>
           </div>

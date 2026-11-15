@@ -23,6 +23,7 @@ import {
   getHelpDeskStats,
   updateHelpDeskTicket,
 } from '../models/helpdesk.mongo.model.js';
+import articlesStore, { inMemoryArticles } from '../utils/articlesStore.js';
 import { getTransporter } from '../utils/notificationDispatcher.util.js';
 import aiService from '../services/ai.service.js';
 import { buildDualScoreReport } from '../utils/dualScore.util.js';
@@ -58,6 +59,7 @@ export let inMemoryData = loadSeedJson('adminSeedData.json', {
   announcements: [],
   activities: [],
 });
+inMemoryData.articles = inMemoryArticles;
 
 const isMongoActive = () => mongoose.connection.readyState === 1;
 
@@ -3022,46 +3024,9 @@ export const getCmsArticles = async (req, res) => {
     const { category, status } = req.query;
     const search =
       typeof req.query.search === 'string' ? req.query.search.trim() : '';
-    const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-    let items = [];
-    if (isMongoActive()) {
-      let query = {};
-      if (safeSearch) {
-        query.$or = [
-          { title: { $regex: safeSearch, $options: 'i' } },
-          { summary: { $regex: safeSearch, $options: 'i' } },
-          { tags: { $in: [new RegExp(safeSearch, 'i')] } },
-        ];
-      }
-      if (category && category !== 'All') query.category = category;
-      if (status && status !== 'All') query.status = status;
-
-      items = await Article.find(query).sort({ createdAt: -1 }).lean();
-      if (
-        items.length === 0 &&
-        !search &&
-        (!category || category === 'All') &&
-        (!status || status === 'All')
-      ) {
-        items = inMemoryData.articles;
-      }
-    } else {
-      items = inMemoryData.articles.filter((art) => {
-        let match = true;
-        if (search) {
-          const s = search.toLowerCase();
-          match =
-            art.title.toLowerCase().includes(s) ||
-            art.summary.toLowerCase().includes(s) ||
-            (art.tags && art.tags.some((t) => t.toLowerCase().includes(s)));
-        }
-        if (match && category && category !== 'All')
-          match = art.category === category;
-        if (match && status && status !== 'All') match = art.status === status;
-        return match;
-      });
-    }
+    const items = await articlesStore.getCmsArticles({ search, category, status });
+    inMemoryData.articles = inMemoryArticles;
 
     res.json({ success: true, articles: items });
   } catch (err) {
@@ -3071,194 +3036,39 @@ export const getCmsArticles = async (req, res) => {
 
 export const createCmsArticle = async (req, res) => {
   try {
-    const {
-      title,
-      slug,
-      summary,
-      body,
-      author,
-      category,
-      featuredImageUrl,
-      tags,
-      status,
-    } = req.body;
-
-    if (!title || !summary || !body) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: 'Article title, summary, and body content are required.',
-        });
-    }
-
-    const cleanSlug = (slug || title)
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9-_]/g, '-');
-
-    const duplicate = inMemoryData.articles.some((a) => a.slug === cleanSlug);
-    if (duplicate) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: `An article with slug '${cleanSlug}' already exists.`,
-        });
-    }
-
-    const tagsArray = Array.isArray(tags)
-      ? tags
-      : typeof tags === 'string'
-        ? tags
-            .split(',')
-            .map((t) => t.trim())
-            .filter(Boolean)
-        : ['Staffing', 'Tech Insights'];
-
-    const authorObj = typeof author === 'object' && author !== null ? author : {};
-    const resolvedAuthorName = authorObj.name || req.body.authorName || (typeof author === 'string' ? author : '') || req.user?.name || 'Thinkwires Editorial';
-    const resolvedAuthorRole = authorObj.role || req.body.authorRole || 'Chief Technology Advisor';
-    const resolvedAuthorAvatar = authorObj.avatar || authorObj.imageUrl || req.body.authorAvatar || '';
-    const resolvedAuthorInitials = authorObj.initials || resolvedAuthorName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
-
-    const newArt = {
-      id: `art_${Date.now()}`,
-      title,
-      slug: cleanSlug,
-      summary,
-      body,
-      author: {
-        name: resolvedAuthorName,
-        role: resolvedAuthorRole,
-        avatar: resolvedAuthorAvatar,
-        initials: resolvedAuthorInitials,
-      },
-      category: category || 'Industry Insights',
-      featuredImageUrl: featuredImageUrl || '/images/about-philosophy.jpg',
-      tags: tagsArray,
-      readTime: `${Math.max(2, Math.ceil(body.split(' ').length / 150))} min read`,
-      viewsCount: 0,
-      status: status || 'draft',
-      publishedAt: status === 'published' ? new Date().toISOString() : null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    inMemoryData.articles.unshift(newArt);
-
-    if (isMongoActive()) {
-      await Article.create(newArt);
-    }
+    const newArt = await articlesStore.createArticle(req.body, req.user);
+    inMemoryData.articles = inMemoryArticles;
 
     await logActivity(
       'Created Blog Article',
       'CMS',
       newArt.id,
-      `Authored article '${title}'.`,
+      `Authored article '${newArt.title}'.`,
       req.user,
       '#8064D8'
     );
 
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: 'Article created successfully',
-        article: newArt,
-      });
+    res.status(201).json({
+      success: true,
+      message: 'Article created successfully',
+      article: newArt,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(400).json({ success: false, error: err.message });
   }
 };
 
 export const updateCmsArticle = async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
-
-    const idx = inMemoryData.articles.findIndex(
-      (a) => a.id === id || String(a._id) === id || a.slug === id
-    );
-    if (idx === -1)
-      return res
-        .status(404)
-        .json({ success: false, error: 'Article not found' });
-
-    if (updates.tags && typeof updates.tags === 'string') {
-      updates.tags = updates.tags
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean);
-    }
-
-    if (
-      updates.author !== undefined ||
-      updates.authorName !== undefined ||
-      updates.authorRole !== undefined ||
-      updates.authorAvatar !== undefined
-    ) {
-      const currentAuthor = inMemoryData.articles[idx].author || {};
-      const authorObj =
-        typeof updates.author === 'object' && updates.author !== null
-          ? updates.author
-          : {};
-      const resolvedName =
-        authorObj.name ||
-        updates.authorName ||
-        (typeof updates.author === 'string' ? updates.author : '') ||
-        currentAuthor.name ||
-        'Thinkwires Editorial';
-      const resolvedRole =
-        authorObj.role ||
-        updates.authorRole ||
-        currentAuthor.role ||
-        'Chief Technology Advisor';
-      const resolvedAvatar =
-        authorObj.avatar !== undefined
-          ? authorObj.avatar
-          : updates.authorAvatar !== undefined
-            ? updates.authorAvatar
-            : currentAuthor.avatar || '';
-      const resolvedInitials =
-        authorObj.initials ||
-        resolvedName
-          .split(' ')
-          .map((n) => n[0])
-          .join('')
-          .slice(0, 2)
-          .toUpperCase();
-
-      updates.author = {
-        name: resolvedName,
-        role: resolvedRole,
-        avatar: resolvedAvatar,
-        initials: resolvedInitials,
-      };
-    }
-
-    updates.updatedAt = new Date().toISOString();
-    if (
-      updates.status === 'published' &&
-      !inMemoryData.articles[idx].publishedAt
-    ) {
-      updates.publishedAt = new Date().toISOString();
-    }
-
-    inMemoryData.articles[idx] = { ...inMemoryData.articles[idx], ...updates };
-
-    if (isMongoActive()) {
-      const query = mongoose.Types.ObjectId.isValid(id)
-        ? { _id: id }
-        : { $or: [{ id }, { articleId: id }, { slug: id }] };
-      await Article.findOneAndUpdate(query, updates, { new: true });
-    }
+    const updated = await articlesStore.updateArticle(id, req.body, req.user);
+    inMemoryData.articles = inMemoryArticles;
 
     await logActivity(
       'Updated Article',
       'CMS',
       id,
-      `Updated blog post '${inMemoryData.articles[idx].title}'.`,
+      `Updated blog post '${updated.title}'.`,
       req.user,
       '#8064D8'
     );
@@ -3266,45 +3076,25 @@ export const updateCmsArticle = async (req, res) => {
     res.json({
       success: true,
       message: 'Article updated successfully',
-      article: inMemoryData.articles[idx],
+      article: updated,
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const statusCode = err.message === 'Article not found.' ? 404 : 400;
+    res.status(statusCode).json({ success: false, error: err.message });
   }
 };
 
 export const togglePublishCmsArticle = async (req, res) => {
   try {
     const { id } = req.params;
-    const idx = inMemoryData.articles.findIndex(
-      (a) => a.id === id || String(a._id) === id || a.slug === id
-    );
-    if (idx === -1)
-      return res
-        .status(404)
-        .json({ success: false, error: 'Article not found' });
-
-    const newStatus =
-      inMemoryData.articles[idx].status === 'published' ? 'draft' : 'published';
-    inMemoryData.articles[idx].status = newStatus;
-    inMemoryData.articles[idx].updatedAt = new Date().toISOString();
-    if (newStatus === 'published') {
-      inMemoryData.articles[idx].publishedAt = new Date().toISOString();
-    }
-
-    if (isMongoActive()) {
-      const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { id };
-      await Article.findOneAndUpdate(query, {
-        status: newStatus,
-        publishedAt: inMemoryData.articles[idx].publishedAt,
-      });
-    }
+    const { article, newStatus } = await articlesStore.togglePublishArticle(id, req.user);
+    inMemoryData.articles = inMemoryArticles;
 
     await logActivity(
       'Article Status Toggled',
       'CMS',
       id,
-      `Article '${inMemoryData.articles[idx].title}' marked as ${newStatus}.`,
+      `Article '${article.title}' marked as ${newStatus}.`,
       req.user,
       '#8064D8'
     );
@@ -3313,43 +3103,33 @@ export const togglePublishCmsArticle = async (req, res) => {
       success: true,
       message: `Article status changed to ${newStatus}`,
       status: newStatus,
+      article,
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const statusCode = err.message === 'Article not found.' ? 404 : 400;
+    res.status(statusCode).json({ success: false, error: err.message });
   }
 };
 
 export const deleteCmsArticle = async (req, res) => {
   try {
     const { id } = req.params;
-    const idx = inMemoryData.articles.findIndex(
-      (a) => a.id === id || String(a._id) === id || a.slug === id
-    );
-    if (idx === -1)
-      return res
-        .status(404)
-        .json({ success: false, error: 'Article not found' });
-
-    const title = inMemoryData.articles[idx].title;
-    inMemoryData.articles.splice(idx, 1);
-
-    if (isMongoActive()) {
-      const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { id };
-      await Article.findOneAndDelete(query);
-    }
+    const deleted = await articlesStore.deleteArticle(id, req.user);
+    inMemoryData.articles = inMemoryArticles;
 
     await logActivity(
       'Deleted Article',
       'CMS',
       id,
-      `Removed blog post '${title}'.`,
+      `Removed blog post '${deleted.title}'.`,
       req.user,
       '#DC2626'
     );
 
     res.json({ success: true, message: 'Article deleted successfully' });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const statusCode = err.message === 'Article not found.' ? 404 : 400;
+    res.status(statusCode).json({ success: false, error: err.message });
   }
 };
 

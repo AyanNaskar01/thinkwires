@@ -86,6 +86,7 @@ function App() {
           <Route path="/jobs" element={<JobPage />} />
           <Route path="/hot-jobs" element={<JobPage />} />
           <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogPage />} />
           <Route path="/contact" element={<ContactPage />} />
 
           {/* Resources Routes (Issue #170) */}

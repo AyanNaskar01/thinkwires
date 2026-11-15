@@ -214,7 +214,7 @@ const Reports = () => {
 
   // Deep-link destination for modal reader on Blog page
   const getReportDestination = (article) => {
-    if (article.slug) return `/blog?article=${encodeURIComponent(article.slug)}`;
+    if (article.slug) return `/blog/${encodeURIComponent(article.slug)}`;
     if (article.id) return `/blog?article=${encodeURIComponent(article.id)}`;
     return `/blog?article=${encodeURIComponent(article.title)}`;
   };
