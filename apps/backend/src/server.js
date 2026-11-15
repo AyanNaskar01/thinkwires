@@ -1,4 +1,4 @@
-import app from './app.js';
+import app, { setShuttingDown } from './app.js';
 import { connectDB, sequelize } from './configs/db.js';
 import {
   connectMongoDB,
@@ -8,17 +8,24 @@ import {
 import config from './configs/dotenv.js';
 import { getRedisClient, closeRedis } from './configs/redis.js';
 import { getJwtSecret } from './utils/auth.util.js';
+import { validateBootEnvironment } from './configs/env.validator.js';
 
 const PORT = config.PORT || 5000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 const startServer = async () => {
+  // Fail fast on startup if environment schema or secrets are missing/invalid in production (DEP-02)
+  if (!process.env.VITEST) {
+    validateBootEnvironment();
+  }
+
   // Fail fast on startup if JWT_SECRET is missing, insecure, or weak
   getJwtSecret();
 
-  // Start HTTP server immediately so APIs and Vite proxy respond without blocking on DB timeouts
-  const server = app.listen(PORT, () => {
+  // Start HTTP server immediately bound to 0.0.0.0 for containerized environments (DEP-03)
+  const server = app.listen(PORT, HOST, () => {
     console.log(
-      `[Server] Thinkwires API server running on http://localhost:${PORT}`
+      `[Server] Thinkwires API server running on http://${HOST}:${PORT}`
     );
   });
 
@@ -47,13 +54,20 @@ const startServer = async () => {
       );
     });
 
-  // MongoDB (Mongoose) - Graceful non-blocking connection with index synchronization (SEC-EXP-09)
+  // MongoDB (Mongoose) - Graceful connection with fail-fast in production (DEP-02)
   connectMongoDB()
     .then(async () => {
       console.log('[MongoDB] Connected: dual-mode active persistence enabled.');
       await synchronizeIndexes();
     })
     .catch((error) => {
+      if (process.env.NODE_ENV === 'production' && !process.env.VITEST) {
+        console.error(
+          '💥 [FATAL] Critical database boot failure: MongoDB connection refused in production mode.',
+          error.message || error
+        );
+        process.exit(1);
+      }
       console.warn(
         '[MongoDB] Connection optional/bypassed:',
         error.message || error
@@ -72,9 +86,15 @@ const startServer = async () => {
       );
     });
 
-  // Graceful shutdown handling for container orchestrators (Docker, Kubernetes, Render)
+  // Graceful shutdown handling for container orchestrators (Docker, Kubernetes, Render) with active connection draining (DEP-06)
   const gracefulShutdown = (signal, exitCode = 0) => {
     console.log(`[Server] Received ${signal}. Starting graceful shutdown...`);
+    setShuttingDown(true);
+
+    if (typeof server.closeIdleConnections === 'function') {
+      server.closeIdleConnections();
+    }
+
     server.close(async () => {
       console.log('[Server] HTTP connections closed.');
       try {

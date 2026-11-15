@@ -21,11 +21,32 @@ import { isAllowedOrigin } from './middlewares/csrf.middleware.js';
 import sanitizeInputs from './middlewares/sanitize.middleware.js';
 import { sequelize } from './configs/db.js';
 import { isRedisConnected } from './configs/redis.js';
+import healthRoutes from './routes/health.route.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Active connection draining state for graceful termination (DEP-06)
+let isShuttingDown = false;
+
+export const setShuttingDown = (value) => {
+  isShuttingDown = Boolean(value);
+};
+
+export const getShuttingDown = () => isShuttingDown;
+
 const app = express();
+
+// Active connection draining middleware
+app.use((req, res, next) => {
+  if (isShuttingDown) {
+    res.setHeader('Connection', 'close');
+    return res.status(503).json({
+      error: 'Server is currently shutting down. Please retry on an active replica.',
+    });
+  }
+  next();
+});
 
 // Trust reverse proxy (Render, Vercel, Cloudflare, AWS ALB) for accurate client IP in req.ip
 app.set('trust proxy', 1);
@@ -87,6 +108,10 @@ const resumesDir = path.resolve(uploadsDir, 'resumes');
 app.use('/uploads/avatars', express.static(avatarsDir));
 app.get('/uploads/resumes/:filename', downloadResume);
 
+// Standard SRE Liveness (/healthz) and Readiness (/ready) probes (DEP-05)
+app.use(healthRoutes);
+app.use('/api', healthRoutes);
+
 app.get('/api', (req, res) => {
   res.status(200).json({
     status: 'healthy',
@@ -97,6 +122,14 @@ app.get('/api', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
+  const isMongoReady = mongoose.connection.readyState === 1;
+  const isPostgresReady = Boolean(sequelize);
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // DEP-04: Evaluate datastore readiness; return 503 if primary database is down in production
+  const isHealthy = isProduction ? isMongoReady : true;
+  const statusCode = isHealthy ? 200 : 503;
+
   const mongoStatusMap = {
     0: 'disconnected',
     1: 'connected',
@@ -104,10 +137,8 @@ app.get('/api/health', (req, res) => {
     3: 'disconnecting',
   };
 
-  const isPostgresReady = Boolean(sequelize);
-
-  res.status(200).json({
-    status: 'healthy',
+  res.status(statusCode).json({
+    status: isHealthy ? 'healthy' : 'unhealthy',
     service: 'Thinkwires Enterprise Core Backend',
     version: '1.0.0',
     timestamp: new Date().toISOString(),

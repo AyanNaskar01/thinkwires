@@ -1,308 +1,231 @@
-# Thinkwires Staffing and Workforce Solutions
+# Thinkwires Enterprise Platform
 
-Thinkwires is an enterprise technical manpower supply, global staffing, and talent management platform connecting three primary ecosystems:
+## 1. Company Details
 
-1. **Clients (Enterprises & Startups)**: Sourcing pre-vetted engineering talent, managing staff augmentation, payroll outsourcing, and Employer of Record (EOR) operations.
-2. **Candidates (Job Seekers & Bench Talent)**: Browsing technical mandates, applying with resumes, agreeing to Terms & Conditions and Privacy Policies, tracking application pipelines, taking proctored screening assessments, and maintaining professional profiles.
-3. **Internal Admins & Recruiters**: Operating an ATS (Applicant Tracking System), managing bench staff utilization and daily cost overhead, reviewing AI candidate fit scores and assessments, and administering public web content via an integrated Content Management System (CMS).
+**Thinkwires** is an enterprise technical workforce solutions, global staffing, and talent management company. The platform provides end-to-end infrastructure connecting enterprise employers, pre-vetted engineering talent, and recruitment operations across three core ecosystems:
 
----
+### Core Services & Solutions
+- **Staff Augmentation**: Rapid deployment of pre-vetted engineers and software specialists to scale engineering teams on demand.
+- **Permanent Technical Staffing**: End-to-end recruitment pipelines with dual-score candidate validation (resume claims vs. proctored technical evaluations).
+- **Employer of Record (EOR)**: Global entity compliance, cross-border payroll, benefits administration, and risk mitigation for international hires.
+- **Payroll Outsourcing**: Compliant payroll processing, timesheet tracking, and invoice margin management.
+- **Talent Cloud Bench**: Real-time deployment desk for active, unallocated engineers with blind profile sharing (`TW-CAND-XXXX`) and direct client interview scheduling.
 
-## Project Documentation Hub
+### Platform Ecosystems & Users
+1. **Enterprise Clients**: Submit technical requisitions, browse the verified talent bench, review blind dossiers, and manage active contractor placements.
+2. **Candidates & Talent**: Discover engineering mandates, apply with resume parsing, complete AI-assisted screening assessments, and track interview pipelines.
+3. **Internal HR, ATS Recruiters & CMS Admins**: Full-lifecycle Applicant Tracking System (ATS), bench utilization analytics, automated candidate notification queues, and content management (blog, legal policies, pages, and announcements).
 
-The Thinkwires documentation suite is organized into four comprehensive tiers covering system architecture, operational workflows, security audits, and testing manuals:
-
-### 1. Core Specifications & Engineering Guides
-| Document | Primary Audience | Scope and Contents |
-| :--- | :--- | :--- |
-| [**docs/FrontendDocs.md**](docs/FrontendDocs.md) | Frontend Engineers & Agents | React 19 architecture, Vite proxy, Redux Toolkit slices, routing inventory, design tokens, Three.js canvas, and auth state. |
-| [**docs/BackendDocs.md**](docs/BackendDocs.md) | Backend Engineers & Agents | Express 5 API Gateway, dual-persistence (PostgreSQL + MongoDB Atlas), connection resilience, in-memory fallback, rate limiting, and complete REST API reference. |
-| [**docs/Ai_ServicesDocs.md**](docs/Ai_ServicesDocs.md) | AI Engineers & Agents | Python FastAPI microservice, multi-provider LLM cascade, PDF link parsing, ATS match scorer, assessment generator, and test grader. |
-| [**docs/adminPanel.md**](docs/adminPanel.md) | Admins, Ops & Agents | 15 Admin & CMS views, Recharts financial analytics, 6-stage ATS Kanban, RBAC persona switcher, candidate tracking, and live preview editors. |
-| [**docs/PRD.md**](docs/PRD.md) | Product Managers & Leads | Product Requirements Document, business KPIs, legal compliance, screening test specifications, and platform roadmap. |
-| [**docs/Design.md**](docs/Design.md) | Designers & Developers | Design aesthetic rules, color tokens, typography scales, glassmorphism specs, and UI guidelines. |
-| [**docs/Test.md**](docs/Test.md) | QA, DevOps & Engineers | Master testing guide, command reference cheat sheet, Vitest, MSW, Supertest, Axe-core, and Playwright E2E suites. |
-| [**docs/VERCEL_DEPLOYMENT.md**](docs/VERCEL_DEPLOYMENT.md) | DevOps & SREs | Edge CDN routing, serverless Express API deployment, environment variable configuration, and custom domains. |
-
-### 2. End-to-End Operational Workflow Blueprints
-| Document | Primary Audience | Scope and Contents |
-| :--- | :--- | :--- |
-| [**docs/CandidateWorkflow.md**](docs/CandidateWorkflow.md) | Recruiters & Engineers | Candidate onboarding, resume auto-fill parsing, application lifecycle, and interactive screening gatekeeper. |
-| [**docs/ClientRequisitionWorkflow.md**](docs/ClientRequisitionWorkflow.md) | Sales, Ops & Recruiters | Enterprise mandate submission, 5-Hour SLA benchmark, recruiter approval desk, and conversion to active openings. |
-| [**docs/BenchWorkflow.md**](docs/BenchWorkflow.md) | Clients, Ops & Recruiters | Talent Cloud Bench sourcing, candidate privacy protection (blind profiles `TW-CAND-XXXX`), and direct client interview booking. |
-| [**docs/PlacementWorkflow.md**](docs/PlacementWorkflow.md) | HR, Payroll & Finance | Post-hire placement contract initiation, weekly timesheet logging, client hour approval, and global EOR advisory. |
-| [**docs/CMSWorkflow.md**](docs/CMSWorkflow.md) | Content Admins & Marketing | Dynamic website pages, engineering blog publishing, media library curation, emergency banners, and SEO metadata. |
-| [**docs/AdminWorkflow.md**](docs/AdminWorkflow.md) | Admins & Ops | Three-tier RBAC (`superadmin`, `admin`, `cms_admin`), session management, CSRF defense, and administrative desk routing. |
-| [**docs/AIPipelineWorkflow.md**](docs/AIPipelineWorkflow.md) | AI & Backend Engineers | Multi-provider LLM cascade (Groq Llama-3.3 -> Gemini -> OpenRouter -> Ollama -> OpenAI) and deterministic 6-factor fallback. |
-| [**docs/DossierWorkflow.md**](docs/DossierWorkflow.md) | Recruiters & Clients | Candidate evaluation dossier synthesis, 6-factor radar assessment, and multi-tier privacy presentation views. |
-
-### 3. Security, Performance & SRE Audits (November 2026)
-| Document | Primary Audience | Scope and Contents |
-| :--- | :--- | :--- |
-| [**docs/AUDIT_IMPLEMENTATION_TRACKER.md**](docs/AUDIT_IMPLEMENTATION_TRACKER.md) | Engineering Leads & Product | Centralized implementation roadmap, 5 milestones, and issue acceptance criteria across all audits. |
-| [**docs/BOLA_IDOR_Remediation_Plan.md**](docs/BOLA_IDOR_Remediation_Plan.md) | Security & Backend Leads | Master remediation blueprint resolving all 16 BOLA / IDOR vulnerabilities, compound ESR indexing, and zero-crash safeguards. |
-| [**docs/ExpressBackendSecurityAndArchitectureAudit.md**](docs/ExpressBackendSecurityAndArchitectureAudit.md) | Backend & Security Architects | NoSQL selector injection defense, mass assignment prevention, body parser DoS hardening, and process exception monitors. |
-| [**docs/DatabaseSecurityAndQueryAudit.md**](docs/DatabaseSecurityAndQueryAudit.md) | Database Admins & Engineers | Query hygiene audit resolving 19 unbounded `.find()` queries, strict schema enforcement, and TLS connection security. |
-| [**docs/FrontendPerformanceAndSecurityAudit.md**](docs/FrontendPerformanceAndSecurityAudit.md) | Frontend Architects | Code-splitting & lazy loading to reduce 1.14 MB bundle, input debouncing, `AbortController` race prevention, and client auth hygiene. |
-| [**docs/DeploymentReadinessAndPortabilityAudit.md**](docs/DeploymentReadinessAndPortabilityAudit.md) | SREs & Cloud Architects | 12-Factor App compliance audit, ephemeral disk upload migration to object storage, container probes, and 0.0.0.0 binding. |
-
-### 4. Specialized Concepts & Governance
-| Document | Primary Audience | Scope and Contents |
-| :--- | :--- | :--- |
-| [**docs/resume.md**](docs/resume.md) | Product & AI Engineers | Dual-Score Architecture solving the AI "Resume Inflation" problem: separating paper claims from empirical test scores. |
-| [**thinkwires_policies_md/**](thinkwires_policies_md/md/) | Legal, HR & Compliance | Corporate information security, anti-bribery, GDPR personal data handling, and cookie privacy policies. |
+### Corporate Information
+- **Organization**: Thinkwires Staffing & Workforce Solutions
+- **Industry**: Information Technology, Technical Manpower & Global Staffing
+- **Support & Inquiries**: `support@thinkwires.com`
+- **Headquarters**: Hyderabad, Telangana, India
 
 ---
 
-## System Architecture (Turborepo Monorepo)
+## 2. Folder Structure
 
-The repository is managed via **Turborepo** (`apps/*` workspaces) providing isolated development across web, API, and machine learning services:
+The repository is structured as an npm workspaces monorepo:
 
 ```
 thinkwires/
 ├── apps/
-│   ├── frontend/         # React 19 + Vite + Redux Toolkit (Port 5173)
-│   ├── backend/          # Node.js + Express 5 Core API Gateway (Port 5000)
-│   └── ai_services/      # Python 3.12 + FastAPI Microservice (Port 8000)
-├── docs/                 # Consolidated documentation suite (Frontend, Backend, AI, Admin, PRD, Design)
-├── package.json          # Root orchestration & unified scripts
-└── turbo.json            # Turborepo task pipeline configuration
-```
-
-```
-                               ┌────────────────────────────────────────────────┐
-                               │           Browser / Client Applications         │
-                               └───────────────────────┬────────────────────────┘
-                                                       │
-                      ┌────────────────────────────────┴────────────────────────────────┐
-                      │ HTTP / REST                                                     │ HTTP / REST
-                      ▼                                                                 ▼
-      ┌──────────────────────────────┐                                  ┌──────────────────────────────┐
-      │   React 19 Frontend (5173)   │ ────(Vite Reverse Proxy /api)───▶│   Express 5 Backend (5000)   │
-      │   - Public Marketing Pages   │                                  │   - JWT Cookie Auth & RBAC   │
-      │   - Protected Candidate App  │                                  │   - Candidate Portal Routes  │
-      │   - Admin Dashboard & CMS    │                                  │   - Admin & CMS Controllers  │
-      └──────────────────────────────┘                                  └───────────────┬──────────────┘
-                                                                                        │
-                                        ┌───────────────────────────────────────────────┼──────────────────────────────┐
-                                        │                                               │                              │
-                                        ▼                                               ▼                              ▼
-                         ┌─────────────────────────────┐                 ┌─────────────────────────────┐┌─────────────────────────────┐
-                         │   PostgreSQL (Sequelize)    │                 │     MongoDB (Mongoose)      ││   FastAPI AI Service (8000) │
-                         │   - Neon Cloud Database     │                 │     - Atlas Document Store  ││   - Resume Vector Scorer    │
-                         │   - Relational Structures   │                 │     - CMS & Candidate ATS   ││   - AI Test Gatekeeper      │
-                         └──────────────┬──────────────┘                 └──────────────┬──────────────┘└─────────────────────────────┘
-                                        │                                               │
-                                        └───────────────────────┬───────────────────────┘
-                                                                │ (Graceful Non-Blocking Fallback)
-                                                                ▼
-                                                 ┌─────────────────────────────┐
-                                                 │   In-Memory Mock Fallback   │
-                                                 │   (mockData / adminSeeds)   │
-                                                 └─────────────────────────────┘
+│   ├── frontend/                     # React 19 Client Application (Port 5173)
+│   │   ├── src/
+│   │   │   ├── admin/                # 15 ATS & CMS views (Candidates, Jobs, Bench, etc.)
+│   │   │   ├── components/           # Reusable UI components, Modals, Navbar, Footer
+│   │   │   ├── hooks/                # Custom hooks (useDebounce, useTheme, etc.)
+│   │   │   ├── pages/                # Public pages, candidate portal, and auth views
+│   │   │   ├── store/                # Redux Toolkit store and domain slices
+│   │   │   ├── test/                 # Vitest, React Testing Library, and MSW test suites
+│   │   │   ├── App.jsx               # Route definitions with lazy loading & Suspense
+│   │   │   └── main.jsx              # React application entry point
+│   │   ├── index.html                # HTML entry template
+│   │   ├── package.json              # Frontend dependencies and test scripts
+│   │   └── vite.config.js            # Vite bundler config with /api reverse proxy
+│   │
+│   ├── backend/                      # Node.js & Express 5 Core API Gateway (Port 5000)
+│   │   ├── src/
+│   │   │   ├── configs/              # MongoDB Atlas, PostgreSQL Sequelize, Redis, and env validator
+│   │   │   ├── controllers/          # Candidate Portal, Admin ATS, and Auth controllers
+│   │   │   ├── middlewares/          # JWT auth, RBAC guards, CSRF defense, sanitization, Multer
+│   │   │   ├── migrations/           # Deterministic PostgreSQL and MongoDB index migrations
+│   │   │   ├── models/               # Mongoose document models with compound ESR indexes
+│   │   │   ├── routes/               # REST API routers (/api/auth, /api/candidate, /api/admin, /healthz, /ready)
+│   │   │   ├── services/             # AI gateway and external service integrations
+│   │   │   ├── test/                 # Vitest backend unit, integration, and security test suites
+│   │   │   ├── utils/                # S3/R2 storage adapter, dual-score logic, auth helpers
+│   │   │   ├── app.js                # Express app configuration & middleware pipeline
+│   │   │   └── server.js             # Server startup, 0.0.0.0 binding, graceful shutdown
+│   │   ├── uploads/                  # Local fallback directory for resumes and avatars
+│   │   └── package.json              # Backend dependencies and runner scripts
+│   │
+│   └── ai_services/                  # Python 3.12 & FastAPI Microservice (Port 8000)
+│       ├── app/                      # Microservice application package (services, schemas, routes)
+│       ├── tests/                    # Pytest automated test suites
+│       ├── main.py                   # FastAPI server entry point
+│       └── requirements.txt          # Python dependencies (FastAPI, pypdf, httpx, uvicorn)
+│
+├── docs/                             # Engineering guides, architecture, and security audit plans
+├── thinkwires_policies_md/           # Corporate policies (privacy, terms, GDPR, data protection)
+├── .dockerignore                     # Docker build exclusion rules
+├── Dockerfile                        # Multi-stage rootless production container specification
+├── docker-compose.yml                # Multi-container local stack (backend, MongoDB 7, PostgreSQL 16, Redis 7)
+├── package.json                      # Monorepo root manifest and orchestration scripts
+└── vercel.json                       # Vercel deployment and routing configuration
 ```
 
 ---
 
-## Key Platform Features
+## 3. Setup Details
 
-- **AI Screening Gatekeeper**: Auto-generates proctored screening assessments matched to job requirements, evaluating technical answers and submitting scores.
-- **Resume Match Scorer & Annotation Parser**: Semantic comparison of applicant resumes against requisitions to generate a **Fit Score (0-100%)**, extracting structured profile links (LinkedIn, GitHub, portfolio) directly from PDF annotations and textual content.
-- **Job Application Workflow**:
-  - Enforces authenticated candidate submissions.
-  - Requires explicit consent to **Terms & Conditions** (`/terms-of-service`) and **Privacy Policy** (`/privacy-policy`).
-  - Pre-fills editable candidate details from existing profiles or newly parsed resumes.
-  - Allows candidates to view, monitor, and withdraw their applications.
-- **Bench Management**: Monitors internal unassigned engineers on payroll, tracks daily cost overhead, and enables single-click deployment to client projects.
-- **Admin Control Panel & CMS**: 15 integrated modules for ATS recruitment, candidate intake synchronization, client billing, staff directories, and live website CMS (pages, blog, media, SEO, announcements).
-- **Resilient Dual-Persistence**:
-  - **PostgreSQL**: Relational entities and schema migrations.
-  - **MongoDB Atlas**: Document storage with connection pooling (`family: 4`, `maxIdleTimeMS`, `heartbeatFrequencyMS`, `serverSelectionTimeoutMS`) and an active reconnection supervisor preventing idle connection drops.
-  - **In-Memory Fallback**: Automatic failover ensuring development, testing, and UI preview workflows remain operational when remote databases are temporarily unreachable.
-
----
-
-## Quickstart Setup Guide
-
-### 1. Prerequisites
-
-- **Node.js** (v20.x or higher)
-- **Python** (v3.12.x or higher)
+### Prerequisites
+- **Node.js**: `v20.x` or higher
+- **npm**: `v10.x` or higher
+- **Python**: `v3.12.x` or higher (for AI microservice)
 - **Git**
+- **Docker & Docker Compose** (optional, for containerized local databases)
 
-### 2. Install Dependencies
+---
 
-You can install all JavaScript workspace dependencies and the Python AI microservice requirements in a single command from the root:
+### Step 1: Install Dependencies
+
+Run the automated setup command from the repository root to install dependencies across all workspaces and set up the Python virtual environment:
 
 ```bash
-# Complete setup: installs npm dependencies across all workspaces + sets up Python venv & requirements.txt
+# Install npm dependencies for all workspaces + configure Python AI microservice
 npm run setup
-# or
-npm run install:all
 ```
 
-Alternatively, install dependencies individually from the root:
+Or install individual workspaces independently:
 
 ```bash
-# Install npm dependencies across all workspaces (apps/*)
+# Install root and workspace npm packages
 npm install
 
-# Install Python requirements.txt for the AI microservice into venv
+# Setup Python virtual environment and install requirements
 npm run install:requirements
-
-# Or install individual app dependencies directly from root:
-npm run install:frontend
-npm run install:backend
 ```
 
-### 3. Configure Environment Variables
+---
 
-Template files are provided in the root and in each application directory:
+### Step 2: Configure Environment Variables
+
+Copy the example configuration files to `.env` in the root and respective application directories:
 
 ```bash
-# 1. Master root environment
+# Root environment
 cp .env.example .env
 
-# 2. Backend environment
+# Backend environment
 cp apps/backend/.env.example apps/backend/.env
 
-# 3. Frontend environment
+# Frontend environment
 cp apps/frontend/.env.example apps/frontend/.env
 
-# 4. AI microservice environment
+# AI Microservice environment
 cp apps/ai_services/.env.example apps/ai_services/.env
 ```
 
-#### Core Backend `.env` Keys:
-
+#### Key Backend Variables (`apps/backend/.env`)
 ```ini
 PORT=5000
+HOST=0.0.0.0
 NODE_ENV=development
-DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
-MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/thinkwire_db
-JWT_SECRET=your_secure_random_jwt_secret
+
+# Database URIs
+MONGODB_URI=mongodb://localhost:27017/thinkwires
+DATABASE_URL=postgresql://thinkwires:thinkwires_secret@localhost:5432/thinkwires
+REDIS_URL=redis://localhost:6379
+
+# Authentication Secrets (minimum 32 characters in production)
+JWT_SECRET=your_development_jwt_secret_key_32_chars_min
+JWT_ADMIN_SECRET=your_development_admin_jwt_secret_32_chars
+JWT_CANDIDATE_SECRET=your_development_candidate_jwt_secret_32
+
+# Cloud Object Storage (optional; defaults to local disk if omitted)
+STORAGE_DRIVER=local
+# STORAGE_DRIVER=s3
+# S3_BUCKET=thinkwires-storage
+# S3_ENDPOINT=https://<account_id>.r2.cloudflarestorage.com
+# S3_REGION=auto
+# CDN_DOMAIN=cdn.thinkwires.com
+
+# Microservices
 AI_SERVICE_URL=http://localhost:8000
 ```
 
-### 4. Set Up AI Microservice (Python Virtual Environment)
+---
 
-You can automatically set up the virtual environment and dependencies for your operating system (Windows, Linux, macOS) by running:
+### Step 3: Start the Development Environment
 
-```bash
-npm run setup:ai
-```
-
-Alternatively, set it up manually:
-
-**Windows (PowerShell / Command Prompt):**
-
-```powershell
-cd apps/ai_services
-python -m venv venv
-.\venv\Scripts\activate
-pip install -r requirements.txt
-cd ../..
-```
-
-**Linux / macOS (Bash / Zsh):**
+Launch all services concurrently from the root directory:
 
 ```bash
-cd apps/ai_services
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cd ../..
-```
-
-### 5. Launch the Monorepo Development Environment
-
-Run the root Turborepo development script:
-
-```bash
+# Runs Backend (5000) and Frontend (5173) concurrently
 npm run dev
+
+# Or run all three services including Python AI Microservice (8000)
+npm run dev:all
 ```
 
-Turborepo will concurrently launch:
-
-- **Frontend Application**: [`http://localhost:5173`](http://localhost:5173)
-- **Express Core API**: [`http://localhost:5000`](http://localhost:5000)
-- **FastAPI AI Microservice**: [`http://localhost:8000`](http://localhost:8000) (Interactive Swagger docs: [`http://localhost:8000/docs`](http://localhost:8000/docs))
+#### Service URLs
+| Service | Local URL | Description |
+| :--- | :--- | :--- |
+| **Frontend** | `http://localhost:5173` | React web application and admin panel |
+| **Backend API** | `http://localhost:5000` | Core Express REST API Gateway |
+| **Liveness Probe** | `http://localhost:5000/healthz` | Process liveness healthcheck |
+| **Readiness Probe** | `http://localhost:5000/ready` | Datastore readiness probe |
+| **AI Microservice** | `http://localhost:8000` | FastAPI resume scoring microservice |
+| **Interactive API Docs**| `http://localhost:8000/docs` | Swagger / OpenAPI interface for AI service |
 
 ---
 
-## Monorepo Scripts Reference
+### Step 4: Docker Container Setup (Alternative)
 
-All primary operations can be executed from the root directory:
+To run the complete platform using containerized databases (MongoDB, PostgreSQL, Redis) and the backend API:
 
-| Command                  | Action                                                                       |
-| ------------------------ | ---------------------------------------------------------------------------- |
-| `npm run dev`            | Runs Frontend, Backend, and AI Service concurrently in persistent watch mode |
-| `npm run build`          | Builds production-optimized artifacts across all workspaces via Turborepo    |
-| `npm run lint`           | Runs ESLint analysis across apps                                             |
-| `npm run format`         | Auto-formats code using Prettier                                             |
-| `npm run format:check`   | Verifies code adherence to Prettier formatting standards                     |
-| `npm run migrate`        | Executes pending database migrations (`apps/backend`)                        |
-| `npm run migrate:status` | Checks database migration status                                             |
-| `npm run migrate:down`   | Rolls back the latest database migration                                     |
+```bash
+# Build and start all services in the background
+docker compose up -d
 
----
+# View service logs
+docker compose logs -f backend
 
-## Detailed Directory Map
-
-```
-thinkwires/
-├── apps/
-│   ├── frontend/
-│   │   ├── src/
-│   │   │   ├── admin/            # 15 Admin & CMS management modules (CandidatesView, JobsView, etc.)
-│   │   │   ├── components/       # Reusable components (GlobalJobApplicationForm, Navbar, Footer, etc.)
-│   │   │   ├── pages/            # Public, Auth, Candidate portal, and Legal pages
-│   │   │   ├── store/            # Redux Toolkit store & 13 domain slices
-│   │   │   ├── index.css         # Design tokens, ApplyModal styles, & responsive layouts
-│   │   │   └── App.jsx           # React Router v7 routes & code-splitting
-│   │   └── vite.config.js        # Vite config with /api reverse proxy to localhost:5000
-│   │
-│   ├── backend/
-│   │   ├── src/
-│   │   │   ├── configs/          # Database (PostgreSQL, MongoDB Atlas) & env loaders
-│   │   │   ├── controllers/      # Auth, Candidate Portal, and Admin controllers
-│   │   │   ├── middlewares/      # JWT auth, RBAC permissions, Multer uploads
-│   │   │   ├── migrations/       # Version-controlled schema migrations
-│   │   │   ├── models/           # Mongoose Schema definitions (JobApplication, Candidate, etc.)
-│   │   │   ├── routes/           # REST endpoints (/api/auth, /api/candidate, /api/admin)
-│   │   │   ├── seeds/            # Demo data fixtures & seed runners
-│   │   │   ├── utils/            # Recruitment email utility (SMTP), logger, and auth helpers
-│   │   │   ├── app.js            # Express app configuration & middlewares
-│   │   │   └── server.js         # Non-blocking server bootstrap & connection monitor
-│   │   └── uploads/              # Local disk storage for candidate resume uploads (.gitignore protected)
-│   │
-│   └── ai_services/
-│       ├── main.py               # FastAPI application entry point
-│       ├── requirements.txt      # FastAPI, pypdf, httpx dependencies
-│       ├── tests/                # Automated pytest test suites
-│       ├── app/                  # Modular package (config, schemas, services, api/v1)
-│       └── venv/                 # Python virtual environment
-│
-├── docs/                         # Platform & Microservice Documentation
-│   ├── adminPanel.md             # Admin Panel & CMS manual
-│   ├── Ai_ServicesDocs.md        # Comprehensive AI Microservice architecture & API guide
-│   ├── BackendDocs.md            # Detailed backend developer & agent guide
-│   ├── Design.md                 # Design system, tokens, and aesthetic specifications
-│   ├── FrontendDocs.md           # Detailed frontend developer & agent guide
-│   └── PRD.md                    # Platform Product Requirements Document
-├── package.json                  # Turborepo root configuration
-└── turbo.json                    # Turborepo pipeline tasks
+# Stop all containers
+docker compose down
 ```
 
 ---
 
-## Contribution & Coding Standards
+### Step 5: Database Migrations & Seeds
 
-1. **Branching Strategy**: Branch from `master` with descriptive prefixes: `feature/your-feature`, `bugfix/issue-description`, or `chore/cleanup`.
-2. **Conventional Commits**: Format commit messages cleanly:
-   - `feat: added candidate terms agreement checkbox`
-   - `fix: resolved mongodb atlas auto reconnection drop`
-   - `docs: updated readme and environment configuration`
-3. **Frontend Rules**: Adhere to CSS design tokens in `index.css`. Maintain accessibility, semantic labels, and responsive layouts.
-4. **Backend Rules**: Maintain non-blocking database connections, resilient in-memory fallbacks, and comprehensive input validation.
-5. **Aesthetics & Messaging**: Keep interfaces clean and professional without decorative emojis in system logs, alerts, or UI components.
+```bash
+# Run pending PostgreSQL migrations
+npm run migrate
+
+# Check migration status
+npm run migrate:status
+
+# Seed database with initial fixtures (development)
+npm run seed
+```
+
+---
+
+### Step 6: Testing & Quality Assurance
+
+```bash
+# Run all unit tests across the monorepo
+npm test
+
+# Run backend unit tests specifically (Vitest)
+npm run test:unit
+
+# Run frontend tests (Vitest + React Testing Library)
+npm --prefix apps/frontend run test
+
+# Production bundle build
+npm run vercel-build
+```
