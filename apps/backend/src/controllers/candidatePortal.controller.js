@@ -10,6 +10,7 @@ import { sendRecruitmentNotificationEmail } from '../utils/recruitmentEmail.util
 import aiService from '../services/ai.service.js';
 import { verifyAdminToken, verifyCandidateToken } from '../utils/auth.util.js';
 import { buildDualScoreReport } from '../utils/dualScore.util.js';
+import { storageService } from '../utils/storage.adapter.js';
 
 // Fallback in-memory application store for local development if MongoDB is absent
 export const localDevApplications = [];
@@ -1555,6 +1556,11 @@ export const downloadResume = async (req, res) => {
           });
         }
       }
+    }
+
+    if (storageService.driver === 's3') {
+      const remoteUrl = storageService.getFileUrl(safeFilename, 'resumes');
+      return res.redirect(remoteUrl);
     }
 
     const resumesDir = process.env.VERCEL

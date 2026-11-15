@@ -20,7 +20,7 @@ flowchart LR
 | **Milestone 2: Express Hardening & Process Safety** | NoSQL query injection, mass assignment, 10MB DoS, unhandled rejections | SEC-EXP 01–09 | Sprint 7 | **Completed** |
 | **Milestone 3: Database Query Hygiene & ESR Indexing** | Unbounded `.find()`, compound ESR indexes, schema strictness, migrations | SEC-DB 01–05 | Sprint 8 | **Completed** |
 | **Milestone 4: Frontend Code-Splitting & Client Security** | React.lazy, Three.js deferral, search debouncing, AbortController, cookie auth | SEC-FE 01–08 | Sprint 8 | **Completed** |
-| **Milestone 5: 12-Factor Portability & SRE Readiness** | S3/R2 object storage, 0.0.0.0 binding, /healthz vs /ready probes, graceful drain | DEP 01–06 | Sprint 9 | **Ready for Dev** |
+| **Milestone 5: 12-Factor Portability & SRE Readiness** | S3/R2 object storage, 0.0.0.0 binding, /healthz vs /ready probes, graceful drain | DEP 01–06 | Sprint 9 | **Completed** |
 
 ---
 
@@ -103,15 +103,17 @@ flowchart LR
 ## 6. Milestone 5: 12-Factor Portability & SRE Readiness (6 Issues)
 
 *Reference Document: [`docs/DeploymentReadinessAndPortabilityAudit.md`](DeploymentReadinessAndPortabilityAudit.md)*
+*Verification Suite: [`apps/backend/src/test/unit/milestone5.sre.test.js`](../apps/backend/src/test/unit/milestone5.sre.test.js) (15 tests passing)*
 
-| Issue Key | Severity | Target Scope | Problem Statement | Remediation Required |
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
 | :--- | :---: | :--- | :--- | :--- |
-| **DEP-01** | **BLOCKER** | `apps/backend/src/middlewares/upload.middleware.js` | Resumes written to ephemeral container disk (`./uploads`) | Migrate file persistence to AWS S3, Cloudflare R2, or Google Cloud Storage using presigned URLs. |
-| **DEP-02** | **BLOCKER** | `apps/backend/src/server.js:33-41` | Silent in-memory fallback on database connection failure | Crash fast (`process.exit(1)`) in production if primary databases fail to connect at boot. |
-| **DEP-03** | **HIGH** | `apps/backend/src/server.js:15` | Missing explicit `0.0.0.0` host binding | Update `server.listen(PORT, '0.0.0.0')` to ensure ingress routing in container environments. |
-| **DEP-04** | **HIGH** | `apps/backend/src/app.js:97-129` | `/api/health` returns 200 even when database is down | Evaluate MongoDB and PostgreSQL connection readiness before returning HTTP 200. |
-| **DEP-05** | **MEDIUM** | `apps/backend/src/app.js` | Missing separated `/healthz` and `/ready` probes | Implement lightweight `/healthz` (liveness) and deep-checking `/ready` (readiness) endpoints. |
-| **DEP-06** | **MEDIUM** | `apps/backend/src/server.js` | Lacks active connection draining on shutdown signals | Implement graceful HTTP connection keep-alive draining upon receiving `SIGTERM` and `SIGINT`. |
+| **DEP-01** | **BLOCKER** | `apps/backend/src/middlewares/upload.middleware.js`<br>`apps/backend/src/utils/storage.adapter.js` | Resumes written to ephemeral container disk (`./uploads`) | **Resolved**: Implemented pluggable `StorageService` (`storage.adapter.js`) supporting AWS S3, Cloudflare R2, MinIO, and local driver fallback with directory traversal sanitization and streaming support. Integrated into `candidatePortal.controller.js` for resume downloads. |
+| **DEP-02** | **BLOCKER** | `apps/backend/src/server.js`<br>`apps/backend/src/configs/env.validator.js` | Silent in-memory fallback on database connection failure | **Resolved**: Implemented `validateBootEnvironment()` verifying `JWT_SECRET`, `JWT_ADMIN_SECRET`, `JWT_CANDIDATE_SECRET`, and `MONGODB_URI`. Server crashes fast (`process.exit(1)`) on missing secrets or localhost MongoDB URIs during production boot. |
+| **DEP-03** | **HIGH** | `apps/backend/src/server.js:23` | Missing explicit `0.0.0.0` host binding | **Resolved**: Configured `HOST = process.env.HOST || '0.0.0.0'` in `server.listen()`, ensuring ingress routing across ECS, Cloud Run, Kubernetes, and Docker containers. |
+| **DEP-04** | **HIGH** | `apps/backend/src/app.js`<br>`apps/backend/src/routes/health.route.js` | `/api/health` returns 200 even when database is down | **Resolved**: Updated `/api/health` and `/ready` to check active MongoDB `readyState === 1` and PostgreSQL connection, returning HTTP 503 Service Unavailable when the primary database is disconnected in production. |
+| **DEP-05** | **MEDIUM** | `apps/backend/src/routes/health.route.js` | Missing separated `/healthz` and `/ready` probes | **Resolved**: Created separate `/healthz` (liveness probe testing process responsiveness, uptime, and pid) and `/ready` (readiness probe validating backing datastores) mounted at root and under `/api`. |
+| **DEP-06** | **MEDIUM** | `apps/backend/src/server.js`<br>`apps/backend/src/app.js` | Lacks active connection draining on shutdown signals | **Resolved**: Integrated `setShuttingDown(true)` with `server.closeIdleConnections()` and active rejection middleware returning HTTP 503 with `Connection: close` during graceful teardown (`SIGTERM` / `SIGINT`). |
+| **DEP-CON-01** | **HIGH** | Root repository container manifests | Missing multi-stage, rootless container configuration | **Resolved**: Created multi-stage rootless `Dockerfile` (Alpine 20, non-root `nodeapp` user, `HEALTHCHECK` probe), production `.dockerignore`, and multi-service `docker-compose.yml` (backend, Mongo 7, Postgres 16, Redis 7). |
 
 ---
 
