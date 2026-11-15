@@ -18292,6 +18292,14 @@ textarea {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1.75rem;
+  align-items: stretch;
+}
+
+.BenchDossierFeatures-reveal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
 }
 
 .BenchDossierFeatures-card {
@@ -18302,6 +18310,9 @@ textarea {
   display: flex;
   flex-direction: column;
   transition: all 0.25s;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .BenchDossierFeatures-card:hover {
@@ -18362,6 +18373,7 @@ textarea {
   font-weight: 700;
   padding-top: 0.75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: auto;
 }
 
 .BenchDossierFeatures-cardHighlight .material-symbols-outlined {
@@ -18592,35 +18604,53 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  height: 100%;
+  justify-content: space-between;
 }
 
 .BenchCta-statBox {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: 14px;
+  padding: 1.75rem 1.5rem;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  transition: all 0.25s ease;
+}
+
+.BenchCta-statBox:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(56, 189, 248, 0.35);
+  transform: translateY(-2px);
 }
 
 .BenchCta-statNumber {
   display: block;
-  font-size: 2.25rem;
+  font-size: 2.5rem;
   font-weight: 800;
   color: #38bdf8;
-  line-height: 1;
-  margin-bottom: 0.35rem;
+  line-height: 1.1;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
 }
 
 .BenchCta-statLabel {
   color: #94a3b8;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 600;
+  line-height: 1.4;
+  max-width: 220px;
+  margin: 0 auto;
 }
 
 /* --- Inline Requisition Form (Issue #171) --- */
 .BenchRequisition-card {
   grid-template-columns: 1.8fr 1fr;
-  align-items: start;
+  align-items: stretch;
 }
 
 .BenchRequisition-form {
@@ -18688,6 +18718,148 @@ textarea {
   border-color: #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
   background-color: rgba(15, 23, 42, 0.95);
+}
+
+/* Custom Dropdowns in Bench Requisition Form */
+.BenchRequisition-nativeSelectHidden {
+  position: absolute !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  clip: rect(0, 0, 0, 0) !important;
+  overflow: hidden !important;
+}
+
+.BenchRequisition-field {
+  position: relative;
+}
+
+.BenchRequisition-field.is-open {
+  z-index: 100;
+}
+
+.BenchRequisition-customSelectContainer {
+  position: relative;
+  width: 100%;
+}
+
+.BenchRequisition-customTrigger {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  background-color: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.BenchRequisition-customTrigger:hover {
+  background-color: rgba(15, 23, 42, 0.85);
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.BenchRequisition-customTrigger:focus-visible,
+.BenchRequisition-customTrigger.is-open {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+  background-color: rgba(15, 23, 42, 0.95);
+}
+
+.BenchRequisition-triggerValue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.BenchRequisition-dropdownChevron {
+  width: 1.15rem;
+  height: 1.15rem;
+  color: #94a3b8;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.BenchRequisition-customTrigger.is-open .BenchRequisition-dropdownChevron {
+  transform: rotate(180deg);
+  color: #38bdf8;
+}
+
+.BenchRequisition-customMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  max-height: 280px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 14px 34px -4px rgba(15, 23, 42, 0.25), 0 8px 16px -4px rgba(15, 23, 42, 0.15);
+  padding: 0.35rem;
+  list-style: none;
+  margin: 0;
+  z-index: 1050;
+  animation: benchDropdownFadeIn 0.15s ease-out;
+  box-sizing: border-box;
+}
+
+.BenchRequisition-customMenu::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.BenchRequisition-customOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+  user-select: none;
+}
+
+.BenchRequisition-customOption:hover,
+.BenchRequisition-customOption.is-highlighted {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.BenchRequisition-customOption.is-selected {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.BenchRequisition-customOption.is-selected .BenchRequisition-optionText {
+  color: #ffffff;
+}
+
+.BenchRequisition-dropdownCheck {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: #ffffff;
+  flex-shrink: 0;
 }
 
 .BenchRequisition-input::placeholder {
@@ -18766,6 +18938,18 @@ textarea {
 @media (max-width: 900px) {
   .BenchRequisition-card {
     grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .BenchCta-graphic {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .BenchCta-statBox {
+    flex: 1 1 200px;
+    padding: 1.5rem 1rem;
   }
 }
 
