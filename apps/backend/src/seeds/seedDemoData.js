@@ -19,6 +19,8 @@ import { User as UserPg } from '../models/user.model.js';
 import { sequelize } from '../configs/db.js';
 import { connectMongoDB } from '../configs/mongodb.js';
 import { hashPassword } from '../utils/auth.util.js';
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,17 +35,57 @@ export const seedDatabase = async () => {
     : {};
 
   // Bootstrap initial Superadmin if none exists
-  const adminEmail = (
-    process.env.INITIAL_SUPERADMIN_EMAIL || 'superadmin@thinkwires.com'
-  )
-    .toLowerCase()
-    .trim();
-  const adminPassword =
-    process.env.INITIAL_SUPERADMIN_PASSWORD || 'Thinkwires@Admin2026!';
+  const isProduction = process.env.NODE_ENV === 'production';
+  const rawAdminEmail = process.env.INITIAL_SUPERADMIN_EMAIL;
+  const rawAdminPassword = process.env.INITIAL_SUPERADMIN_PASSWORD;
+
+  // 1. Refuse production seeding if explicit credentials are missing or insecure
+  if (isProduction) {
+    if (!rawAdminEmail || !rawAdminPassword) {
+      console.error(
+        '🚨 [FATAL SECURITY DEFENSE] Production database seeding halted: Missing required INITIAL_SUPERADMIN_EMAIL or INITIAL_SUPERADMIN_PASSWORD.'
+      );
+      throw new Error(
+        'Refusing production seed: Missing required INITIAL_SUPERADMIN_EMAIL or INITIAL_SUPERADMIN_PASSWORD environment variables.'
+      );
+    }
+    const loweredPass = rawAdminPassword.toLowerCase();
+    if (
+      loweredPass.includes('thinkwires@admin2026') ||
+      loweredPass.includes('thinkwires@2026') ||
+      loweredPass.includes('admin123') ||
+      loweredPass.includes('password') ||
+      rawAdminPassword.length < 16
+    ) {
+      console.error(
+        '🚨 [FATAL SECURITY DEFENSE] Insecure or known default INITIAL_SUPERADMIN_PASSWORD in production.'
+      );
+      throw new Error(
+        'Refusing production seed: INITIAL_SUPERADMIN_PASSWORD cannot be a known default, demo password, or under 16 characters.'
+      );
+    }
+  }
+
+  // 2. Resolve credentials (generate random password in dev if omitted)
+  const adminEmail = (rawAdminEmail || 'admin.local@thinkwires.com').toLowerCase().trim();
+  let adminPassword = rawAdminPassword;
+
+  if (!adminPassword) {
+    // Generate cryptographically strong random password for local development
+    adminPassword = crypto.randomBytes(18).toString('base64url');
+    console.log('\n========================================================================');
+    console.log('🔑 [SECURITY ALERT] Generated ephemeral initial Superadmin credentials:');
+    console.log(`   Email:    ${adminEmail}`);
+    console.log(`   Password: ${adminPassword}`);
+    console.log('   Save this password immediately or set INITIAL_SUPERADMIN_PASSWORD.');
+    console.log('========================================================================\n');
+  }
+
   const defaultHashedPassword = await hashPassword(adminPassword);
 
+  // 3. Mongo user creation & credential rotation check
   if (mongoose.connection.readyState === 1) {
-    const existingAdmin = await UserMongo.findOne({ email: adminEmail });
+    const existingAdmin = await UserMongo.findOne({ email: adminEmail }).select('+password');
     if (!existingAdmin) {
       await UserMongo.create({
         name: 'Super Admin',
@@ -52,14 +94,26 @@ export const seedDatabase = async () => {
         role: 'superadmin',
         designation: 'Superadmin',
         isActive: true,
+        mustChangePassword: true, // Force password change on first login
       });
-      console.log(`[MongoDB] Initial Superadmin bootstrapped: ${adminEmail}`);
+      console.log(`[MongoDB] Initial Superadmin bootstrapped: ${adminEmail} (mustChangePassword: true)`);
     } else {
       console.log(`[MongoDB] Superadmin account present: ${adminEmail}`);
+      // Rotate / audit credentials if existing admin uses deprecated default passwords
+      const isKnownDefault =
+        (await bcrypt.compare('Thinkwires@Admin2026!', existingAdmin.password).catch(() => false)) ||
+        (await bcrypt.compare('Thinkwires@2026', existingAdmin.password).catch(() => false));
+      if (isKnownDefault) {
+        console.warn(
+          `🚨 [SECURITY RISK] Existing Superadmin account (${adminEmail}) uses a known public default password! Enforcing mustChangePassword = true.`
+        );
+        existingAdmin.mustChangePassword = true;
+        await existingAdmin.save();
+      }
     }
   }
 
-  // Dual-mode: sync PostgreSQL User table if connected
+  // 4. PostgreSQL user creation & credential rotation check
   try {
     await sequelize.authenticate();
     await sequelize.sync();
@@ -72,22 +126,34 @@ export const seedDatabase = async () => {
         role: 'superadmin',
         designation: 'Superadmin',
         isActive: true,
+        mustChangePassword: true,
       });
-      console.log(`[PostgreSQL] Initial Superadmin bootstrapped: ${adminEmail}`);
+      console.log(`[PostgreSQL] Initial Superadmin bootstrapped: ${adminEmail} (mustChangePassword: true)`);
     } else {
       console.log(`[PostgreSQL] Superadmin account present: ${adminEmail}`);
+      const isKnownDefault =
+        (await bcrypt.compare('Thinkwires@Admin2026!', existingPgAdmin.password).catch(() => false)) ||
+        (await bcrypt.compare('Thinkwires@2026', existingPgAdmin.password).catch(() => false));
+      if (isKnownDefault) {
+        console.warn(
+          `🚨 [SECURITY RISK] Existing PostgreSQL Superadmin (${adminEmail}) uses a known default password! Enforcing mustChangePassword = true.`
+        );
+        existingPgAdmin.mustChangePassword = true;
+        await existingPgAdmin.save();
+      }
     }
   } catch (pgErr) {
     console.log(`[PostgreSQL] User table bootstrap bypassed: ${pgErr.message}`);
   }
 
-  for (const cli of adminData.clients || []) {
-    await Client.findOneAndUpdate(
-      { companyName: cli.companyName },
-      { ...cli },
-      { upsert: true, new: true }
-    );
-  }
+  if (mongoose.connection.readyState === 1) {
+    for (const cli of adminData.clients || []) {
+      await Client.findOneAndUpdate(
+        { companyName: cli.companyName },
+        { ...cli },
+        { upsert: true, new: true }
+      );
+    }
 
   for (const plc of adminData.placements || []) {
     await Placement.findOneAndUpdate(
@@ -356,6 +422,7 @@ export const seedDatabase = async () => {
       { ...act },
       { upsert: true, new: true }
     );
+  }
   }
 
   console.log('Database successfully seeded.');

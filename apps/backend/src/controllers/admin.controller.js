@@ -3996,6 +3996,23 @@ export const loginAdmin = async (req, res) => {
       });
     }
 
+    // In production, instantly reject login if default/demo credentials are submitted
+    if (process.env.NODE_ENV === 'production') {
+      const lowered = String(password).toLowerCase();
+      if (
+        lowered === 'thinkwires@admin2026!' ||
+        lowered === 'thinkwires@2026' ||
+        lowered === 'admin123' ||
+        lowered === 'password'
+      ) {
+        return res.status(403).json({
+          success: false,
+          error:
+            'Default demo credentials are not permitted in production. Please use your securely configured credentials.',
+        });
+      }
+    }
+
     const cleanEmail = email.toLowerCase().trim();
     let user = null;
 
@@ -4005,6 +4022,13 @@ export const loginAdmin = async (req, res) => {
 
     // Fallback to in-memory seeded users if MongoDB is unavailable or user was not in DB
     if (!user) {
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(401).json({
+          success: false,
+          error:
+            'Invalid official credentials. Respective persons should use the password and email created by superadmin.',
+        });
+      }
       const inMem = (inMemoryData.users || []).find(
         (u) => (u.email || '').toLowerCase().trim() === cleanEmail
       );
@@ -4031,17 +4055,13 @@ export const loginAdmin = async (req, res) => {
 
     // Verify Password using cryptographically secure bcrypt
     let isMatch = false;
-    const userPassword =
-      user.password ||
-      (!isMongoActive()
-        ? 'Thinkwires@2026'
-        : null);
+    const userPassword = user.password || null;
 
     if (userPassword) {
       if (userPassword.startsWith('$2a$') || userPassword.startsWith('$2b$')) {
         isMatch = await comparePassword(password, userPassword);
-      } else {
-        // Safe equality comparison for seeded demo credentials or unhashed seed users
+      } else if (process.env.NODE_ENV !== 'production') {
+        // Safe equality comparison for seeded demo credentials or unhashed seed users only in dev/test
         isMatch = password === userPassword;
       }
     }
@@ -4081,12 +4101,14 @@ export const loginAdmin = async (req, res) => {
       message: `Welcome back, ${user.name}!`,
       token,
       csrfToken,
+      mustChangePassword: Boolean(user.mustChangePassword),
       user: {
         id: user._id ? user._id.toString() : user.id,
         name: user.name,
         email: user.email,
         role: user.role,
         designation: user.designation || 'System Member',
+        mustChangePassword: Boolean(user.mustChangePassword),
       },
     });
   } catch (error) {
@@ -4128,6 +4150,143 @@ export const logoutAdmin = async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'An error occurred during logout.',
+    });
+  }
+};
+
+/**
+ * Force or handle self-service password change for authenticated administrators
+ */
+export const changeAdminPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    const adminUser = req.user;
+
+    if (!adminUser || !adminUser.email) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required to change credentials.',
+      });
+    }
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Current password and new password are required.',
+      });
+    }
+
+    if (confirmPassword && newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password and confirmation do not match.',
+      });
+    }
+
+    if (newPassword.length < 12) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password must be at least 12 characters long.',
+      });
+    }
+
+    const loweredNew = newPassword.toLowerCase();
+    const commonInsecure = ['password', 'password123', 'admin123', 'thinkwires@2026', 'thinkwires@admin2026!'];
+    if (
+      commonInsecure.includes(loweredNew) ||
+      loweredNew.includes('thinkwires@admin2026') ||
+      loweredNew.includes('thinkwires@2026')
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password cannot be a known default, demo, or insecure password.',
+      });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password must be different from current password.',
+      });
+    }
+
+    const cleanEmail = adminUser.email.toLowerCase().trim();
+    let dbUser = null;
+
+    if (isMongoActive()) {
+      dbUser = await UserMongo.findOne({ email: cleanEmail }).select('+password');
+    }
+
+    let isMatch = false;
+    let storedPassword = dbUser ? dbUser.password : null;
+
+    if (!storedPassword) {
+      const inMem = (inMemoryData.users || []).find(
+        (u) => (u.email || '').toLowerCase().trim() === cleanEmail
+      );
+      if (inMem) storedPassword = inMem.password;
+    }
+
+    if (storedPassword) {
+      if (storedPassword.startsWith('$2a$') || storedPassword.startsWith('$2b$')) {
+        isMatch = await comparePassword(currentPassword, storedPassword);
+      } else {
+        isMatch = currentPassword === storedPassword;
+      }
+    }
+
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        error: 'Current password is incorrect.',
+      });
+    }
+
+    const hashedNew = await hashPassword(newPassword);
+
+    if (dbUser) {
+      dbUser.password = hashedNew;
+      dbUser.mustChangePassword = false;
+      dbUser.passwordChangedAt = new Date();
+      dbUser.tokenVersion = (dbUser.tokenVersion || 0) + 1;
+      await dbUser.save();
+    }
+
+    // Update in-memory user if present
+    const inMemIdx = (inMemoryData.users || []).findIndex(
+      (u) => (u.email || '').toLowerCase().trim() === cleanEmail
+    );
+    if (inMemIdx !== -1) {
+      inMemoryData.users[inMemIdx].password = hashedNew;
+      inMemoryData.users[inMemIdx].mustChangePassword = false;
+    }
+
+    // Re-issue JWT with updated claims
+    const updatedUser = dbUser
+      ? dbUser.toObject()
+      : { ...adminUser, mustChangePassword: false };
+    const newToken = generateAdminToken(updatedUser);
+    setAdminAuthCookie(res, newToken);
+
+    await logActivity(
+      'Password Changed',
+      'Security RBAC',
+      cleanEmail,
+      `Superadmin/Admin ${adminUser.name} (${cleanEmail}) successfully changed their account password.`,
+      req.user,
+      '#10B981'
+    );
+
+    return res.json({
+      success: true,
+      message: 'Password changed successfully.',
+      mustChangePassword: false,
+    });
+  } catch (error) {
+    console.error('Change admin password error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'An internal error occurred while changing the password.',
     });
   }
 };
