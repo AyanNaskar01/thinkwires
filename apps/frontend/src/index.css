@@ -15894,6 +15894,8 @@ textarea {
 
 /* Filter Bar */
 .BenchFilter-wrapper {
+  position: relative;
+  z-index: 40;
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -15901,6 +15903,10 @@ textarea {
   padding: 1.75rem;
   margin-bottom: 2.5rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.BenchFilter-wrapper.has-open-dropdown {
+  z-index: 100;
 }
 
 .BenchFilter-searchBar {
@@ -15919,17 +15925,20 @@ textarea {
 
 .BenchFilter-searchIcon {
   position: absolute;
-  left: 1rem;
+  left: 1.1rem;
   top: 50%;
   transform: translateY(-50%);
   color: #64748b;
-  font-size: 1.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
   pointer-events: none;
 }
 
 .BenchFilter-searchInput {
   width: 100%;
-  padding: 0.85rem 2.75rem 0.85rem 3rem;
+  padding: 0.85rem 2.75rem 0.85rem 2.85rem;
   background: #0b0f19;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
@@ -16103,16 +16112,24 @@ textarea {
 
 /* Dropdown Filters Row */
 .BenchFilter-dropdownRow {
+  position: relative;
+  z-index: 50;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1.25rem;
+  flex-direction: column;
+  gap: 1.15rem;
 }
 
 .BenchFilter-dropdownGroup {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.BenchFilter-dropdownRowBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 1.25rem;
 }
@@ -16158,6 +16175,162 @@ textarea {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* Custom Dropdown in Bench Filter Bar */
+.BenchFilter-nativeSelectHidden {
+  position: absolute !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  clip: rect(0, 0, 0, 0) !important;
+  overflow: hidden !important;
+}
+
+.BenchFilter-customSelectContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.BenchFilter-customSelectContainer.is-open {
+  z-index: 1000;
+}
+
+.BenchFilter-customTrigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  background: #0b0f19;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #f1f5f9;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  height: 36px;
+  padding: 0 0.75rem;
+  min-width: 140px;
+  max-width: 270px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.BenchFilter-customTrigger:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.BenchFilter-customTrigger:focus-visible,
+.BenchFilter-customTrigger.is-open {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+  background: rgba(11, 15, 25, 0.98);
+}
+
+.BenchFilter-triggerValue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.BenchFilter-dropdownChevron {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: #94a3b8;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.BenchFilter-customTrigger.is-open .BenchFilter-dropdownChevron {
+  transform: rotate(180deg);
+  color: #38bdf8;
+}
+
+.BenchFilter-customMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 100%;
+  width: max-content;
+  max-width: 320px;
+  max-height: 340px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 14px 34px -4px rgba(15, 23, 42, 0.25), 0 8px 16px -4px rgba(15, 23, 42, 0.15);
+  padding: 0.35rem;
+  list-style: none;
+  margin: 0;
+  z-index: 1050;
+  animation: benchDropdownFadeIn 0.15s ease-out;
+}
+
+.BenchFilter-customMenu::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.BenchFilter-customMenu.is-align-right {
+  left: auto;
+  right: 0;
+}
+
+@keyframes benchDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.BenchFilter-customOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+  user-select: none;
+}
+
+.BenchFilter-customOption:hover,
+.BenchFilter-customOption.is-highlighted {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.BenchFilter-customOption.is-selected {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.BenchFilter-customOption.is-selected .BenchFilter-optionText {
+  color: #ffffff;
+}
+
+.BenchFilter-dropdownCheck {
+  width: 1.05rem;
+  height: 1.05rem;
+  color: #ffffff;
+  flex-shrink: 0;
 }
 
 /* Candidate Grid */
@@ -17737,7 +17910,8 @@ textarea {
     gap: 0.85rem;
   }
 
-  .BenchFilter-dropdownGroup {
+  .BenchFilter-dropdownGroup,
+  .BenchFilter-dropdownRowBottom {
     flex-direction: column;
     align-items: stretch;
     width: 100%;
@@ -17757,6 +17931,20 @@ textarea {
     flex: 1;
     min-width: 0;
     font-size: 0.8125rem;
+  }
+
+  .BenchFilter-customSelectContainer {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .BenchFilter-customTrigger {
+    width: 100%;
+  }
+
+  .BenchFilter-customMenu {
+    max-width: 100%;
+    width: 100%;
   }
 
   .BenchFilter-sortField {
