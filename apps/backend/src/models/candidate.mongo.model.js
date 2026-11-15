@@ -192,6 +192,15 @@ const candidateSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -209,8 +218,18 @@ candidateSchema.pre('save', function (next) {
 
 candidateSchema.index({ resetPasswordToken: 1 }, { sparse: true });
 candidateSchema.index({ status: 1, createdAt: -1 });
+candidateSchema.index({ jobId: 1, createdAt: -1 });
 candidateSchema.index({ createdAt: -1 });
 candidateSchema.index({ resumeUrl: 1 });
+candidateSchema.index(
+  {
+    name: 'text',
+    currentRole: 'text',
+    technicalSkills: 'text',
+    positionApplied: 'text',
+  },
+  { name: 'idx_candidate_text_search' }
+);
 
 // Prevent re-compilation in development
 const Candidate =

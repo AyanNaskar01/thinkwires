@@ -130,10 +130,14 @@ export const getAllArticles = async ({ q, category, status = 'published' } = {})
 
   if (isMongoActive()) {
     try {
-      const query = status === 'All' ? {} : { status };
+      const query =
+        status === 'All'
+          ? { isDeleted: { $ne: true } }
+          : { status, isDeleted: { $ne: true } };
       const dbArticles = await Article.find(query)
         .select('-body -content')
         .sort({ publishedAt: -1, createdAt: -1 })
+        .limit(50)
         .lean();
 
       if (dbArticles && dbArticles.length > 0) {
@@ -200,13 +204,17 @@ export const getFeaturedArticle = async () => {
       let feat = await Article.findOne({
         featured: true,
         status: 'published',
+        isDeleted: { $ne: true },
       })
         .sort({ publishedAt: -1, createdAt: -1 })
         .lean();
 
       // 2. Fallback: return the latest published article if none is marked featured
       if (!feat) {
-        feat = await Article.findOne({ status: 'published' })
+        feat = await Article.findOne({
+          status: 'published',
+          isDeleted: { $ne: true },
+        })
           .sort({ publishedAt: -1, createdAt: -1 })
           .lean();
       }
@@ -248,9 +256,10 @@ export const getArticleByIdOrSlug = async (idOrSlug) => {
   if (isMongoActive()) {
     try {
       const isObjectId = mongoose.isValidObjectId(idOrSlug);
-      const query = isObjectId
+      const baseQuery = isObjectId
         ? { $or: [{ _id: idOrSlug }, { slug: idOrSlug }, { articleId: idOrSlug }] }
         : { $or: [{ slug: idOrSlug }, { articleId: idOrSlug }] };
+      const query = { $and: [baseQuery, { isDeleted: { $ne: true } }] };
 
       const dbArt = await Article.findOne(query).lean();
       if (dbArt) {
@@ -280,21 +289,33 @@ export const getArticleByIdOrSlug = async (idOrSlug) => {
 /**
  * List all articles for the Admin CMS (includes drafts and full fields).
  */
-export const getCmsArticles = async ({ search, category, status } = {}) => {
+export const getCmsArticles = async ({
+  search,
+  category,
+  status,
+  page = 1,
+  limit = 50,
+  skip = 0,
+} = {}) => {
   let items = [];
+  let total = 0;
 
   if (isMongoActive()) {
     try {
-      const query = {};
+      const query = { isDeleted: { $ne: true } };
       if (category && category !== 'All') query.category = category;
       if (status && status !== 'All') query.status = status;
       if (search && search.trim() !== '') {
-        const regex = new RegExp(search.trim(), 'i');
+        const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(safeSearch, 'i');
         query.$or = [{ title: regex }, { summary: regex }, { tags: regex }];
       }
 
+      total = await Article.countDocuments(query);
       const dbItems = await Article.find(query)
         .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
         .lean();
 
       if (dbItems && dbItems.length > 0) {
@@ -308,8 +329,8 @@ export const getCmsArticles = async ({ search, category, status } = {}) => {
     }
   }
 
-  if (items.length === 0) {
-    items = inMemoryArticles.filter((art) => {
+  if (items.length === 0 && total === 0) {
+    const filtered = inMemoryArticles.filter((art) => {
       let match = true;
       if (search) {
         const s = search.toLowerCase();
@@ -326,9 +347,11 @@ export const getCmsArticles = async ({ search, category, status } = {}) => {
       }
       return match;
     });
+    total = filtered.length;
+    items = filtered.slice(skip, skip + limit);
   }
 
-  return items;
+  return { items, total };
 };
 
 /**
@@ -649,7 +672,10 @@ export const deleteArticle = async (idOrSlug) => {
         ? { $or: [{ _id: idOrSlug }, { slug: idOrSlug }, { articleId: idOrSlug }] }
         : { $or: [{ slug: idOrSlug }, { articleId: idOrSlug }] };
 
-      await Article.findOneAndDelete(query);
+      // Soft-delete article record (SEC-DB-04)
+      await Article.findOneAndUpdate(query, {
+        $set: { isDeleted: true, deletedAt: new Date() },
+      });
     } catch (err) {
       console.warn('[ArticlesStore] MongoDB delete warning:', err.message);
     }

@@ -80,6 +80,7 @@ router.get('/bench', async (req, res) => {
   if (isMongoActive()) {
     try {
       const assessed = await Candidate.find({
+        isDeleted: { $ne: true },
         $or: [{ workMode: 'On-Bench' }, { assessmentScore: { $ne: null } }],
       }).limit(15);
 
@@ -310,6 +311,7 @@ router.get('/bench/talents', async (req, res) => {
   if (isMongoActive()) {
     try {
       const assessed = await Candidate.find({
+        isDeleted: { $ne: true },
         $or: [{ workMode: 'On-Bench' }, { assessmentScore: { $ne: null } }],
       }).limit(15);
 

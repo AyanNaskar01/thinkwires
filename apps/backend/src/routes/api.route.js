@@ -148,9 +148,13 @@ const getHomeSection = async (sectionKey, fallbackValue) => {
 router.get('/pages', async (req, res) => {
   if (isMongoActive()) {
     try {
-      const dbPages = await Page.find({ status: 'published' })
+      const dbPages = await Page.find({
+        status: 'published',
+        isDeleted: { $ne: true },
+      })
         .select('-__v')
         .sort({ title: 1 })
+        .limit(100)
         .lean();
       if (dbPages.length > 0) return res.json(dbPages);
     } catch (err) {
@@ -168,6 +172,7 @@ router.get('/pages/:slug', async (req, res) => {
       const page = await Page.findOne({
         slug: cleanSlug,
         status: 'published',
+        isDeleted: { $ne: true },
       }).lean();
       if (page) return res.json(page);
     } catch (err) {
@@ -238,10 +243,12 @@ router.get('/openings', async (req, res) => {
   if (isMongoActive()) {
     try {
       const dbJobs = await JobRequirement.find({
+        isRequisition: false,
         status: { $in: ['Active', 'Approved', 'Published'] },
-        isRequisition: { $ne: true },
+        isDeleted: { $ne: true },
       })
         .sort({ createdAt: -1 })
+        .limit(100)
         .lean();
       sourceOpenings = (dbJobs || []).map((j) => ({
         id: j.jobId || j._id,

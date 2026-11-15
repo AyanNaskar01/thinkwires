@@ -26,13 +26,16 @@ const startServer = async () => {
   connectDB()
     .then(async () => {
       const isDevelopment = process.env.NODE_ENV !== 'production';
-      const syncOptions = isDevelopment ? { alter: true } : {};
-      await sequelize.sync(syncOptions);
-      console.log(
-        isDevelopment
-          ? '[PostgreSQL] Models synced with schema auto-alter enabled (development)'
-          : '[PostgreSQL] Models synced'
-      );
+      if (isDevelopment) {
+        await sequelize.sync({ alter: true });
+        console.log(
+          '[PostgreSQL] Models synced with schema auto-alter enabled (development)'
+        );
+      } else {
+        console.log(
+          '[PostgreSQL] Connected in production mode. Schema synchronization is managed via deterministic migrations (postgresRunner.js).'
+        );
+      }
     })
     .catch((error) => {
       console.warn(

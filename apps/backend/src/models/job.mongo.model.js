@@ -208,6 +208,15 @@ const jobRequirementSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -216,10 +225,27 @@ const jobRequirementSchema = new mongoose.Schema(
   }
 );
 
-jobRequirementSchema.index({ isRequisition: 1, status: 1, createdAt: -1 });
-jobRequirementSchema.index({ status: 1, isRequisition: 1, createdAt: -1 });
+jobRequirementSchema.index(
+  { isRequisition: 1, createdAt: -1, status: 1 },
+  { name: 'idx_job_openings_esr' }
+);
+jobRequirementSchema.index(
+  { isRequisition: 1, status: 1, createdAt: -1 },
+  { name: 'idx_job_requisitions_esr' }
+);
+jobRequirementSchema.index({ status: 1, createdAt: -1 });
 jobRequirementSchema.index({ title: 1, client: 1 });
 jobRequirementSchema.index({ jobId: 1 });
+jobRequirementSchema.index(
+  {
+    title: 'text',
+    description: 'text',
+    requirements: 'text',
+    requiredSkills: 'text',
+    client: 'text',
+  },
+  { name: 'idx_job_text_search' }
+);
 
 const JobRequirement =
   mongoose.models.JobRequirement ||
