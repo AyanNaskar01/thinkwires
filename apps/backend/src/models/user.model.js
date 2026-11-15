@@ -69,6 +69,10 @@ User.init(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
+    mustChangePassword: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
     lastLogin: {
       type: DataTypes.DATE,
       allowNull: true,

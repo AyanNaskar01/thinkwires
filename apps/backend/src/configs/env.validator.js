@@ -45,6 +45,19 @@ export const validateBootEnvironment = (env = process.env) => {
       }
       throw new Error(errorMsg);
     }
+
+    if (env.INITIAL_SUPERADMIN_PASSWORD) {
+      const loweredPass = env.INITIAL_SUPERADMIN_PASSWORD.toLowerCase();
+      const knownDefaults = ['thinkwires@admin2026', 'thinkwires@2026', 'admin123', 'password'];
+      if (knownDefaults.some((d) => loweredPass.includes(d)) || env.INITIAL_SUPERADMIN_PASSWORD.length < 16) {
+        const errorMsg = '🚨 [FATAL] INITIAL_SUPERADMIN_PASSWORD cannot be a known default, demo password, or under 16 characters in production.';
+        console.error(errorMsg);
+        if (!env.VITEST && env.NODE_ENV === 'production') {
+          process.exit(1);
+        }
+        throw new Error(errorMsg);
+      }
+    }
   }
 
   return { isValid: true, isProduction, checkedVars: REQUIRED_PRODUCTION_VARS };
