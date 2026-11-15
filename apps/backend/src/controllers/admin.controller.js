@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { loadSeedJson } from '../utils/seedLoader.js';
+import { parsePagination } from '../utils/pagination.util.js';
 import mongoose from 'mongoose';
 
 import Employee from '../models/employee.mongo.model.js';
@@ -143,68 +144,137 @@ export const getDashboardOverview = async (req, res) => {
     const period = (req.query.period || 'month').toLowerCase(); // 'month' | 'quarter' | 'year'
 
     let employees = [];
-    let candidates = [];
-    let clients = [];
-    let jobs = [];
-    let placements = [];
+    let totalEmployees = 0;
+    let activePlacements = 0;
+    let totalClients = 0;
+    let openRequirements = 0;
+    let inboundRequisitions = [];
+    let candidatePipelineCount = 0;
+    let totalBillingMonthly = 0;
     let announcements = [];
     let activities = [];
+    let placements = [];
 
     if (isMongoActive()) {
-      employees = await Employee.find().lean();
-      candidates = await Candidate.find().lean();
-      clients = await Client.find().lean();
-      jobs = await JobRequirement.find().lean();
-      placements = await Placement.find().lean();
-      announcements = await Announcement.find({ status: 'published' })
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .lean();
-      activities = await Activity.find()
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .lean();
+      const [
+        empCount,
+        candCount,
+        cliCount,
+        openJobsCount,
+        inboundReqs,
+        activePlcs,
+        allPlcsPreview,
+        announcementList,
+        activityList,
+      ] = await Promise.all([
+        Employee.countDocuments({ isDeleted: { $ne: true } }),
+        Candidate.countDocuments({ isDeleted: { $ne: true } }),
+        Client.countDocuments({ isDeleted: { $ne: true } }),
+        JobRequirement.countDocuments({
+          isDeleted: { $ne: true },
+          status: { $in: ['Open', 'In Progress'] },
+        }),
+        JobRequirement.find({
+          isDeleted: { $ne: true },
+          $or: [
+            { isRequisition: true },
+            { status: { $in: ['Inbound Request', 'Inbound Requisition'] } },
+            { source: 'Client Inbound Requisition' },
+          ],
+        })
+          .sort({ createdAt: -1 })
+          .limit(20)
+          .lean(),
+        Placement.find({ isDeleted: { $ne: true }, assignmentStatus: 'Active' })
+          .select('billingRate assignmentStatus candidateOrEmployeeName clientName role startDate')
+          .limit(100)
+          .lean(),
+        Placement.find({ isDeleted: { $ne: true } })
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .lean(),
+        Announcement.find({ status: 'published' })
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .lean(),
+        Activity.find()
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .lean(),
+      ]);
 
-      if (clients.length === 0) clients = inMemoryData.clients;
-      if (placements.length === 0) placements = inMemoryData.placements;
-      if (announcements.length === 0)
+      const isDbEmpty = empCount === 0 && candCount === 0 && cliCount === 0;
+
+      if (isDbEmpty) {
+        totalEmployees = inMemoryData.employees.length;
+        candidatePipelineCount = inMemoryData.candidates.length;
+        totalClients = inMemoryData.clients.length;
+        openRequirements = inMemoryData.jobs.filter(
+          (j) => j.status === 'Open' || j.status === 'In Progress'
+        ).length;
+        inboundRequisitions = inMemoryData.jobs.filter(
+          (j) =>
+            j.isRequisition === true ||
+            j.status === 'Inbound Request' ||
+            j.status === 'Inbound Requisition' ||
+            j.source === 'Client Inbound Requisition'
+        );
+        placements = inMemoryData.placements;
+        activePlacements = inMemoryData.placements.filter(
+          (p) => p.assignmentStatus === 'Active'
+        ).length;
+        totalBillingMonthly = inMemoryData.placements
+          .filter((p) => p.assignmentStatus === 'Active')
+          .reduce((sum, p) => sum + (Number(p.billingRate) || 5000), 0);
         announcements = inMemoryData.announcements.filter(
           (a) => a.status === 'published'
         );
-      if (activities.length === 0) activities = inMemoryData.activities;
+        activities = inMemoryData.activities;
+      } else {
+        totalEmployees = empCount;
+        candidatePipelineCount = candCount;
+        totalClients = cliCount;
+        openRequirements = openJobsCount;
+        inboundRequisitions = inboundReqs;
+        activePlacements = activePlcs.length;
+        placements = allPlcsPreview;
+        totalBillingMonthly = activePlcs.reduce(
+          (sum, p) => sum + (Number(p.billingRate) || 5000),
+          0
+        );
+        announcements =
+          announcementList.length > 0
+            ? announcementList
+            : inMemoryData.announcements.filter((a) => a.status === 'published');
+        activities =
+          activityList.length > 0 ? activityList : inMemoryData.activities;
+      }
     } else {
-      employees = inMemoryData.employees;
-      candidates = inMemoryData.candidates;
-      clients = inMemoryData.clients;
-      jobs = inMemoryData.jobs;
+      totalEmployees = inMemoryData.employees.length;
+      candidatePipelineCount = inMemoryData.candidates.length;
+      totalClients = inMemoryData.clients.length;
+      openRequirements = inMemoryData.jobs.filter(
+        (j) => j.status === 'Open' || j.status === 'In Progress'
+      ).length;
+      inboundRequisitions = inMemoryData.jobs.filter(
+        (j) =>
+          j.isRequisition === true ||
+          j.status === 'Inbound Request' ||
+          j.status === 'Inbound Requisition' ||
+          j.source === 'Client Inbound Requisition'
+      );
       placements = inMemoryData.placements;
+      activePlacements = inMemoryData.placements.filter(
+        (p) => p.assignmentStatus === 'Active'
+      ).length;
+      totalBillingMonthly = inMemoryData.placements
+        .filter((p) => p.assignmentStatus === 'Active')
+        .reduce((sum, p) => sum + (Number(p.billingRate) || 5000), 0);
       announcements = inMemoryData.announcements.filter(
         (a) => a.status === 'published'
       );
       activities = inMemoryData.activities;
     }
-
-    const totalEmployees = employees.length;
-    const activePlacements = placements.filter(
-      (p) => p.assignmentStatus === 'Active'
-    ).length;
-    const totalClients = clients.length;
-    const openRequirements = jobs.filter(
-      (j) => j.status === 'Open' || j.status === 'In Progress'
-    ).length;
-    const inboundRequisitions = jobs.filter(
-      (j) =>
-        j.isRequisition === true ||
-        j.status === 'Inbound Request' ||
-        j.status === 'Inbound Requisition' ||
-        j.source === 'Client Inbound Requisition'
-    );
-    const candidatePipelineCount = candidates.length;
-
-    // Calculate revenue metrics based on period
-    const totalBillingMonthly = placements
-      .filter((p) => p.assignmentStatus === 'Active')
-      .reduce((sum, p) => sum + (Number(p.billingRate) || 5000), 0);
 
     const periodMultiplier =
       period === 'year' ? 12 : period === 'quarter' ? 3 : 1;
@@ -363,14 +433,16 @@ export const getDashboardOverview = async (req, res) => {
 // ============================================================================
 export const getEmployees = async (req, res) => {
   try {
-    const { availability, status, page = 1, limit = 20 } = req.query;
+    const { availability, status } = req.query;
+    const { page, limit, skip } = parsePagination(req.query, 50, 100);
     const search =
       typeof req.query.search === 'string' ? req.query.search.trim() : '';
     const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     let items = [];
+    let total = 0;
     if (isMongoActive()) {
-      let query = {};
+      let query = { isDeleted: { $ne: true } };
       if (safeSearch) {
         query.$or = [
           { name: { $regex: safeSearch, $options: 'i' } },
@@ -383,9 +455,25 @@ export const getEmployees = async (req, res) => {
         query.availability = availability;
       if (status && status !== 'All') query.deploymentStatus = status;
 
-      items = await Employee.find(query).sort({ createdAt: -1 }).lean();
+      total = await Employee.countDocuments(query);
+      items = await Employee.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+      if (
+        total === 0 &&
+        !safeSearch &&
+        (!availability || availability === 'All') &&
+        (!status || status === 'All')
+      ) {
+        const fallbackList = inMemoryData.employees || [];
+        total = fallbackList.length;
+        items = fallbackList.slice(skip, skip + limit);
+      }
     } else {
-      items = (inMemoryData.employees || []).filter((emp) => {
+      const filtered = (inMemoryData.employees || []).filter((emp) => {
         let match = true;
         if (search) {
           const s = search.toLowerCase();
@@ -405,20 +493,18 @@ export const getEmployees = async (req, res) => {
         }
         return match;
       });
+      total = filtered.length;
+      items = filtered.slice(skip, skip + limit);
     }
-
-    const total = items.length;
-    const startIndex = (page - 1) * limit;
-    const paginated = items.slice(startIndex, startIndex + Number(limit));
 
     res.json({
       success: true,
-      employees: paginated,
+      employees: items,
       pagination: {
         total,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil(total / Number(limit)) || 1,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
       },
     });
   } catch (err) {
@@ -660,7 +746,10 @@ export const deleteEmployee = async (req, res) => {
       if (emp && emp.email) {
         await UserMongo.deleteOne({ email: emp.email.toLowerCase() });
       }
-      await Employee.findOneAndDelete(query);
+      // Soft-delete employee record (SEC-DB-04)
+      await Employee.findOneAndUpdate(query, {
+        $set: { isDeleted: true, deletedAt: new Date() },
+      });
     }
 
     await logActivity(
@@ -683,22 +772,53 @@ export const deleteEmployee = async (req, res) => {
 // ============================================================================
 export const getCandidates = async (req, res) => {
   try {
+    const { page, limit, skip } = parsePagination(req.query, 50, 100);
     const search =
       typeof req.query.search === 'string' ? req.query.search.trim() : '';
     const status =
       typeof req.query.status === 'string' ? req.query.status.trim() : '';
+    const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     let items = [];
-    if (isMongoActive()) {
-      // 1. Fetch all job applications with their candidate reference
-      const applications = await JobApplication.find()
-        .populate('candidate')
-        .sort({ createdAt: -1 })
-        .lean();
+    let total = 0;
 
-      // 2. Fetch all registered candidates
-      const allCandidates = await Candidate.find()
+    if (isMongoActive()) {
+      const appQuery = { isDeleted: { $ne: true } };
+      if (status && status !== 'All') {
+        appQuery.status = status;
+      }
+      if (safeSearch) {
+        appQuery.$or = [
+          { candidateName: { $regex: safeSearch, $options: 'i' } },
+          { firstName: { $regex: safeSearch, $options: 'i' } },
+          { lastName: { $regex: safeSearch, $options: 'i' } },
+          { email: { $regex: safeSearch, $options: 'i' } },
+          { jobTitle: { $regex: safeSearch, $options: 'i' } },
+          { currentEmployer: { $regex: safeSearch, $options: 'i' } },
+          { skills: { $in: [new RegExp(safeSearch, 'i')] } },
+        ];
+      }
+
+      total = await JobApplication.countDocuments(appQuery);
+
+      // 1. Fetch bounded job applications with lightweight projection (excluding heavy evaluation dossiers)
+      const applications = await JobApplication.find(appQuery)
+        .select(
+          'candidate candidateName firstName lastName email mobileNumber currentEmployer ' +
+          'totalExperienceYears relevantExperienceYears expectedCTC status assessmentStatus ' +
+          'assessmentScore screeningPassed fitScore fitBadge avatarUrl anonymousCode ' +
+          'resumeUrl resumeOriginalName candidateNote notes createdAt updatedAt jobId jobTitle ' +
+          'client rateCard currentCTC preferredLocation applicationDate month noticePeriod department location'
+        )
+        .populate({
+          path: 'candidate',
+          select:
+            'name email phone currentRole status experience avatarUrl avatarType ' +
+            'technicalSkills location benchAvatarCode',
+        })
         .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
         .lean();
 
       // Track candidate IDs that have applications
@@ -796,8 +916,9 @@ export const getCandidates = async (req, res) => {
           fitBadge: app.fitBadge || 'Top Match',
           avatarUrl: app.avatarUrl || (cand && cand.avatarUrl) || '',
           avatarType: (cand && cand.avatarType) || 'initials',
-          anonymousCode: app.anonymousCode || (cand && cand.benchAvatarCode) || 'TW-ENG-01',
-          evaluationReport: app.evaluationReport || null,
+          anonymousCode:
+            app.anonymousCode || (cand && cand.benchAvatarCode) || 'TW-ENG-01',
+          evaluationReport: null,
           resumeUrl: app.resumeUrl || (cand && cand.resumeUrl) || '',
           resumeOriginalName: app.resumeOriginalName || '',
           notes: app.candidateNote || app.notes || (cand && cand.bio) || '',
@@ -806,83 +927,120 @@ export const getCandidates = async (req, res) => {
         };
       });
 
-      // 3. Include registered candidates who have not yet submitted a specific job application
-      const registeredOnly = allCandidates
-        .filter((cand) => !candidatesWithApps.has(String(cand._id)))
-        .map((cand) => ({
-          id: String(cand._id),
-          _id: cand._id,
-          candidateId: cand._id,
-          name: cand.name,
-          email: cand.email,
-          phone: cand.phone || '',
-          currentRole: cand.currentRole || 'Software Engineer',
-          jobId: cand.jobId || '',
-          positionApplied:
-            cand.positionApplied || cand.jobTitle || 'General Talent Pool',
-          jobTitle: cand.jobTitle || 'General Talent Pool',
-          client: cand.client || 'Enterprise Partner',
-          rateCard: cand.rateCard || '',
-          currentCTC: cand.currentCTC || '',
-          relevantExperience: cand.relevantExperience || 0,
-          currentCompany: cand.currentCompany || '',
-          preferredLocation: cand.preferredLocation || '',
-          applicationDate: cand.applicationDate || '',
-          month: cand.month || '',
-          noticePeriod: cand.noticePeriod || 'Immediate',
-          department: 'Engineering',
-          location: cand.location || 'Remote',
-          technicalSkills: cand.technicalSkills || [],
-          experience: cand.experience || 0,
-          expectedSalary: cand.expectedSalary || 'Market Standard',
-          status: cand.status || 'Applied',
-          assessmentStatus: cand.assessmentStatus || 'Not Started',
-          assessmentScore: cand.assessmentScore || null,
-          fitScore: cand.fitScore || 85,
-          fitBadge: 'Top Match',
-          avatarUrl: cand.avatarUrl || '',
-          avatarType: cand.avatarType || 'initials',
-          anonymousCode: cand.benchAvatarCode || 'TW-CAND-01',
-          evaluationReport: null,
-          resumeUrl: cand.resumeUrl || '',
-          notes: cand.notes || cand.bio || '',
-          createdAt: cand.createdAt || new Date().toISOString(),
-          updatedAt: cand.updatedAt || cand.createdAt,
-        }));
+      items = appItems;
 
-      items = [...appItems, ...registeredOnly];
+      // If more space in limit and not enough applications, include registered candidates
+      if (items.length < limit) {
+        const remainingLimit = limit - items.length;
+        const candQuery = { isDeleted: { $ne: true } };
+        if (safeSearch) {
+          candQuery.$or = [
+            { name: { $regex: safeSearch, $options: 'i' } },
+            { email: { $regex: safeSearch, $options: 'i' } },
+            { currentRole: { $regex: safeSearch, $options: 'i' } },
+            { technicalSkills: { $in: [new RegExp(safeSearch, 'i')] } },
+          ];
+        }
+        if (status && status !== 'All') candQuery.status = status;
 
-      // In-memory sync for offline fallback
-      if (inMemoryData.candidates.length === 0) {
-        inMemoryData.candidates = items;
+        const registeredCandidates = await Candidate.find(candQuery)
+          .sort({ createdAt: -1 })
+          .limit(remainingLimit + candidatesWithApps.size)
+          .lean();
+
+        const registeredOnly = registeredCandidates
+          .filter((cand) => !candidatesWithApps.has(String(cand._id)))
+          .slice(0, remainingLimit)
+          .map((cand) => ({
+            id: String(cand._id),
+            _id: cand._id,
+            candidateId: cand._id,
+            name: cand.name,
+            email: cand.email,
+            phone: cand.phone || '',
+            currentRole: cand.currentRole || 'Software Engineer',
+            jobId: cand.jobId || '',
+            positionApplied:
+              cand.positionApplied || cand.jobTitle || 'General Talent Pool',
+            jobTitle: cand.jobTitle || 'General Talent Pool',
+            client: cand.client || 'Enterprise Partner',
+            rateCard: cand.rateCard || '',
+            currentCTC: cand.currentCTC || '',
+            relevantExperience: cand.relevantExperience || 0,
+            currentCompany: cand.currentCompany || '',
+            preferredLocation: cand.preferredLocation || '',
+            applicationDate: cand.applicationDate || '',
+            month: cand.month || '',
+            noticePeriod: cand.noticePeriod || 'Immediate',
+            department: 'Engineering',
+            location: cand.location || 'Remote',
+            technicalSkills: cand.technicalSkills || [],
+            experience: cand.experience || 0,
+            expectedSalary: cand.expectedSalary || 'Market Standard',
+            status: cand.status || 'Applied',
+            assessmentStatus: cand.assessmentStatus || 'Not Started',
+            assessmentScore: cand.assessmentScore || null,
+            fitScore: cand.fitScore || 85,
+            fitBadge: 'Top Match',
+            avatarUrl: cand.avatarUrl || '',
+            avatarType: cand.avatarType || 'initials',
+            anonymousCode: cand.benchAvatarCode || 'TW-CAND-01',
+            evaluationReport: null,
+            resumeUrl: cand.resumeUrl || '',
+            notes: cand.notes || cand.bio || '',
+            createdAt: cand.createdAt || new Date().toISOString(),
+            updatedAt: cand.updatedAt || cand.createdAt,
+          }));
+
+        items = [...items, ...registeredOnly];
+      }
+
+      if (items.length === 0 && total === 0 && !safeSearch && (!status || status === 'All')) {
+        const fallbackList = inMemoryData.candidates || [];
+        total = fallbackList.length;
+        items = fallbackList.slice(skip, skip + limit);
       }
     } else {
-      items = inMemoryData.candidates;
+      let filtered = inMemoryData.candidates || [];
+      if (search && search.trim()) {
+        const s = search.trim().toLowerCase();
+        filtered = filtered.filter((cand) => {
+          const nameMatch = (cand.name || '').toLowerCase().includes(s);
+          const emailMatch = (cand.email || '').toLowerCase().includes(s);
+          const roleMatch = (cand.currentRole || '').toLowerCase().includes(s);
+          const jobMatch = (cand.jobTitle || '').toLowerCase().includes(s);
+          const skillsMatch =
+            cand.technicalSkills &&
+            cand.technicalSkills.some((sk) =>
+              (sk || '').toLowerCase().includes(s)
+            );
+          return nameMatch || emailMatch || roleMatch || jobMatch || skillsMatch;
+        });
+      }
+
+      if (status && status !== 'All') {
+        filtered = filtered.filter((cand) => cand.status === status);
+      }
+
+      total = filtered.length;
+      items = filtered.slice(skip, skip + limit);
     }
 
-    // Filter by search query if provided
-    if (search && search.trim()) {
-      const s = search.trim().toLowerCase();
-      items = items.filter((cand) => {
-        const nameMatch = (cand.name || '').toLowerCase().includes(s);
-        const emailMatch = (cand.email || '').toLowerCase().includes(s);
-        const roleMatch = (cand.currentRole || '').toLowerCase().includes(s);
-        const jobMatch = (cand.jobTitle || '').toLowerCase().includes(s);
-        const skillsMatch =
-          cand.technicalSkills &&
-          cand.technicalSkills.some((sk) =>
-            (sk || '').toLowerCase().includes(s)
-          );
-        return nameMatch || emailMatch || roleMatch || jobMatch || skillsMatch;
-      });
-    }
-
-    // Filter by pipeline stage if specified
-    if (status && status !== 'All') {
-      items = items.filter((cand) => cand.status === status);
-    }
-
-    res.json({ success: true, candidates: items });
+    res.json({
+      success: true,
+      candidates: items,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
+  } catch (err) {
+    console.error('getCandidates error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
   } catch (err) {
     console.error('getCandidates error:', err);
     res.status(500).json({ success: false, error: err.message });
@@ -1379,13 +1537,14 @@ export const deleteCandidate = async (req, res) => {
     );
 
     if (isMongoActive()) {
+      const deletionPayload = { $set: { isDeleted: true, deletedAt: new Date() } };
       if (mongoose.Types.ObjectId.isValid(id)) {
-        const app = await JobApplication.findByIdAndDelete(id);
+        const app = await JobApplication.findByIdAndUpdate(id, deletionPayload);
         if (!app) {
-          await Candidate.findByIdAndDelete(id);
+          await Candidate.findByIdAndUpdate(id, deletionPayload);
         }
       } else {
-        await Candidate.findOneAndDelete({ id });
+        await Candidate.findOneAndUpdate({ id }, deletionPayload);
       }
     }
 
@@ -1409,16 +1568,15 @@ export const deleteCandidate = async (req, res) => {
 // ============================================================================
 export const getClients = async (req, res) => {
   try {
+    const { industry, status } = req.query;
+    const { page, limit, skip } = parsePagination(req.query, 50, 100);
     const search =
       typeof req.query.search === 'string' ? req.query.search.trim() : '';
-    const industry =
-      typeof req.query.industry === 'string' ? req.query.industry.trim() : '';
-    const status =
-      typeof req.query.status === 'string' ? req.query.status.trim() : '';
 
     let items = [];
+    let total = 0;
     if (isMongoActive()) {
-      let query = {};
+      let query = { isDeleted: { $ne: true } };
       if (search) {
         const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         query.$or = [
@@ -1430,17 +1588,25 @@ export const getClients = async (req, res) => {
       if (industry && industry !== 'All') query.industry = industry;
       if (status && status !== 'All') query.status = status;
 
-      items = await Client.find(query).sort({ createdAt: -1 }).lean();
+      total = await Client.countDocuments(query);
+      items = await Client.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
       if (
-        items.length === 0 &&
+        total === 0 &&
         !search &&
         (!industry || industry === 'All') &&
         (!status || status === 'All')
       ) {
-        items = inMemoryData.clients;
+        const fallbackList = inMemoryData.clients || [];
+        total = fallbackList.length;
+        items = fallbackList.slice(skip, skip + limit);
       }
     } else {
-      items = inMemoryData.clients.filter((cli) => {
+      const filtered = inMemoryData.clients.filter((cli) => {
         let match = true;
         if (search) {
           const s = search.toLowerCase();
@@ -1454,9 +1620,20 @@ export const getClients = async (req, res) => {
         if (match && status && status !== 'All') match = cli.status === status;
         return match;
       });
+      total = filtered.length;
+      items = filtered.slice(skip, skip + limit);
     }
 
-    res.json({ success: true, clients: items });
+    res.json({
+      success: true,
+      clients: items,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -1607,7 +1784,10 @@ export const deleteClient = async (req, res) => {
 
     if (isMongoActive()) {
       const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { id };
-      await Client.findOneAndDelete(query);
+      // Soft-delete client record (SEC-DB-04)
+      await Client.findOneAndUpdate(query, {
+        $set: { isDeleted: true, deletedAt: new Date() },
+      });
     }
 
     await logActivity(
@@ -1632,13 +1812,15 @@ export const getJobs = async (req, res) => {
   try {
     const { priority, status, industry, jobMode, type, category } =
       req.query;
+    const { page, limit, skip } = parsePagination(req.query, 50, 100);
     const search =
       typeof req.query.search === 'string' ? req.query.search.trim() : '';
     const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     let items = [];
+    let total = 0;
     if (isMongoActive()) {
-      let query = {};
+      let query = { isDeleted: { $ne: true } };
       if (safeSearch) {
         query.$or = [
           { title: { $regex: safeSearch, $options: 'i' } },
@@ -1710,7 +1892,23 @@ export const getJobs = async (req, res) => {
       if (industry && industry !== 'All') query.industry = industry;
       if (jobMode && jobMode !== 'All') query.jobMode = jobMode;
 
-      items = await JobRequirement.find(query).sort({ createdAt: -1 }).lean();
+      total = await JobRequirement.countDocuments(query);
+      items = await JobRequirement.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+      if (
+        total === 0 &&
+        !safeSearch &&
+        (!status || status === 'All') &&
+        (!category || category === 'All')
+      ) {
+        const fallbackList = inMemoryData.jobs || [];
+        total = fallbackList.length;
+        items = fallbackList.slice(skip, skip + limit);
+      }
     } else {
       items = inMemoryData.jobs.filter((j) => {
         let match = true;
@@ -1792,9 +1990,20 @@ export const getJobs = async (req, res) => {
           match = j.jobMode === jobMode;
         return match;
       });
+      total = filtered.length;
+      items = filtered.slice(skip, skip + limit);
     }
 
-    res.json({ success: true, jobs: items });
+    res.json({
+      success: true,
+      jobs: items,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -2394,7 +2603,10 @@ export const deleteJob = async (req, res) => {
       const query = mongoose.Types.ObjectId.isValid(id)
         ? { $or: [{ _id: id }, { id }, { jobId: id }] }
         : { $or: [{ id }, { jobId: id }] };
-      await JobRequirement.findOneAndDelete(query);
+      // Soft-delete job requirement (SEC-DB-04)
+      await JobRequirement.findOneAndUpdate(query, {
+        $set: { isDeleted: true, deletedAt: new Date() },
+      });
     }
 
     await logActivity(
@@ -2579,12 +2791,24 @@ export const recordInboundRequisition = async (reqData = {}) => {
 export const getPlacements = async (req, res) => {
   try {
     const role = (req.user?.role || '').toLowerCase();
+    const { page, limit, skip } = parsePagination(req.query, 50, 100);
+    const query = { isDeleted: { $ne: true } };
     let items = [];
+    let total = 0;
     if (isMongoActive()) {
-      items = await Placement.find().sort({ createdAt: -1 }).lean();
-      if (items.length === 0) items = inMemoryData.placements;
+      total = await Placement.countDocuments(query);
+      items = await Placement.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+      if (items.length === 0 && total === 0) {
+        items = inMemoryData.placements.slice(skip, skip + limit);
+        total = inMemoryData.placements.length;
+      }
     } else {
-      items = inMemoryData.placements;
+      total = inMemoryData.placements.length;
+      items = inMemoryData.placements.slice(skip, skip + limit);
     }
     if (role === 'cms_admin') {
       items = items.map((p) => {
@@ -2594,7 +2818,16 @@ export const getPlacements = async (req, res) => {
         return item;
       });
     }
-    res.json({ success: true, placements: items });
+    res.json({
+      success: true,
+      placements: items,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -2737,7 +2970,10 @@ export const deletePlacement = async (req, res) => {
 
     if (isMongoActive()) {
       const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { id };
-      await Placement.findOneAndDelete(query);
+      // Soft-delete placement record (SEC-DB-04)
+      await Placement.findOneAndUpdate(query, {
+        $set: { isDeleted: true, deletedAt: new Date() },
+      });
     }
 
     await logActivity(
@@ -2760,14 +2996,34 @@ export const deletePlacement = async (req, res) => {
 // ============================================================================
 export const getCmsPages = async (req, res) => {
   try {
+    const { page, limit, skip } = parsePagination(req.query, 50, 100);
     let items = [];
+    let total = 0;
     if (isMongoActive()) {
-      items = await Page.find().sort({ updatedAt: -1 }).lean();
-      if (items.length === 0) items = inMemoryData.pages;
+      total = await Page.countDocuments();
+      items = await Page.find()
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+      if (items.length === 0 && total === 0) {
+        items = inMemoryData.pages.slice(skip, skip + limit);
+        total = inMemoryData.pages.length;
+      }
     } else {
-      items = inMemoryData.pages;
+      total = inMemoryData.pages.length;
+      items = inMemoryData.pages.slice(skip, skip + limit);
     }
-    res.json({ success: true, pages: items });
+    res.json({
+      success: true,
+      pages: items,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -3022,13 +3278,36 @@ export const deleteCmsPage = async (req, res) => {
 export const getCmsArticles = async (req, res) => {
   try {
     const { category, status } = req.query;
+    const { page, limit, skip } = parsePagination(req.query, 50, 100);
     const search =
       typeof req.query.search === 'string' ? req.query.search.trim() : '';
 
-    const items = await articlesStore.getCmsArticles({ search, category, status });
+    const result = await articlesStore.getCmsArticles({
+      search,
+      category,
+      status,
+      page,
+      limit,
+      skip,
+    });
     inMemoryData.articles = inMemoryArticles;
 
-    res.json({ success: true, articles: items });
+    const items = Array.isArray(result) ? result : result.items || [];
+    const total =
+      typeof result.total === 'number'
+        ? result.total
+        : inMemoryArticles.length;
+
+    res.json({
+      success: true,
+      articles: items,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -3121,7 +3400,7 @@ export const deleteCmsArticle = async (req, res) => {
       'Deleted Article',
       'CMS',
       id,
-      `Removed blog post '${deleted.title}'.`,
+      `Removed blog post '${deleted.title || id}'.`,
       req.user,
       '#DC2626'
     );
@@ -3138,14 +3417,34 @@ export const deleteCmsArticle = async (req, res) => {
 // ============================================================================
 export const getCmsMedia = async (req, res) => {
   try {
+    const { page, limit, skip } = parsePagination(req.query, 50, 100);
     let items = [];
+    let total = 0;
     if (isMongoActive()) {
-      items = await Media.find().sort({ createdAt: -1 }).lean();
-      if (items.length === 0) items = inMemoryData.media;
+      total = await Media.countDocuments();
+      items = await Media.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+      if (items.length === 0 && total === 0) {
+        items = inMemoryData.media.slice(skip, skip + limit);
+        total = inMemoryData.media.length;
+      }
     } else {
-      items = inMemoryData.media;
+      total = inMemoryData.media.length;
+      items = inMemoryData.media.slice(skip, skip + limit);
     }
-    res.json({ success: true, media: items });
+    res.json({
+      success: true,
+      media: items,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -3245,7 +3544,7 @@ export const deleteCmsMedia = async (req, res) => {
 export const getSeoSettings = async (req, res) => {
   try {
     const pages = isMongoActive()
-      ? await Page.find().lean()
+      ? await Page.find().limit(100).lean()
       : inMemoryData.pages;
 
     const seoList = (pages.length ? pages : inMemoryData.pages).map((p) => ({
@@ -3328,14 +3627,34 @@ export const updateSeoSettings = async (req, res) => {
 // ============================================================================
 export const getAnnouncements = async (req, res) => {
   try {
+    const { page, limit, skip } = parsePagination(req.query, 50, 100);
     let items = [];
+    let total = 0;
     if (isMongoActive()) {
-      items = await Announcement.find().sort({ createdAt: -1 }).lean();
-      if (items.length === 0) items = inMemoryData.announcements;
+      total = await Announcement.countDocuments();
+      items = await Announcement.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+      if (items.length === 0 && total === 0) {
+        items = inMemoryData.announcements.slice(skip, skip + limit);
+        total = inMemoryData.announcements.length;
+      }
     } else {
-      items = inMemoryData.announcements;
+      total = inMemoryData.announcements.length;
+      items = inMemoryData.announcements.slice(skip, skip + limit);
     }
-    res.json({ success: true, announcements: items });
+    res.json({
+      success: true,
+      announcements: items,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -3452,49 +3771,122 @@ export const deleteAnnouncement = async (req, res) => {
 // ============================================================================
 export const getCmsStats = async (req, res) => {
   try {
-    let pages = isMongoActive() ? await Page.find().lean() : inMemoryData.pages;
-    let articles = isMongoActive()
-      ? await Article.find().lean()
-      : inMemoryData.articles;
-    let media = isMongoActive()
-      ? await Media.find().lean()
-      : inMemoryData.media;
-    let announcements = isMongoActive()
-      ? await Announcement.find().lean()
-      : inMemoryData.announcements;
+    let pages = [];
+    let articles = [];
+    let media = [];
+    let announcements = [];
+    let totalPages = 0;
+    let publishedPages = 0;
+    let draftPages = 0;
+    let totalArticles = 0;
+    let publishedArticles = 0;
+    let draftArticles = 0;
+    let totalMedia = 0;
+    let totalAnnouncements = 0;
+    let recentUpdates = [];
 
-    if (!pages.length) pages = inMemoryData.pages;
-    if (!articles.length) articles = inMemoryData.articles;
-    if (!media.length) media = inMemoryData.media;
-    if (!announcements.length) announcements = inMemoryData.announcements;
+    if (isMongoActive()) {
+      const [
+        pgCount,
+        pgPubCount,
+        artCount,
+        artPubCount,
+        medCount,
+        annCount,
+        recentPages,
+        recentArts,
+        annList,
+      ] = await Promise.all([
+        Page.countDocuments(),
+        Page.countDocuments({ status: 'published' }),
+        Article.countDocuments({ isDeleted: { $ne: true } }),
+        Article.countDocuments({
+          status: 'published',
+          isDeleted: { $ne: true },
+        }),
+        Media.countDocuments(),
+        Announcement.countDocuments(),
+        Page.find()
+          .select('title slug status lastUpdatedBy author updatedAt createdAt')
+          .sort({ updatedAt: -1 })
+          .limit(6)
+          .lean(),
+        Article.find({ isDeleted: { $ne: true } })
+          .select('title slug status lastUpdatedBy author updatedAt createdAt')
+          .sort({ updatedAt: -1 })
+          .limit(6)
+          .lean(),
+        Announcement.find({ status: 'published' })
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .lean(),
+      ]);
 
-    const totalPages = pages.length;
-    const publishedPages = pages.filter((p) => p.status === 'published').length;
-    const draftPages = pages.filter((p) => p.status === 'draft').length;
+      totalPages = pgCount;
+      publishedPages = pgPubCount;
+      draftPages = Math.max(0, pgCount - pgPubCount);
+      totalArticles = artCount;
+      publishedArticles = artPubCount;
+      draftArticles = Math.max(0, artCount - artPubCount);
+      totalMedia = medCount;
+      totalAnnouncements = annCount;
+      announcements = annList.length
+        ? annList
+        : inMemoryData.announcements.filter((a) => a.status === 'published');
 
-    const totalArticles = articles.length;
-    const publishedArticles = articles.filter(
-      (a) => a.status === 'published'
-    ).length;
-    const draftArticles = articles.filter((a) => a.status === 'draft').length;
+      recentUpdates = [...recentPages, ...recentArts]
+        .sort(
+          (a, b) =>
+            new Date(b.updatedAt || b.createdAt) -
+            new Date(a.updatedAt || a.createdAt)
+        )
+        .slice(0, 6)
+        .map((item) => ({
+          id: item.id || item._id,
+          title: item.title,
+          type: item.slug && item.body ? 'Blog Article' : 'Website Page',
+          slug: item.slug,
+          status: item.status,
+          lastUpdatedBy:
+            item.lastUpdatedBy || (item.author && item.author.name) || 'Admin',
+          updatedAt: item.updatedAt || item.createdAt,
+        }));
+    } else {
+      pages = inMemoryData.pages;
+      articles = inMemoryData.articles;
+      media = inMemoryData.media;
+      announcements = inMemoryData.announcements;
 
-    const recentUpdates = [...pages, ...articles]
-      .sort(
-        (a, b) =>
-          new Date(b.updatedAt || b.createdAt) -
-          new Date(a.updatedAt || a.createdAt)
-      )
-      .slice(0, 6)
-      .map((item) => ({
-        id: item.id || item._id,
-        title: item.title,
-        type: item.slug && item.body ? 'Blog Article' : 'Website Page',
-        slug: item.slug,
-        status: item.status,
-        lastUpdatedBy:
-          item.lastUpdatedBy || (item.author && item.author.name) || 'Admin',
-        updatedAt: item.updatedAt || item.createdAt,
-      }));
+      totalPages = pages.length;
+      publishedPages = pages.filter((p) => p.status === 'published').length;
+      draftPages = pages.filter((p) => p.status === 'draft').length;
+
+      totalArticles = articles.length;
+      publishedArticles = articles.filter(
+        (a) => a.status === 'published'
+      ).length;
+      draftArticles = articles.filter((a) => a.status === 'draft').length;
+      totalMedia = media.length;
+      totalAnnouncements = announcements.length;
+
+      recentUpdates = [...pages, ...articles]
+        .sort(
+          (a, b) =>
+            new Date(b.updatedAt || b.createdAt) -
+            new Date(a.updatedAt || a.createdAt)
+        )
+        .slice(0, 6)
+        .map((item) => ({
+          id: item.id || item._id,
+          title: item.title,
+          type: item.slug && item.body ? 'Blog Article' : 'Website Page',
+          slug: item.slug,
+          status: item.status,
+          lastUpdatedBy:
+            item.lastUpdatedBy || (item.author && item.author.name) || 'Admin',
+          updatedAt: item.updatedAt || item.createdAt,
+        }));
+    }
 
     res.json({
       success: true,
@@ -3531,6 +3923,7 @@ export const getCmsStats = async (req, res) => {
 export const getActivities = async (req, res) => {
   try {
     const role = (req.user?.role || '').toLowerCase();
+    const { page, limit, skip } = parsePagination(req.query, 30, 100);
     const cmsAllowedEntityTypes = [
       'Page',
       'Article',
@@ -3545,27 +3938,44 @@ export const getActivities = async (req, res) => {
     }
 
     let items = [];
+    let total = 0;
     if (isMongoActive()) {
-      items = await Activity.find(query).sort({ createdAt: -1 }).limit(30).lean();
-      if (items.length === 0) {
+      total = await Activity.countDocuments(query);
+      items = await Activity.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+      if (items.length === 0 && total === 0) {
+        let baseList = inMemoryData.activities || [];
         if (role === 'cms_admin') {
-          items = (inMemoryData.activities || []).filter((a) =>
+          baseList = baseList.filter((a) =>
             cmsAllowedEntityTypes.includes(a.entityType)
           );
-        } else {
-          items = inMemoryData.activities || [];
         }
+        total = baseList.length;
+        items = baseList.slice(skip, skip + limit);
       }
     } else {
+      let baseList = inMemoryData.activities || [];
       if (role === 'cms_admin') {
-        items = (inMemoryData.activities || []).filter((a) =>
+        baseList = baseList.filter((a) =>
           cmsAllowedEntityTypes.includes(a.entityType)
         );
-      } else {
-        items = inMemoryData.activities || [];
       }
+      total = baseList.length;
+      items = baseList.slice(skip, skip + limit);
     }
-    res.json({ success: true, activities: items });
+    res.json({
+      success: true,
+      activities: items,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -3764,22 +4174,38 @@ export const getSystemMembers = async (req, res) => {
         });
     }
 
+    const { page, limit, skip } = parsePagination(req.query, 50, 100);
     let members = [];
+    let total = 0;
     if (isMongoActive()) {
+      total = await UserMongo.countDocuments();
       members = await UserMongo.find()
         .select('-password -__v')
         .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
         .lean();
     }
 
     if (!isMongoActive() && (!members || members.length === 0)) {
-      members = (inMemoryData.users || []).map((u) => {
+      const fallbackList = (inMemoryData.users || []).map((u) => {
         const { password, ...rest } = u;
         return rest;
       });
+      total = fallbackList.length;
+      members = fallbackList.slice(skip, skip + limit);
     }
 
-    res.json({ success: true, members });
+    res.json({
+      success: true,
+      members,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

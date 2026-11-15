@@ -151,6 +151,7 @@ router.get('/pages', async (req, res) => {
       const dbPages = await Page.find({ status: 'published' })
         .select('-__v')
         .sort({ title: 1 })
+        .limit(100)
         .lean();
       if (dbPages.length > 0) return res.json(dbPages);
     } catch (err) {
@@ -238,10 +239,12 @@ router.get('/openings', async (req, res) => {
   if (isMongoActive()) {
     try {
       const dbJobs = await JobRequirement.find({
+        isRequisition: false,
         status: { $in: ['Active', 'Approved', 'Published'] },
-        isRequisition: { $ne: true },
+        isDeleted: { $ne: true },
       })
         .sort({ createdAt: -1 })
+        .limit(100)
         .lean();
       sourceOpenings = (dbJobs || []).map((j) => ({
         id: j.jobId || j._id,

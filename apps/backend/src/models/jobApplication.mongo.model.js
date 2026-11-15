@@ -317,6 +317,15 @@ const jobApplicationSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -358,6 +367,7 @@ jobApplicationSchema.index(
 );
 jobApplicationSchema.index({ anonymousCode: 1 }, { unique: true, sparse: true });
 jobApplicationSchema.index({ candidate: 1, createdAt: -1 });
+jobApplicationSchema.index({ jobId: 1, status: 1, createdAt: -1 });
 jobApplicationSchema.index({ status: 1, createdAt: -1 });
 jobApplicationSchema.index({ resumeUrl: 1 });
 

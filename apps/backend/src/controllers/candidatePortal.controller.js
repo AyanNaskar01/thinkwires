@@ -59,8 +59,12 @@ export const getCandidateDashboard = async (req, res) => {
     let candidateData = req.candidate;
 
     if (mongoose.connection.readyState === 1) {
-      applications = await JobApplication.find({ candidate: candidateId })
+      applications = await JobApplication.find({
+        candidate: candidateId,
+        isDeleted: { $ne: true },
+      })
         .sort({ createdAt: -1 })
+        .limit(50)
         .lean();
 
       const freshCandidate =
@@ -181,8 +185,12 @@ export const getMyApplications = async (req, res) => {
 
     let applications = [];
     if (mongoose.connection.readyState === 1) {
-      applications = await JobApplication.find({ candidate: candidateId })
+      applications = await JobApplication.find({
+        candidate: candidateId,
+        isDeleted: { $ne: true },
+      })
         .sort({ createdAt: -1 })
+        .limit(50)
         .lean();
     } else {
       applications = localDevApplications.filter(
