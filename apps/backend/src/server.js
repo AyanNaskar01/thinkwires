@@ -1,6 +1,10 @@
 import app from './app.js';
 import { connectDB, sequelize } from './configs/db.js';
-import { connectMongoDB, disconnectMongoDB } from './configs/mongodb.js';
+import {
+  connectMongoDB,
+  disconnectMongoDB,
+  synchronizeIndexes,
+} from './configs/mongodb.js';
 import config from './configs/dotenv.js';
 import { getRedisClient, closeRedis } from './configs/redis.js';
 import { getJwtSecret } from './utils/auth.util.js';
@@ -40,10 +44,11 @@ const startServer = async () => {
       );
     });
 
-  // MongoDB (Mongoose) - Graceful non-blocking connection
+  // MongoDB (Mongoose) - Graceful non-blocking connection with index synchronization (SEC-EXP-09)
   connectMongoDB()
-    .then(() => {
+    .then(async () => {
       console.log('[MongoDB] Connected: dual-mode active persistence enabled.');
+      await synchronizeIndexes();
     })
     .catch((error) => {
       console.warn(
@@ -65,7 +70,7 @@ const startServer = async () => {
     });
 
   // Graceful shutdown handling for container orchestrators (Docker, Kubernetes, Render)
-  const gracefulShutdown = (signal) => {
+  const gracefulShutdown = (signal, exitCode = 0) => {
     console.log(`[Server] Received ${signal}. Starting graceful shutdown...`);
     server.close(async () => {
       console.log('[Server] HTTP connections closed.');
@@ -81,7 +86,7 @@ const startServer = async () => {
       } catch (err) {
         console.error('[Server] Error during database shutdown:', err.message);
       }
-      process.exit(0);
+      process.exit(exitCode);
     });
 
     // Force exit if connections do not close in 10s
@@ -91,9 +96,19 @@ const startServer = async () => {
     }, 10000).unref();
   };
 
+  // Process-level monitors for unhandled promise rejections and uncaught exceptions (SEC-EXP-05)
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('🚨 [Process] Unhandled Promise Rejection at:', promise, 'reason:', reason);
+  });
+
+  process.on('uncaughtException', (error) => {
+    console.error('💥 [Process] Critical Uncaught Exception:', error);
+    gracefulShutdown('UNCAUGHT_EXCEPTION', 1);
+  });
+
   // Use process.once to prevent EventEmitter memory leaks across restarts/workers (Issue #179)
-  process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
-  process.once('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.once('SIGTERM', () => gracefulShutdown('SIGTERM', 0));
+  process.once('SIGINT', () => gracefulShutdown('SIGINT', 0));
 
   return server;
 };

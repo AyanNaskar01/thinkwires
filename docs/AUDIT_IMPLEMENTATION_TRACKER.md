@@ -17,7 +17,7 @@ flowchart LR
 | Milestone | Target Scope | Findings Covered | Target Completion | Status |
 | :--- | :--- | :---: | :---: | :---: |
 | **Milestone 1: BOLA / IDOR Remediation** | Candidate & Admin route authorization, PII defense, file access control | BOLA 1–16 | Sprint 7 | **Completed** |
-| **Milestone 2: Express Hardening & Process Safety** | NoSQL query injection, mass assignment, 10MB DoS, unhandled rejections | SEC-EXP 01–09 | Sprint 7 | **Ready for Dev** |
+| **Milestone 2: Express Hardening & Process Safety** | NoSQL query injection, mass assignment, 10MB DoS, unhandled rejections | SEC-EXP 01–09 | Sprint 7 | **Completed** |
 | **Milestone 3: Database Query Hygiene & ESR Indexing** | Unbounded `.find()`, compound ESR indexes, schema strictness, migrations | SEC-DB 01–05 | Sprint 8 | **Ready for Dev** |
 | **Milestone 4: Frontend Code-Splitting & Client Security** | React.lazy, Three.js deferral, search debouncing, AbortController, cookie auth | SEC-FE 01–08 | Sprint 8 | **Ready for Dev** |
 | **Milestone 5: 12-Factor Portability & SRE Readiness** | S3/R2 object storage, 0.0.0.0 binding, /healthz vs /ready probes, graceful drain | DEP 01–06 | Sprint 9 | **Ready for Dev** |
@@ -52,18 +52,19 @@ flowchart LR
 ## 3. Milestone 2: Express Backend Hardening & Process Safety (9 Issues)
 
 *Reference Document: [`docs/ExpressBackendSecurityAndArchitectureAudit.md`](ExpressBackendSecurityAndArchitectureAudit.md)*
+*Verification Suite: [`apps/backend/src/test/unit/milestone2.express.test.js`](../apps/backend/src/test/unit/milestone2.express.test.js) (13 tests passing)*
 
-| Issue Key | Severity | Target Endpoint & File | Vulnerability Summary | Remediation Required |
+| Issue Key | Severity | Target Endpoint & File | Vulnerability Summary | Remediation Status |
 | :--- | :---: | :--- | :--- | :--- |
-| **SEC-EXP-01** | **CRITICAL** | `apps/backend/src/controllers/admin.controller.js:672, 1336` | NoSQL query selector injection via `req.query` | Sanitize and whitelist all query filters using string primitives; reject objects with `$` prefix. |
-| **SEC-EXP-02** | **HIGH** | `apps/backend/src/controllers/admin.controller.js:1437-1452` | Mass assignment via raw `req.body` in `findOneAndUpdate` | Whitelist editable attributes using an explicit DTO schema before database persistence. |
-| **SEC-EXP-03** | **HIGH** | `apps/backend/src/app.js:64-65` | Excessive JSON body parser limit (10MB) | Lower `express.json({ limit: '1mb' })`; configure dedicated multer streaming for file uploads. |
-| **SEC-EXP-04** | **HIGH** | `apps/backend/src/app.js:168-177` | Stack trace and error message leakage in production | Mask internal database error details in 500 responses when `NODE_ENV === 'production'`. |
-| **SEC-EXP-05** | **HIGH** | `apps/backend/src/server.js:68-96` | Missing `unhandledRejection` and `uncaughtException` monitors | Register process-level exception handlers with structured logging and graceful shutdown. |
-| **SEC-EXP-06** | **HIGH** | `apps/backend/src/routes/api.route.js:455-474` | Privilege escalation in `POST /api/openings` | Remove `cms_admin` from allowed roles in requisition publishing routes. |
-| **SEC-EXP-07** | **HIGH** | `apps/backend/src/configs/db.js:42` | PostgreSQL TLS verification bypass (`rejectUnauthorized: false`) | Enforce strict CA certificate verification in production environments. |
-| **SEC-EXP-08** | **HIGH** | `apps/backend/src/models/job.mongo.model.js:142` | `strict: false` schema bypass | Set `strict: true` and define complete attribute schemas for Job and Article models. |
-| **SEC-EXP-09** | **MEDIUM** | `apps/backend/src/configs/mongodb.js:28` | Production index synchronization missing | Create an automated startup index verification and migration script. |
+| **SEC-EXP-01** | **CRITICAL** | `apps/backend/src/controllers/admin.controller.js`<br>`apps/backend/src/middlewares/sanitize.middleware.js` | NoSQL query selector injection via `req.query` | **Resolved**: Mounted `sanitizeInputs` in-place sanitizer and added strict string-primitive and regex-escape guards in `getCandidates` and `getClients`. |
+| **SEC-EXP-02** | **HIGH** | `apps/backend/src/controllers/admin.controller.js`<br>`apps/backend/src/routes/api.route.js` | Mass assignment via raw `req.body` in `findOneAndUpdate` | **Resolved**: Enforced explicit whitelisted DTO schema with `$set` atomic operators and validator enforcement in `updateClient` and `POST /api/openings`. |
+| **SEC-EXP-03** | **HIGH** | `apps/backend/src/app.js:64-65` | Excessive JSON body parser limit (10MB) | **Resolved**: Reduced `express.json` and `express.urlencoded` limits to `1mb`, preventing JSON parsing ReDoS/DoS while delegating media uploads to multer. |
+| **SEC-EXP-04** | **HIGH** | `apps/backend/src/app.js:168-177` | Stack trace and error message leakage in production | **Resolved**: Masked 5xx internal error details with generic user-friendly message when `NODE_ENV === 'production'`. |
+| **SEC-EXP-05** | **HIGH** | `apps/backend/src/server.js:68-96` | Missing `unhandledRejection` and `uncaughtException` monitors | **Resolved**: Registered top-level process monitors with structured logging and controlled graceful shutdown. |
+| **SEC-EXP-06** | **HIGH** | `apps/backend/src/routes/api.route.js:455-474` | Privilege escalation in `POST /api/openings` | **Resolved**: Enforced `manpowerGuard` (`superadmin`, `admin`) restricting `cms_admin` from publishing/upserting openings. |
+| **SEC-EXP-07** | **HIGH** | `apps/backend/src/configs/db.js:42` | PostgreSQL TLS verification bypass (`rejectUnauthorized: false`) | **Resolved**: Added CA certificate support, configurable `DB_SSL_REJECT_UNAUTHORIZED`, and strict TLS verification in non-cloud production environments. |
+| **SEC-EXP-08** | **HIGH** | `apps/backend/src/models/job.mongo.model.js`<br>`apps/backend/src/models/article.mongo.model.js` | `strict: false` schema bypass | **Resolved**: Set `strict: true` and defined complete attribute schemas for JobRequirement and Article models. |
+| **SEC-EXP-09** | **MEDIUM** | `apps/backend/src/configs/mongodb.js`<br>`apps/backend/src/server.js` | Production index synchronization missing | **Resolved**: Added automated startup index synchronization in `server.js` via `synchronizeIndexes()` and added npm `sync:indexes` script. |
 
 ---
 

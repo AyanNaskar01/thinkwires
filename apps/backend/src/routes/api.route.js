@@ -460,10 +460,37 @@ router.post('/openings', manpowerGuard, async (req, res) => {
     if (isMongoActive()) {
       try {
         for (const j of req.body.openings) {
+          if (!j || typeof j !== 'object' || !j.title) continue;
+          const safeJob = {
+            title: String(j.title).trim(),
+            client: String(j.company || j.client || 'Thinkwires Client').trim(),
+            category: String(j.category || 'Engineering').trim(),
+            location: String(j.location || 'Remote').trim(),
+            jobMode: ['Permanent', 'Contract', 'Contract to Hire'].includes(j.jobMode)
+              ? j.jobMode
+              : 'Permanent',
+            workMode: String(j.workMode || 'Remote').trim(),
+            experienceRequired: Number(j.experienceRequired) || 3,
+            requiredSkills: Array.isArray(j.requiredSkills)
+              ? j.requiredSkills
+              : Array.isArray(j.skills)
+                ? j.skills
+                : [],
+            skills: Array.isArray(j.skills)
+              ? j.skills
+              : Array.isArray(j.requiredSkills)
+                ? j.requiredSkills
+                : [],
+            description: String(j.description || '').trim(),
+            requirements: String(j.requirements || '').trim(),
+            budget: String(j.budget || j.salary || '').trim(),
+            status: String(j.status || 'Open').trim(),
+            priority: j.priority || 'Medium',
+          };
           await JobRequirement.findOneAndUpdate(
-            { title: j.title, client: j.company || 'Thinkwires Client' },
-            { ...j, client: j.company || 'Thinkwires Client' },
-            { upsert: true }
+            { title: safeJob.title, client: safeJob.client },
+            { $set: safeJob },
+            { upsert: true, new: true, runValidators: true }
           );
         }
       } catch (err) {

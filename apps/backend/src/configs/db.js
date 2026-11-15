@@ -28,6 +28,21 @@ const enableSsl =
   process.env.DB_SSL === 'true' ||
   (process.env.DB_SSL !== 'false' && (isCloudManaged || (isProduction && !isLocalhost)));
 
+// SEC-EXP-07: PostgreSQL TLS verification hardening
+const rejectUnauthorized = (() => {
+  if (process.env.DB_SSL_REJECT_UNAUTHORIZED !== undefined) {
+    return process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true';
+  }
+  if (process.env.DB_CA_CERT || process.env.NODE_EXTRA_CA_CERTS) {
+    return true;
+  }
+  // Enforce strict TLS certificate verification in production
+  if (isProduction && !isCloudManaged) {
+    return true;
+  }
+  return false;
+})();
+
 export const sequelize = new Sequelize(config.DATABASE_URL, {
   dialect: 'postgres',
   protocol: 'postgres',
@@ -38,8 +53,8 @@ export const sequelize = new Sequelize(config.DATABASE_URL, {
       ? {
           ssl: {
             require: true,
-            // Cloud poolers (Neon/Supabase) present TLS certs requiring relaxed verification in Node
-            rejectUnauthorized: false,
+            rejectUnauthorized,
+            ...(process.env.DB_CA_CERT ? { ca: process.env.DB_CA_CERT } : {}),
           },
         }
       : {}),

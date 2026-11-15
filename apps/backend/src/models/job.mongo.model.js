@@ -144,10 +144,74 @@ const jobRequirementSchema = new mongoose.Schema(
       type: Date,
       default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
+    isRequisition: {
+      type: Boolean,
+      default: false,
+    },
+    source: {
+      type: String,
+      default: 'Internal ATS',
+    },
+    contactPerson: {
+      type: String,
+      default: '',
+    },
+    contactEmail: {
+      type: String,
+      default: '',
+    },
+    contactPhone: {
+      type: String,
+      default: '',
+    },
+    engagementModel: {
+      type: String,
+      default: 'Staff Augmentation',
+    },
+    seniority: {
+      type: String,
+      default: 'Senior',
+    },
+    deploymentUrgency: {
+      type: String,
+      default: 'immediate',
+    },
+    budgetEnvelope: {
+      type: String,
+      default: '',
+    },
+    company: {
+      type: String,
+      default: '',
+    },
+    id: {
+      type: String,
+      default: null,
+    },
+    notes: {
+      type: String,
+      default: '',
+    },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+    isHot: {
+      type: Boolean,
+      default: false,
+    },
+    tags: {
+      type: [String],
+      default: [],
+    },
+    hiringManager: {
+      type: String,
+      default: '',
+    },
   },
   {
     timestamps: true,
-    strict: false,
+    strict: true,
     id: false,
   }
 );

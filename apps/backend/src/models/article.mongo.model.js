@@ -102,7 +102,7 @@ const articleSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    strict: false,
+    strict: true,
   }
 );
 

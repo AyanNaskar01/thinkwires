@@ -18,6 +18,7 @@ import industriesRoutes from './routes/industries.route.js';
 import servicesRoutes from './routes/services.route.js';
 import { downloadResume } from './controllers/candidatePortal.controller.js';
 import { isAllowedOrigin } from './middlewares/csrf.middleware.js';
+import sanitizeInputs from './middlewares/sanitize.middleware.js';
 import { sequelize } from './configs/db.js';
 import { isRedisConnected } from './configs/redis.js';
 
@@ -61,8 +62,9 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(sanitizeInputs);
 app.use(cookieParser());
 
 const uploadsDir = process.env.VERCEL
@@ -164,15 +166,26 @@ app.use((req, res) => {
   });
 });
 
-// Global central error handler for API
+// Global central error handler for API (SEC-EXP-04: production information leakage defense)
 app.use((err, req, res, next) => {
-  console.error('[Unhandled API Error]:', err);
+  const isProduction = process.env.NODE_ENV === 'production';
+  const statusCode = err.status || err.statusCode || 500;
+
+  console.error(`[Unhandled API Error ${statusCode}]:`, err);
   if (res.headersSent) {
     return next(err);
   }
-  res.status(err.status || 500).json({
+
+  let userFacingMessage = err.message || 'Internal Server Error';
+  if (isProduction && statusCode >= 500) {
+    userFacingMessage =
+      'An unexpected server error occurred. Please contact Thinkwires support.';
+  }
+
+  res.status(statusCode).json({
     success: false,
-    error: err.message || 'Internal Server Error',
+    error: userFacingMessage,
+    ...(isProduction ? {} : { stack: err.stack }),
   });
 });
 
