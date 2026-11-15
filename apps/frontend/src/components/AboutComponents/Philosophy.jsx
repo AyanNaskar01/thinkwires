@@ -105,7 +105,10 @@ const Philosophy = ({ data }) => {
                 src={resolvedImage}
                 alt={imageAlt}
                 className="Philosophy-image"
+                width={800}
+                height={600}
                 loading="lazy"
+                decoding="async"
                 onError={() => setImgError(true)}
               />
               <div className="Philosophy-imageOverlay" />

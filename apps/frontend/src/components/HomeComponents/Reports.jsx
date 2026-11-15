@@ -392,7 +392,10 @@ const Reports = () => {
                         src={imageSrc}
                         alt={article.title}
                         className="Reports-image"
+                        width={600}
+                        height={340}
                         loading="lazy"
+                        decoding="async"
                       />
                       <span
                         className="Reports-tagBadge"
@@ -446,6 +449,10 @@ const Reports = () => {
                           src={authorAvatar}
                           alt={authorName}
                           className="Reports-authorAvatar"
+                          width={28}
+                          height={28}
+                          loading="lazy"
+                          decoding="async"
                           style={{
                             width: 28,
                             height: 28,

@@ -48,6 +48,10 @@ const BlogCard = ({ article, onReadClick }) => {
           <img
             src={coverImage}
             alt={article.title}
+            width={400}
+            height={225}
+            loading="lazy"
+            decoding="async"
             style={{
               width: '100%',
               height: '100%',
@@ -188,6 +192,10 @@ const BlogCard = ({ article, onReadClick }) => {
               src={article.author.avatar}
               alt={article.author.name}
               className="FigmaBlogCard-avatar"
+              width={28}
+              height={28}
+              loading="lazy"
+              decoding="async"
             />
           ) : (
             <span className="FigmaBlogCard-initialsBubble">

@@ -505,7 +505,11 @@ const NewHero = ({ onOpenModal }) => {
                       <img
                         className="NewHero-heroImage"
                         src={currentSlide.image}
-                        alt={currentSlide.alt}
+                        alt={currentSlide.alt || 'Thinkwires enterprise global engineering workforce'}
+                        width={800}
+                        height={550}
+                        loading="eager"
+                        decoding="async"
                       />
                     </motion.div>
                   </AnimatePresence>

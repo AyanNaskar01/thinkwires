@@ -14,6 +14,7 @@ import CandidateEvaluationModal from './CandidateEvaluationModal';
 import SkillSearchInput from '../components/common/SkillSearchInput';
 import DataImportModal from './components/DataImportModal';
 import { exportToExcel, CANDIDATE_ATS_COLUMNS } from './utils/excelDataUtils';
+import { useDebounce } from '../hooks/useDebounce';
 
 const PIPELINE_STAGES = [
   'Applied',
@@ -29,6 +30,7 @@ const CandidatesView = () => {
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [selectedStage, setSelectedStage] = useState('All');
   const [viewMode, setViewMode] = useState('pipeline'); // 'pipeline' | 'table'
 
@@ -60,7 +62,7 @@ const CandidatesView = () => {
   const fetchCandidates = () => {
     setLoading(true);
     adminApi
-      .getCandidates({ search, status: selectedStage })
+      .getCandidates({ search: debouncedSearch, status: selectedStage })
       .then((res) => {
         setCandidates(res.candidates || []);
         setLoading(false);
@@ -72,25 +74,30 @@ const CandidatesView = () => {
   };
 
   useEffect(() => {
-    let isMounted = true;
+    const abortController = new AbortController();
+    setLoading(true);
+
     adminApi
-      .getCandidates({ search, status: selectedStage })
+      .getCandidates(
+        { search: debouncedSearch, status: selectedStage },
+        { signal: abortController.signal }
+      )
       .then((res) => {
-        if (isMounted) {
-          setCandidates(res.candidates || []);
-          setLoading(false);
-        }
+        setCandidates(res.candidates || []);
+        setLoading(false);
       })
       .catch((err) => {
-        if (isMounted) {
-          setLoading(false);
-          showToast(`Failed to load candidates: ${err.message}`);
+        if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
+          return; // Ignore aborted requests cleanly without UI flicker
         }
+        setLoading(false);
+        showToast(`Failed to load candidates: ${err.message}`);
       });
+
     return () => {
-      isMounted = false;
+      abortController.abort();
     };
-  }, [search, selectedStage, showToast]);
+  }, [debouncedSearch, selectedStage, showToast]);
 
   const handleStageChange = (candidateId, newStage) => {
     if (activeRole === 'viewer') {

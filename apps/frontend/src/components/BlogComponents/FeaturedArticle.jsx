@@ -79,6 +79,10 @@ const FeaturedArticle = ({
             src={displayImage}
             alt={currentArticle.title}
             className="FeaturedArticle-image"
+            width={800}
+            height={450}
+            loading="eager"
+            decoding="async"
             onError={(e) => {
               e.target.onerror = null;
               e.target.src = featuredImgAsset;

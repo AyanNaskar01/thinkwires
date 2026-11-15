@@ -40,33 +40,28 @@ export const API_BASE = getApiBaseUrl();
 
 const CANDIDATE_TOKEN_KEY = 'thinkwires_candidate_jwt';
 
+// Pure in-memory session token fallback to prevent XSS extraction from localStorage (SEC-FE-05)
+let inMemoryCandidateToken = null;
+
 export const getCandidateToken = () => {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      return localStorage.getItem(CANDIDATE_TOKEN_KEY);
-    }
-  } catch {
-    // Ignore in private/restricted storage modes
-  }
-  return null;
+  // Rely primarily on browser-managed HttpOnly cookie; in-memory fallback for current page session
+  return inMemoryCandidateToken;
 };
 
 export const setCandidateToken = (token) => {
+  inMemoryCandidateToken = token || null;
+  // Never persist candidate JWT to localStorage to protect against XSS token harvesting
+};
+
+export const clearCandidateToken = () => {
+  inMemoryCandidateToken = null;
   try {
     if (typeof localStorage !== 'undefined') {
-      if (token) {
-        localStorage.setItem(CANDIDATE_TOKEN_KEY, token);
-      } else {
-        localStorage.removeItem(CANDIDATE_TOKEN_KEY);
-      }
+      localStorage.removeItem(CANDIDATE_TOKEN_KEY);
     }
   } catch {
     // Ignore in private/restricted storage modes
   }
-};
-
-export const clearCandidateToken = () => {
-  setCandidateToken(null);
 };
 
 /**
