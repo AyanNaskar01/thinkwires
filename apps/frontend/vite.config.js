@@ -19,11 +19,6 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    resolve: {
-      alias: {
-        xlsx: path.resolve(__dirname, './src/admin/utils/xlsxStub.js'),
-      },
-    },
     server: {
       port: frontendPort,
       proxy: {
@@ -49,11 +44,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       chunkSizeWarningLimit: 1200,
-      rolldownOptions: {
-        external: ['xlsx'],
-      },
       rollupOptions: {
-        external: ['xlsx'],
         output: {
           manualChunks(id) {
             const normalizedId = id.replace(/\\/g, '/');
@@ -62,6 +53,7 @@ export default defineConfig(({ mode }) => {
               if (normalizedId.includes('/recharts/')) return 'vendor-charts';
               if (normalizedId.includes('/framer-motion/'))
                 return 'vendor-motion';
+              if (normalizedId.includes('/xlsx/')) return 'vendor-xlsx';
               if (
                 normalizedId.includes('/react/') ||
                 normalizedId.includes('/react-dom/') ||
