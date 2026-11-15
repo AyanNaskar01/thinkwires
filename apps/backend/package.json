@@ -21,7 +21,8 @@
     "migrate:up": "node src/migrations/runner.js up",
     "migrate:down": "node src/migrations/runner.js down",
     "migrate:status": "node src/migrations/runner.js status",
-    "migrate:create": "node src/migrations/runner.js create"
+    "migrate:create": "node src/migrations/runner.js create",
+    "sync:indexes": "node -e \"import('./src/configs/mongodb.js').then(m => m.connectMongoDB().then(() => m.synchronizeIndexes().then(() => process.exit(0))))\""
   },
   "keywords": [],
   "author": "",

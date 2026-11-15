@@ -361,17 +361,20 @@ export const getDashboardOverview = async (req, res) => {
 // ============================================================================
 export const getEmployees = async (req, res) => {
   try {
-    const { search, availability, status, page = 1, limit = 20 } = req.query;
+    const { availability, status, page = 1, limit = 20 } = req.query;
+    const search =
+      typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     let items = [];
     if (isMongoActive()) {
       let query = {};
-      if (search) {
+      if (safeSearch) {
         query.$or = [
-          { name: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
-          { designation: { $regex: search, $options: 'i' } },
-          { technicalSkills: { $in: [new RegExp(search, 'i')] } },
+          { name: { $regex: safeSearch, $options: 'i' } },
+          { email: { $regex: safeSearch, $options: 'i' } },
+          { designation: { $regex: safeSearch, $options: 'i' } },
+          { technicalSkills: { $in: [new RegExp(safeSearch, 'i')] } },
         ];
       }
       if (availability && availability !== 'All')
@@ -678,7 +681,10 @@ export const deleteEmployee = async (req, res) => {
 // ============================================================================
 export const getCandidates = async (req, res) => {
   try {
-    const { search, status } = req.query;
+    const search =
+      typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const status =
+      typeof req.query.status === 'string' ? req.query.status.trim() : '';
 
     let items = [];
     if (isMongoActive()) {
@@ -1401,16 +1407,22 @@ export const deleteCandidate = async (req, res) => {
 // ============================================================================
 export const getClients = async (req, res) => {
   try {
-    const { search, industry, status } = req.query;
+    const search =
+      typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const industry =
+      typeof req.query.industry === 'string' ? req.query.industry.trim() : '';
+    const status =
+      typeof req.query.status === 'string' ? req.query.status.trim() : '';
 
     let items = [];
     if (isMongoActive()) {
       let query = {};
       if (search) {
+        const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         query.$or = [
-          { companyName: { $regex: search, $options: 'i' } },
-          { contactPerson: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
+          { companyName: { $regex: safeSearch, $options: 'i' } },
+          { contactPerson: { $regex: safeSearch, $options: 'i' } },
+          { email: { $regex: safeSearch, $options: 'i' } },
         ];
       }
       if (industry && industry !== 'All') query.industry = industry;
@@ -1515,7 +1527,34 @@ export const updateClient = async (req, res) => {
   try {
     if (!requireProductionDb(res)) return;
     const { id } = req.params;
-    const updates = req.body;
+    const {
+      companyName,
+      contactPerson,
+      email,
+      phone,
+      industry,
+      status,
+      location,
+      contractType,
+      notes,
+      activeOpenings,
+      tier,
+      accountManager,
+    } = req.body || {};
+
+    const safeUpdates = {};
+    if (companyName !== undefined) safeUpdates.companyName = String(companyName).trim();
+    if (contactPerson !== undefined) safeUpdates.contactPerson = String(contactPerson).trim();
+    if (email !== undefined) safeUpdates.email = String(email).toLowerCase().trim();
+    if (phone !== undefined) safeUpdates.phone = String(phone).trim();
+    if (industry !== undefined) safeUpdates.industry = String(industry).trim();
+    if (status !== undefined) safeUpdates.status = String(status).trim();
+    if (location !== undefined) safeUpdates.location = String(location).trim();
+    if (contractType !== undefined) safeUpdates.contractType = String(contractType).trim();
+    if (notes !== undefined) safeUpdates.notes = String(notes);
+    if (activeOpenings !== undefined) safeUpdates.activeOpenings = Number(activeOpenings) || 0;
+    if (tier !== undefined) safeUpdates.tier = String(tier).trim();
+    if (accountManager !== undefined) safeUpdates.accountManager = String(accountManager).trim();
 
     const idx = inMemoryData.clients.findIndex(
       (c) => c.id === id || String(c._id) === id
@@ -1523,21 +1562,25 @@ export const updateClient = async (req, res) => {
     if (idx !== -1) {
       inMemoryData.clients[idx] = {
         ...inMemoryData.clients[idx],
-        ...updates,
+        ...safeUpdates,
         updatedAt: new Date().toISOString(),
       };
     }
 
     if (isMongoActive()) {
       const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { id };
-      await Client.findOneAndUpdate(query, updates, { new: true });
+      await Client.findOneAndUpdate(
+        query,
+        { $set: safeUpdates },
+        { new: true, runValidators: true }
+      );
     }
 
     await logActivity(
       'Client Updated',
       'Client',
       id,
-      `Updated information for ${updates.companyName || 'client'}.`,
+      `Updated information for ${safeUpdates.companyName || inMemoryData.clients[idx]?.companyName || 'client'}.`,
       req.user
     );
 
@@ -1585,26 +1628,29 @@ export const deleteClient = async (req, res) => {
 // ============================================================================
 export const getJobs = async (req, res) => {
   try {
-    const { search, priority, status, industry, jobMode, type, category } =
+    const { priority, status, industry, jobMode, type, category } =
       req.query;
+    const search =
+      typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     let items = [];
     if (isMongoActive()) {
       let query = {};
-      if (search) {
+      if (safeSearch) {
         query.$or = [
-          { title: { $regex: search, $options: 'i' } },
-          { client: { $regex: search, $options: 'i' } },
-          { contactPerson: { $regex: search, $options: 'i' } },
-          { contactEmail: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } },
-          { requirements: { $regex: search, $options: 'i' } },
-          { requiredSkills: { $in: [new RegExp(search, 'i')] } },
-          { industry: { $regex: search, $options: 'i' } },
-          { jobMode: { $regex: search, $options: 'i' } },
-          { workMode: { $regex: search, $options: 'i' } },
-          { officeLocation: { $regex: search, $options: 'i' } },
-          { location: { $regex: search, $options: 'i' } },
+          { title: { $regex: safeSearch, $options: 'i' } },
+          { client: { $regex: safeSearch, $options: 'i' } },
+          { contactPerson: { $regex: safeSearch, $options: 'i' } },
+          { contactEmail: { $regex: safeSearch, $options: 'i' } },
+          { description: { $regex: safeSearch, $options: 'i' } },
+          { requirements: { $regex: safeSearch, $options: 'i' } },
+          { requiredSkills: { $in: [new RegExp(safeSearch, 'i')] } },
+          { industry: { $regex: safeSearch, $options: 'i' } },
+          { jobMode: { $regex: safeSearch, $options: 'i' } },
+          { workMode: { $regex: safeSearch, $options: 'i' } },
+          { officeLocation: { $regex: safeSearch, $options: 'i' } },
+          { location: { $regex: safeSearch, $options: 'i' } },
         ];
       }
 
@@ -2973,16 +3019,19 @@ export const deleteCmsPage = async (req, res) => {
 // ============================================================================
 export const getCmsArticles = async (req, res) => {
   try {
-    const { search, category, status } = req.query;
+    const { category, status } = req.query;
+    const search =
+      typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     let items = [];
     if (isMongoActive()) {
       let query = {};
-      if (search) {
+      if (safeSearch) {
         query.$or = [
-          { title: { $regex: search, $options: 'i' } },
-          { summary: { $regex: search, $options: 'i' } },
-          { tags: { $in: [new RegExp(search, 'i')] } },
+          { title: { $regex: safeSearch, $options: 'i' } },
+          { summary: { $regex: safeSearch, $options: 'i' } },
+          { tags: { $in: [new RegExp(safeSearch, 'i')] } },
         ];
       }
       if (category && category !== 'All') query.category = category;
