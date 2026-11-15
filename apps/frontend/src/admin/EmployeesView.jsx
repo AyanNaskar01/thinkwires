@@ -10,6 +10,7 @@ import {
   UsersIcon,
   ShieldIcon,
 } from './AdminIcons';
+import { useDebounce } from '../hooks/useDebounce';
 
 const renderRoleBadge = (role) => {
   switch (role) {
@@ -93,6 +94,7 @@ const EmployeesView = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [roleFilter, setRoleFilter] = useState('All');
   const [availability, setAvailability] = useState('All');
   const [status, setStatus] = useState('All');
@@ -127,7 +129,7 @@ const EmployeesView = () => {
   const fetchEmployees = () => {
     setLoading(true);
     adminApi
-      .getEmployees({ search, availability, status, page, limit: 10 })
+      .getEmployees({ search: debouncedSearch, availability, status, page, limit: 10 })
       .then((res) => {
         let list = res.employees || [];
         if (roleFilter !== 'All') {
@@ -144,11 +146,15 @@ const EmployeesView = () => {
   };
 
   useEffect(() => {
-    let isMounted = true;
+    const abortController = new AbortController();
+    setLoading(true);
+
     adminApi
-      .getEmployees({ search, availability, status, page, limit: 10 })
+      .getEmployees(
+        { search: debouncedSearch, availability, status, page, limit: 10 },
+        { signal: abortController.signal }
+      )
       .then((res) => {
-        if (!isMounted) return;
         let list = res.employees || [];
         if (roleFilter !== 'All') {
           list = list.filter((e) => (e.role || 'employee') === roleFilter);
@@ -158,15 +164,17 @@ const EmployeesView = () => {
         setLoading(false);
       })
       .catch((err) => {
-        if (isMounted) {
-          setLoading(false);
-          showToast(`Failed to load employees: ${err.message}`);
+        if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
+          return;
         }
+        setLoading(false);
+        showToast(`Failed to load employees: ${err.message}`);
       });
+
     return () => {
-      isMounted = false;
+      abortController.abort();
     };
-  }, [search, availability, status, roleFilter, page, showToast]);
+  }, [debouncedSearch, availability, status, roleFilter, page, showToast]);
 
   const openAddModal = () => {
     if (activeRole === 'viewer') {

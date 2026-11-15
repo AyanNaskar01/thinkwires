@@ -704,7 +704,7 @@ const BlogManager = () => {
                             <a
                               href={`/blog/${art.slug}`}
                               target="_blank"
-                              rel="noreferrer"
+                              rel="noopener noreferrer"
                               style={{
                                 fontSize: '0.72rem',
                                 color: '#2563EB',

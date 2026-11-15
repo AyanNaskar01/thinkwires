@@ -8,12 +8,14 @@ import {
   CloseIcon,
   AlertCircleIcon,
 } from './AdminIcons';
+import { useDebounce } from '../hooks/useDebounce';
 
 const ClientsView = () => {
   const { showToast, activeRole } = useOutletContext();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [industryFilter, setIndustryFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
 
@@ -38,7 +40,7 @@ const ClientsView = () => {
   const fetchClients = () => {
     setLoading(true);
     adminApi
-      .getClients({ search, industry: industryFilter, status: statusFilter })
+      .getClients({ search: debouncedSearch, industry: industryFilter, status: statusFilter })
       .then((res) => {
         setClients(res.clients || []);
         setLoading(false);
@@ -50,25 +52,30 @@ const ClientsView = () => {
   };
 
   useEffect(() => {
-    let isMounted = true;
+    const abortController = new AbortController();
+    setLoading(true);
+
     adminApi
-      .getClients({ search, industry: industryFilter, status: statusFilter })
+      .getClients(
+        { search: debouncedSearch, industry: industryFilter, status: statusFilter },
+        { signal: abortController.signal }
+      )
       .then((res) => {
-        if (isMounted) {
-          setClients(res.clients || []);
-          setLoading(false);
-        }
+        setClients(res.clients || []);
+        setLoading(false);
       })
       .catch((err) => {
-        if (isMounted) {
-          setLoading(false);
-          showToast(`Failed to load clients: ${err.message}`);
+        if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
+          return;
         }
+        setLoading(false);
+        showToast(`Failed to load clients: ${err.message}`);
       });
+
     return () => {
-      isMounted = false;
+      abortController.abort();
     };
-  }, [search, industryFilter, statusFilter, showToast]);
+  }, [debouncedSearch, industryFilter, statusFilter, showToast]);
 
   const openAddModal = () => {
     if (activeRole === 'viewer') {

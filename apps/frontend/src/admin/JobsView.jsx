@@ -23,6 +23,7 @@ import SkillTagInput from '../components/common/SkillTagInput';
 import SkillSearchInput from '../components/common/SkillSearchInput';
 import DataImportModal from './components/DataImportModal';
 import { exportToExcel, JOB_REQUIREMENT_COLUMNS } from './utils/excelDataUtils';
+import { useDebounce } from '../hooks/useDebounce';
 
 const formatPriority = (p) => {
   if (typeof p === 'number') {
@@ -270,6 +271,7 @@ const JobsView = ({ defaultFilter }) => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [industryFilter, setIndustryFilter] = useState('All');
@@ -308,7 +310,7 @@ const JobsView = ({ defaultFilter }) => {
     setLoading(true);
     adminApi
       .getJobs({
-        search,
+        search: debouncedSearch,
         priority: priorityFilter,
         status: statusFilter,
         industry: industryFilter,
@@ -327,36 +329,45 @@ const JobsView = ({ defaultFilter }) => {
   };
 
   useEffect(() => {
-    let isMounted = true;
+    const abortController = new AbortController();
+    setLoading(true);
+
     adminApi
-      .getJobs({
-        search,
-        priority: priorityFilter,
-        status: statusFilter,
-        industry: industryFilter,
-        jobMode: jobModeFilter,
-        category: categoryFilter,
-      })
+      .getJobs(
+        {
+          search: debouncedSearch,
+          priority: priorityFilter,
+          status: statusFilter,
+          industry: industryFilter,
+          jobMode: jobModeFilter,
+          category: categoryFilter,
+        },
+        { signal: abortController.signal }
+      )
       .then((res) => {
-        if (isMounted) {
-          setJobs(res.jobs || []);
-          setLoading(false);
-        }
+        setJobs(res.jobs || []);
+        setLoading(false);
       })
       .catch((err) => {
-        if (isMounted) {
-          setLoading(false);
-          showToast(`Failed to load jobs: ${err.message}`);
+        if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
+          return;
         }
+        setLoading(false);
+        showToast(`Failed to load jobs: ${err.message}`);
       });
-    adminApi.getClients().then((res) => {
-      if (isMounted) setClients(res.clients || []);
-    });
+
+    adminApi
+      .getClients({}, { signal: abortController.signal })
+      .then((res) => {
+        setClients(res.clients || []);
+      })
+      .catch(() => {});
+
     return () => {
-      isMounted = false;
+      abortController.abort();
     };
   }, [
-    search,
+    debouncedSearch,
     priorityFilter,
     statusFilter,
     industryFilter,

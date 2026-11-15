@@ -158,7 +158,10 @@ const LeadershipTeam = ({ data }) => {
                           src={member.image}
                           alt={member.name}
                           className="LeadershipTeam-avatarImg"
+                          width={64}
+                          height={64}
                           loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         member.initials

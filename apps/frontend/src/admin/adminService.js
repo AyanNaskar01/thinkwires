@@ -301,9 +301,9 @@ export const adminApi = {
   },
 
   // Employees
-  async getEmployees(params = {}) {
+  async getEmployees(params = {}, options = {}) {
     const query = new URLSearchParams(params).toString();
-    const res = await adminFetch(`/employees${query ? `?${query}` : ''}`);
+    const res = await adminFetch(`/employees${query ? `?${query}` : ''}`, options);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return res.json();
   },
@@ -338,9 +338,9 @@ export const adminApi = {
   },
 
   // Candidates
-  async getCandidates(params = {}) {
+  async getCandidates(params = {}, options = {}) {
     const query = new URLSearchParams(params).toString();
-    const res = await adminFetch(`/candidates${query ? `?${query}` : ''}`);
+    const res = await adminFetch(`/candidates${query ? `?${query}` : ''}`, options);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return res.json();
   },
@@ -412,9 +412,9 @@ export const adminApi = {
   },
 
   // Clients
-  async getClients(params = {}) {
+  async getClients(params = {}, options = {}) {
     const query = new URLSearchParams(params).toString();
-    const res = await adminFetch(`/clients${query ? `?${query}` : ''}`);
+    const res = await adminFetch(`/clients${query ? `?${query}` : ''}`, options);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return res.json();
   },
@@ -449,15 +449,15 @@ export const adminApi = {
   },
 
   // Jobs & Requisitions
-  async getJobs(params = {}) {
+  async getJobs(params = {}, options = {}) {
     const query = new URLSearchParams(params).toString();
-    const res = await adminFetch(`/jobs${query ? `?${query}` : ''}`);
+    const res = await adminFetch(`/jobs${query ? `?${query}` : ''}`, options);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return res.json();
   },
 
-  async getRequisitions(params = {}) {
-    return this.getJobs({ ...params, type: 'requisitions' });
+  async getRequisitions(params = {}, options = {}) {
+    return this.getJobs({ ...params, type: 'requisitions' }, options);
   },
 
   async createJob(data) {
@@ -604,9 +604,9 @@ export const adminApi = {
   },
 
   // CMS Articles
-  async getCmsArticles(params = {}) {
+  async getCmsArticles(params = {}, options = {}) {
     const query = new URLSearchParams(params).toString();
-    const res = await adminFetch(`/cms/articles${query ? `?${query}` : ''}`);
+    const res = await adminFetch(`/cms/articles${query ? `?${query}` : ''}`, options);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     return res.json();
   },
@@ -765,7 +765,7 @@ export const adminApi = {
   },
 
   // HelpDesk Communications & Inquiry Management
-  async getHelpDeskTickets(params = {}) {
+  async getHelpDeskTickets(params = {}, options = {}) {
     const query = new URLSearchParams();
     if (params.search) query.append('search', params.search);
     if (params.category && params.category !== 'all')
@@ -778,7 +778,7 @@ export const adminApi = {
     if (params.limit) query.append('limit', params.limit);
 
     const queryString = query.toString() ? `?${query.toString()}` : '';
-    const res = await adminFetch(`/helpdesk${queryString}`);
+    const res = await adminFetch(`/helpdesk${queryString}`, options);
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || `HTTP error ${res.status}`);
     return json;
