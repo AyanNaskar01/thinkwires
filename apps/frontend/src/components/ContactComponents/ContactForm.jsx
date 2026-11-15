@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   submitContactMessage,
@@ -48,12 +48,100 @@ const ContactForm = ({ formConfig }) => {
   const [formData, setFormData] = useState(emptyForm);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const dropdownRef = useRef(null);
+  const triggerRef = useRef(null);
+
+  // Close custom dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+        setHighlightedIndex(-1);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     return () => {
       dispatch(resetSubmitStatus());
     };
   }, [dispatch]);
+
+  const handleSelectOption = (fieldName, option) => {
+    setFormData((prev) => ({ ...prev, [fieldName]: option }));
+    if (errors[fieldName]) {
+      setErrors((prev) => ({ ...prev, [fieldName]: '' }));
+    }
+    setDropdownOpen(false);
+    setHighlightedIndex(-1);
+    if (triggerRef.current) {
+      triggerRef.current.focus();
+    }
+  };
+
+  const handleKeyDown = (e, fieldName) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!dropdownOpen) {
+        setDropdownOpen(true);
+        const currIdx = inquiryTypes.indexOf(formData[fieldName]);
+        setHighlightedIndex(currIdx >= 0 ? currIdx : 0);
+        return;
+      }
+      setHighlightedIndex((prev) =>
+        prev < inquiryTypes.length - 1 ? prev + 1 : 0
+      );
+      return;
+    }
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!dropdownOpen) {
+        setDropdownOpen(true);
+        const currIdx = inquiryTypes.indexOf(formData[fieldName]);
+        setHighlightedIndex(
+          currIdx >= 0 ? currIdx : inquiryTypes.length - 1
+        );
+        return;
+      }
+      setHighlightedIndex((prev) =>
+        prev > 0 ? prev - 1 : inquiryTypes.length - 1
+      );
+      return;
+    }
+
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (
+        dropdownOpen &&
+        highlightedIndex >= 0 &&
+        inquiryTypes[highlightedIndex]
+      ) {
+        handleSelectOption(fieldName, inquiryTypes[highlightedIndex]);
+      } else {
+        setDropdownOpen((prev) => !prev);
+        const currIdx = inquiryTypes.indexOf(formData[fieldName]);
+        setHighlightedIndex(currIdx >= 0 ? currIdx : 0);
+      }
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setDropdownOpen(false);
+      setHighlightedIndex(-1);
+      return;
+    }
+
+    if (e.key === 'Tab') {
+      setDropdownOpen(false);
+      setHighlightedIndex(-1);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -96,6 +184,8 @@ const ContactForm = ({ formConfig }) => {
     setFormData(emptyForm);
     setErrors({});
     setTouched({});
+    setDropdownOpen(false);
+    setHighlightedIndex(-1);
     dispatch(resetSubmitStatus());
   };
 
@@ -213,10 +303,11 @@ const ContactForm = ({ formConfig }) => {
           ))}
         </div>
 
-        {/* Inquiry Type Select */}
+        {/* Inquiry Type Custom Select */}
         {fields.slice(4, 5).map((field) => (
           <div key={field.name} className="ContactForm-fieldGroup">
             <label
+              id={`contact-label-${field.name}`}
               className="ContactForm-label"
               htmlFor={`contact-${field.name}`}
             >
@@ -225,24 +316,115 @@ const ContactForm = ({ formConfig }) => {
                 <span className="ContactForm-required"> *</span>
               )}
             </label>
-            <select
-              id={`contact-${field.name}`}
-              name={field.name}
-              value={formData[field.name] || ''}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              className={`ContactForm-select ${errors[field.name] ? 'ContactForm-input--error' : ''}`}
-              aria-invalid={!!errors[field.name]}
-            >
-              <option value="" disabled>
-                {field.placeholder || 'Select inquiry type'}
-              </option>
-              {inquiryTypes.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
+            <div className="ContactForm-customSelectWrapper" ref={dropdownRef}>
+              <button
+                type="button"
+                ref={triggerRef}
+                id="contact-inquiryType-trigger"
+                className={`ContactForm-customSelectTrigger ${
+                  dropdownOpen ? 'is-open' : ''
+                } ${errors[field.name] ? 'ContactForm-input--error' : ''}`}
+                onClick={() => setDropdownOpen((prev) => !prev)}
+                onKeyDown={(e) => handleKeyDown(e, field.name)}
+                aria-haspopup="listbox"
+                aria-expanded={dropdownOpen}
+                aria-labelledby={`contact-label-${field.name} contact-inquiryType-trigger`}
+              >
+                <span
+                  className={`ContactForm-customSelectValue ${
+                    !formData[field.name] ? 'is-placeholder' : ''
+                  }`}
+                >
+                  {formData[field.name] ||
+                    field.placeholder ||
+                    'Select inquiry type'}
+                </span>
+                <svg
+                  className={`ContactForm-selectArrow ${
+                    dropdownOpen ? 'is-open' : ''
+                  }`}
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+
+              {/* Accessible hidden native select */}
+              <select
+                id={`contact-${field.name}`}
+                name={field.name}
+                value={formData[field.name] || ''}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                className="ContactForm-hiddenNativeSelect"
+                tabIndex={-1}
+                aria-hidden="true"
+              >
+                <option value="" disabled>
+                  {field.placeholder || 'Select inquiry type'}
                 </option>
-              ))}
-            </select>
+                {inquiryTypes.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+
+              {/* Custom Dropdown Menu */}
+              {dropdownOpen && (
+                <ul
+                  id="contact-inquiryType-menu"
+                  role="listbox"
+                  aria-labelledby={`contact-label-${field.name}`}
+                  className="ContactForm-customSelectMenu"
+                >
+                  {inquiryTypes.map((opt, idx) => {
+                    const isSelected = formData[field.name] === opt;
+                    const isHighlighted = idx === highlightedIndex;
+                    return (
+                      <li
+                        key={opt}
+                        role="option"
+                        aria-selected={isSelected}
+                        className={`ContactForm-customSelectOption ${
+                          isSelected ? 'is-selected' : ''
+                        } ${isHighlighted ? 'is-highlighted' : ''}`}
+                        onClick={() => handleSelectOption(field.name, opt)}
+                        onMouseEnter={() => setHighlightedIndex(idx)}
+                      >
+                        <span className="ContactForm-customSelectOptionText">
+                          {opt}
+                        </span>
+                        {isSelected && (
+                          <svg
+                            className="ContactForm-customSelectCheck"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
             {errors[field.name] && (
               <span className="ContactForm-error" role="alert">
                 {errors[field.name]}

@@ -178,7 +178,13 @@ const CareerBenefits = () => {
 
         <div className="CareerBenefits-cardGrid">
           {displayBenefits.map((item, idx) => (
-            <ScrollReveal key={idx} direction="up" delay={(idx % 3) * 0.1}>
+            <ScrollReveal
+              key={idx}
+              direction="up"
+              delay={(idx % 3) * 0.1}
+              className="h-full"
+              style={{ height: '100%' }}
+            >
               <div className="CareerBenefits-itemCard">
                 <div className="CareerBenefits-iconBox">
                   {renderIcon(item.icon)}

@@ -66,7 +66,12 @@ const BenchDossierFeatures = () => {
 
         <div className="BenchDossierFeatures-grid">
           {features.map((feat, idx) => (
-            <ScrollReveal key={idx} direction="up" delay={idx * 0.1}>
+            <ScrollReveal
+              key={idx}
+              direction="up"
+              delay={idx * 0.1}
+              className="BenchDossierFeatures-reveal"
+            >
               <div className="BenchDossierFeatures-card">
                 <div className="BenchDossierFeatures-cardTop">
                   <span className="BenchDossierFeatures-step">
