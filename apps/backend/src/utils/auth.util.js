@@ -43,67 +43,117 @@ export const getJwtSecret = () => {
   return cleanSecret;
 };
 
-// Cryptographic domain separation for Admin tokens (Issue #199)
+// Cryptographic domain separation for Admin tokens (Issue #199 & Issue 3)
 export const getAdminJwtSecret = () => {
-  const secret =
+  const isProduction =
+    (config.NODE_ENV || process.env.NODE_ENV) === 'production';
+
+  const rawSecret =
+    config.JWT_ADMIN_SECRET ||
+    process.env.JWT_ADMIN_SECRET ||
     config.ADMIN_JWT_SECRET ||
-    process.env.ADMIN_JWT_SECRET ||
-    config.JWT_SECRET ||
-    process.env.JWT_SECRET;
+    process.env.ADMIN_JWT_SECRET;
+
+  const secret =
+    rawSecret ||
+    (!isProduction ? config.JWT_SECRET || process.env.JWT_SECRET : null);
 
   if (!secret || typeof secret !== 'string' || !secret.trim()) {
     throw new Error(
-      'FATAL: ADMIN_JWT_SECRET or JWT_SECRET environment variable is missing.'
+      isProduction
+        ? 'FATAL: JWT_ADMIN_SECRET (or ADMIN_JWT_SECRET) environment variable is required in production.'
+        : 'FATAL: JWT_ADMIN_SECRET or JWT_SECRET environment variable is missing.'
     );
   }
 
   const cleanSecret = secret.trim();
-  const isProduction =
-    (config.NODE_ENV || process.env.NODE_ENV) === 'production';
 
   if (INSECURE_DEFAULT_SECRETS.has(cleanSecret.toLowerCase())) {
     throw new Error(
-      'FATAL: Insecure default ADMIN_JWT_SECRET detected. You must set a unique, cryptographically strong secret.'
+      'FATAL: Insecure default JWT_ADMIN_SECRET detected. You must set a unique, cryptographically strong secret.'
     );
   }
 
-  if (isProduction && cleanSecret.length < 32) {
-    throw new Error(
-      'FATAL: ADMIN_JWT_SECRET in production must be at least 32 characters long.'
-    );
+  if (isProduction) {
+    if (cleanSecret.length < 32) {
+      throw new Error(
+        'FATAL: JWT_ADMIN_SECRET in production must be at least 32 characters long.'
+      );
+    }
+    const generalSecret = (
+      config.JWT_SECRET ||
+      process.env.JWT_SECRET ||
+      ''
+    ).trim();
+    if (generalSecret && cleanSecret === generalSecret) {
+      throw new Error(
+        'FATAL: JWT_ADMIN_SECRET must be distinct from JWT_SECRET in production to enforce domain separation.'
+      );
+    }
   }
 
   return cleanSecret;
 };
 
-// Cryptographic domain separation for Candidate tokens (Issue #199)
+// Cryptographic domain separation for Candidate tokens (Issue #199 & Issue 3)
 export const getCandidateJwtSecret = () => {
-  const secret =
+  const isProduction =
+    (config.NODE_ENV || process.env.NODE_ENV) === 'production';
+
+  const rawSecret =
+    config.JWT_CANDIDATE_SECRET ||
+    process.env.JWT_CANDIDATE_SECRET ||
     config.CANDIDATE_JWT_SECRET ||
-    process.env.CANDIDATE_JWT_SECRET ||
-    config.JWT_SECRET ||
-    process.env.JWT_SECRET;
+    process.env.CANDIDATE_JWT_SECRET;
+
+  const secret =
+    rawSecret ||
+    (!isProduction ? config.JWT_SECRET || process.env.JWT_SECRET : null);
 
   if (!secret || typeof secret !== 'string' || !secret.trim()) {
     throw new Error(
-      'FATAL: CANDIDATE_JWT_SECRET or JWT_SECRET environment variable is missing.'
+      isProduction
+        ? 'FATAL: JWT_CANDIDATE_SECRET (or CANDIDATE_JWT_SECRET) environment variable is required in production.'
+        : 'FATAL: CANDIDATE_JWT_SECRET or JWT_SECRET environment variable is missing.'
     );
   }
 
   const cleanSecret = secret.trim();
-  const isProduction =
-    (config.NODE_ENV || process.env.NODE_ENV) === 'production';
 
   if (INSECURE_DEFAULT_SECRETS.has(cleanSecret.toLowerCase())) {
     throw new Error(
-      'FATAL: Insecure default CANDIDATE_JWT_SECRET detected. You must set a unique, cryptographically strong secret.'
+      'FATAL: Insecure default JWT_CANDIDATE_SECRET detected. You must set a unique, cryptographically strong secret.'
     );
   }
 
-  if (isProduction && cleanSecret.length < 32) {
-    throw new Error(
-      'FATAL: CANDIDATE_JWT_SECRET in production must be at least 32 characters long.'
-    );
+  if (isProduction) {
+    if (cleanSecret.length < 32) {
+      throw new Error(
+        'FATAL: JWT_CANDIDATE_SECRET in production must be at least 32 characters long.'
+      );
+    }
+    const generalSecret = (
+      config.JWT_SECRET ||
+      process.env.JWT_SECRET ||
+      ''
+    ).trim();
+    if (generalSecret && cleanSecret === generalSecret) {
+      throw new Error(
+        'FATAL: JWT_CANDIDATE_SECRET must be distinct from JWT_SECRET in production to enforce domain separation.'
+      );
+    }
+    const adminSecret = (
+      config.JWT_ADMIN_SECRET ||
+      process.env.JWT_ADMIN_SECRET ||
+      config.ADMIN_JWT_SECRET ||
+      process.env.ADMIN_JWT_SECRET ||
+      ''
+    ).trim();
+    if (adminSecret && cleanSecret === adminSecret) {
+      throw new Error(
+        'FATAL: JWT_CANDIDATE_SECRET must be distinct from JWT_ADMIN_SECRET in production to enforce domain separation.'
+      );
+    }
   }
 
   return cleanSecret;

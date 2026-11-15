@@ -170,7 +170,17 @@ export const requireAuth = (
 export const requireRole = (...allowedRoles) => {
   const rolesList = allowedRoles.flat();
   return (req, res, next) => {
-    const role = (req.user?.role || 'superadmin').toLowerCase();
+    if (!req.user || !req.user.role) {
+      return res.status(401).json({
+        success: false,
+        authenticated: false,
+        error:
+          'Authentication required. An active authenticated session is required to verify permissions.',
+        code: 'AUTH_REQUIRED',
+      });
+    }
+
+    const role = String(req.user.role).toLowerCase();
 
     // Superadmin has full uninhibited access across all portal modules
     if (role === 'superadmin') {
@@ -206,6 +216,55 @@ export const requireRole = (...allowedRoles) => {
 
     next();
   };
+};
+
+/**
+ * Validates whether an incoming request is authorized to view sensitive internal telemetry
+ * (such as datastore topologies, memory consumption, architecture, and uptime).
+ * Returns true unconditionally in non-production environments (development / test).
+ * In production, requires a valid Superadmin/Admin token or internal monitoring key.
+ */
+export const isAuthorizedDiagnosticRequest = (req) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (!isProduction) return true;
+
+  try {
+    let token = null;
+    if (req.cookies && req.cookies.thinkwires_admin_jwt) {
+      token = req.cookies.thinkwires_admin_jwt;
+    } else if (
+      req.headers?.authorization &&
+      req.headers.authorization.startsWith('Bearer ')
+    ) {
+      token = req.headers.authorization.split(' ')[1];
+    } else if (req.headers && req.headers['x-admin-token']) {
+      token = req.headers['x-admin-token'];
+    }
+
+    if (token) {
+      const decoded = verifyAdminToken(token);
+      if (
+        decoded &&
+        ['superadmin', 'admin'].includes((decoded.role || '').toLowerCase())
+      ) {
+        return true;
+      }
+    }
+
+    const internalKey = process.env.INTERNAL_MONITORING_KEY;
+    if (
+      internalKey &&
+      req.headers &&
+      req.headers['x-monitoring-key'] &&
+      req.headers['x-monitoring-key'] === internalKey
+    ) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
 };
 
 export const requireCandidateAuth = async (req, res, next) => {
