@@ -63,7 +63,17 @@ export const resolveNotificationEmail = (category) => {
   }
 
   // Requisitions, hiring, scoping, callbacks, and talent requests
-  return process.env.HR_REQUISITION_EMAIL || 'hr@thinkwires.com';
+  const destinations = [
+    process.env.HR_REQUISITION_EMAIL,
+    process.env.HR_EMAIL,
+    'rayeessaquib0022@gmail.com',
+    'hr@thinkwires.com',
+  ]
+    .filter(Boolean)
+    .flatMap((entry) => entry.split(',').map((e) => e.trim()))
+    .filter(Boolean);
+
+  return [...new Set(destinations)].join(', ');
 };
 
 /**

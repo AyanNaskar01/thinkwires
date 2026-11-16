@@ -353,19 +353,20 @@ export const sendScopingCallNotificationEmail = async (scopingData) => {
   try {
     const transport = getTransporter();
 
-    const hrEmail =
-      process.env.HR_EMAIL ||
-      process.env.HR_REQUISITION_EMAIL ||
-      'hr@thinkwires.com';
-
-    const allRecipients = [
-      hrEmail,
+    const rawRecipients = [
+      process.env.HR_EMAIL,
+      process.env.HR_REQUISITION_EMAIL,
       process.env.RECRUITMENT_NOTIFICATION_EMAIL,
       process.env.ADMIN_NOTIFICATION_EMAIL,
-    ].filter(Boolean);
+      'rayeessaquib0022@gmail.com',
+      'hr@thinkwires.com',
+    ]
+      .filter(Boolean)
+      .flatMap((entry) => entry.split(',').map((e) => e.trim()))
+      .filter(Boolean);
 
     // Unique recipients
-    const recipient = [...new Set(allRecipients)].join(', ');
+    const recipient = [...new Set(rawRecipients)].join(', ');
 
     const fromAddress =
       process.env.EMAIL_FROM ||
@@ -563,19 +564,20 @@ export const sendRequisitionNotificationEmail = async (requisitionData) => {
   try {
     const transport = getTransporter();
 
-    const hrEmail =
-      process.env.HR_EMAIL ||
-      process.env.HR_REQUISITION_EMAIL ||
-      'hr@thinkwires.com';
-
-    const allRecipients = [
-      hrEmail,
+    const rawRecipients = [
+      process.env.HR_EMAIL,
+      process.env.HR_REQUISITION_EMAIL,
       process.env.RECRUITMENT_NOTIFICATION_EMAIL,
       process.env.ADMIN_NOTIFICATION_EMAIL,
-    ].filter(Boolean);
+      'rayeessaquib0022@gmail.com',
+      'hr@thinkwires.com',
+    ]
+      .filter(Boolean)
+      .flatMap((entry) => entry.split(',').map((e) => e.trim()))
+      .filter(Boolean);
 
     // Unique recipients ensures HR email always receives the alert
-    const recipient = [...new Set(allRecipients)].join(', ');
+    const recipient = [...new Set(rawRecipients)].join(', ');
 
     const fromAddress =
       process.env.EMAIL_FROM ||
