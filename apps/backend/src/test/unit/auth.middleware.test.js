@@ -116,7 +116,7 @@ describe('Auth Middleware (Unit Tests)', () => {
   });
 
   describe('requireRole', () => {
-    it('fails closed with 401 Unauthorized when req.user is undefined (Issue 2 defense)', () => {
+    it('fails closed with 401 Unauthorized when req.user is undefined', () => {
       const middleware = requireRole(['admin']);
       const { req, res, next } = createMockReqRes({
         reqOverrides: { user: undefined },
@@ -130,7 +130,35 @@ describe('Auth Middleware (Unit Tests)', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('fails closed with 401 Unauthorized when req.user.role is missing', () => {
+    it('fails closed with 401 Unauthorized when req.user is null', () => {
+      const middleware = requireRole(['admin']);
+      const { req, res, next } = createMockReqRes({
+        reqOverrides: { user: null },
+      });
+
+      middleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.jsonData.success).toBe(false);
+      expect(res.jsonData.error).toMatch(/authentication required/i);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('fails closed with 401 Unauthorized when req.user is a non-object primitive', () => {
+      const middleware = requireRole(['admin']);
+      const { req, res, next } = createMockReqRes({
+        reqOverrides: { user: 'malformed_user_string' },
+      });
+
+      middleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.jsonData.success).toBe(false);
+      expect(res.jsonData.error).toMatch(/authentication required/i);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('fails closed with 401 Unauthorized when req.user.role is missing/undefined', () => {
       const middleware = requireRole(['admin']);
       const { req, res, next } = createMockReqRes({
         reqOverrides: { user: { id: 'user-1' } },
@@ -140,7 +168,76 @@ describe('Auth Middleware (Unit Tests)', () => {
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.jsonData.success).toBe(false);
-      expect(res.jsonData.error).toMatch(/authentication required/i);
+      expect(res.jsonData.error).toMatch(/user role is missing, null, or malformed/i);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('fails closed with 401 Unauthorized when req.user.role is null', () => {
+      const middleware = requireRole(['admin']);
+      const { req, res, next } = createMockReqRes({
+        reqOverrides: { user: { id: 'user-1', role: null } },
+      });
+
+      middleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.jsonData.success).toBe(false);
+      expect(res.jsonData.error).toMatch(/user role is missing, null, or malformed/i);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('fails closed with 401 Unauthorized when req.user.role is empty string', () => {
+      const middleware = requireRole(['admin']);
+      const { req, res, next } = createMockReqRes({
+        reqOverrides: { user: { id: 'user-1', role: '   ' } },
+      });
+
+      middleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.jsonData.success).toBe(false);
+      expect(res.jsonData.error).toMatch(/user role is missing, null, or malformed/i);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('fails closed with 401 Unauthorized when req.user.role is not a string (e.g. number/boolean/array)', () => {
+      const middleware = requireRole(['admin']);
+      const { req, res, next } = createMockReqRes({
+        reqOverrides: { user: { id: 'user-1', role: 12345 } },
+      });
+
+      middleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.jsonData.success).toBe(false);
+      expect(res.jsonData.error).toMatch(/user role is missing, null, or malformed/i);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('rejects unrecognized or invalid roles with 403 Forbidden', () => {
+      const middleware = requireRole(['admin']);
+      const { req, res, next } = createMockReqRes({
+        reqOverrides: { user: { role: 'recruiter' } },
+      });
+
+      middleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.jsonData.success).toBe(false);
+      expect(res.jsonData.error).toMatch(/invalid or unrecognized by security policy/i);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('blocks candidate role trying to access admin endpoints with 403 Forbidden', () => {
+      const middleware = requireRole(['admin']);
+      const { req, res, next } = createMockReqRes({
+        reqOverrides: { user: { role: 'candidate' } },
+      });
+
+      middleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.jsonData.success).toBe(false);
       expect(next).not.toHaveBeenCalled();
     });
 
@@ -155,7 +252,7 @@ describe('Auth Middleware (Unit Tests)', () => {
       expect(next).toHaveBeenCalled();
     });
 
-    it('allows superadmin full bypass across all role requirements', () => {
+    it('allows explicitly verified superadmin full bypass across all module role requirements', () => {
       const middleware = requireRole(['cms_admin']);
       const { req, res, next } = createMockReqRes({
         reqOverrides: { user: { role: 'superadmin' } },
@@ -166,16 +263,29 @@ describe('Auth Middleware (Unit Tests)', () => {
       expect(next).toHaveBeenCalled();
     });
 
-    it('blocks access with 403 Forbidden when user role is unauthorized', () => {
-      const middleware = requireRole(['admin']);
+    it('blocks admin role when route specifically requires cms_admin with 403', () => {
+      const middleware = requireRole(['cms_admin']);
       const { req, res, next } = createMockReqRes({
-        reqOverrides: { user: { role: 'candidate' } },
+        reqOverrides: { user: { role: 'admin' } },
       });
 
       middleware(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.jsonData.error).toMatch(/access denied|not authorized/i);
+      expect(res.jsonData.error).toMatch(/access denied|content management system/i);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('blocks cms_admin role when route specifically requires admin with 403', () => {
+      const middleware = requireRole(['admin']);
+      const { req, res, next } = createMockReqRes({
+        reqOverrides: { user: { role: 'cms_admin' } },
+      });
+
+      middleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.jsonData.error).toMatch(/access denied|cms admins have access restricted/i);
       expect(next).not.toHaveBeenCalled();
     });
   });

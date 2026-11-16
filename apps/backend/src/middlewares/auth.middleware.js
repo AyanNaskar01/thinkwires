@@ -8,6 +8,8 @@ import UserMongo from '../models/user.mongo.model.js';
 import User from '../models/user.model.js';
 import mongoose from 'mongoose';
 
+const VALID_PORTAL_ROLES = new Set(['superadmin', 'admin', 'cms_admin']);
+
 export const requireAuth = (
   allowedRoles = ['superadmin', 'admin', 'cms_admin']
 ) => {
@@ -62,11 +64,17 @@ export const requireAuth = (
         });
       }
 
-      if (!decoded || !decoded.email || !decoded.role) {
+      if (
+        !decoded ||
+        !decoded.email ||
+        !decoded.role ||
+        typeof decoded.role !== 'string' ||
+        !decoded.role.trim()
+      ) {
         return res.status(401).json({
           success: false,
           authenticated: false,
-          error: 'Malformed admin authentication credentials.',
+          error: 'Malformed admin authentication credentials: role or email claim missing.',
         });
       }
 
@@ -74,7 +82,7 @@ export const requireAuth = (
         id: decoded.id,
         name: decoded.name || 'System Member',
         email: decoded.email,
-        role: decoded.role.toLowerCase(),
+        role: decoded.role.toLowerCase().trim(),
         designation: decoded.designation || 'System Member',
       };
 
@@ -113,7 +121,9 @@ export const requireAuth = (
               id: dbUser._id ? dbUser._id.toString() : dbUser.id,
               name: dbUser.name,
               email: dbUser.email,
-              role: (dbUser.role || 'admin').toLowerCase(),
+              role: typeof dbUser.role === 'string' && dbUser.role.trim()
+                ? dbUser.role.toLowerCase().trim()
+                : decoded.role.toLowerCase().trim(),
               designation: dbUser.designation,
               isActive: dbUser.isActive,
             };
@@ -138,7 +148,24 @@ export const requireAuth = (
       }
 
       req.user = userObj;
-      const role = (userObj.role || 'admin').toLowerCase();
+
+      if (!userObj.role || typeof userObj.role !== 'string' || !userObj.role.trim()) {
+        return res.status(401).json({
+          success: false,
+          authenticated: false,
+          error: 'Authentication failed: User role is missing or malformed.',
+        });
+      }
+
+      const role = userObj.role.toLowerCase().trim();
+
+      if (!VALID_PORTAL_ROLES.has(role)) {
+        return res.status(403).json({
+          success: false,
+          error: `Permission Denied: Assigned role (${role}) is unrecognized or unauthorized.`,
+          currentRole: role,
+        });
+      }
 
       if (
         role !== 'superadmin' &&
@@ -165,12 +192,14 @@ export const requireAuth = (
 
 /**
  * RBAC Helper Middleware: enforces specific roles on route groups.
- * Superadmin automatically bypasses all restrictions (full control).
+ * Superadmin automatically bypasses module restrictions.
+ * Fails closed with 401 if unauthenticated, and 403 if role is unauthorized or unrecognized.
  */
 export const requireRole = (...allowedRoles) => {
-  const rolesList = allowedRoles.flat();
+  const rolesList = allowedRoles.flat().map((r) => String(r).toLowerCase().trim());
   return (req, res, next) => {
-    if (!req.user || !req.user.role) {
+    // 1. Must have req.user object
+    if (!req.user || typeof req.user !== 'object') {
       return res.status(401).json({
         success: false,
         authenticated: false,
@@ -180,13 +209,39 @@ export const requireRole = (...allowedRoles) => {
       });
     }
 
-    const role = String(req.user.role).toLowerCase();
+    // 2. Must have explicit, non-empty string req.user.role
+    if (
+      !req.user.role ||
+      typeof req.user.role !== 'string' ||
+      !req.user.role.trim()
+    ) {
+      return res.status(401).json({
+        success: false,
+        authenticated: false,
+        error: 'Authentication required: User role is missing, null, or malformed.',
+        code: 'ROLE_REQUIRED',
+      });
+    }
 
-    // Superadmin has full uninhibited access across all portal modules
+    // 3. Normalize role
+    const role = req.user.role.toLowerCase().trim();
+
+    // 4. Validate that role is recognized within system role hierarchy
+    if (!VALID_PORTAL_ROLES.has(role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied: Assigned role is invalid or unrecognized by security policy.',
+        code: 'INVALID_ROLE',
+        currentRole: role,
+      });
+    }
+
+    // 5. Explicitly verified Superadmin bypasses module-level restrictions
     if (role === 'superadmin') {
       return next();
     }
 
+    // 6. Check if role is in allowed roles
     if (rolesList.length > 0 && !rolesList.includes(role)) {
       const isManpowerRestricted =
         role === 'cms_admin' && !rolesList.includes('cms_admin');
@@ -440,11 +495,25 @@ export const authenticateCandidateOrAdmin = async (req, res, next) => {
       }
     }
 
+    if (
+      !decoded ||
+      !decoded.role ||
+      typeof decoded.role !== 'string' ||
+      !decoded.role.trim()
+    ) {
+      return res.status(401).json({
+        success: false,
+        authenticated: false,
+        error:
+          'Authentication failed: Missing or malformed role claim in token.',
+      });
+    }
+
     req.user = {
       id: decoded.id || decoded._id,
       name: decoded.name,
       email: decoded.email,
-      role: decoded.role || (isAdmin ? 'admin' : 'candidate'),
+      role: decoded.role.toLowerCase().trim(),
     };
 
     next();
