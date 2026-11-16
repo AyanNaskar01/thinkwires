@@ -11,6 +11,7 @@ RUN apk add --no-cache libc6-compat python3 make g++
 COPY package*.json ./
 COPY apps/backend/package*.json ./apps/backend/
 COPY apps/frontend/package*.json ./apps/frontend/
+COPY apps/ai_services/package*.json ./apps/ai_services/
 
 # Install dependencies deterministically
 RUN npm ci

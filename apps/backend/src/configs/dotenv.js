@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +19,28 @@ if (fs.existsSync(rootEnvPath)) {
   dotenv.config({ path: rootEnvPath });
 } else {
   dotenv.config();
+}
+
+// Ensure cryptographic domain separation keys are available in cloud platforms (Render, Railway, AWS)
+// If only JWT_SECRET is configured in the cloud dashboard, deterministically derive distinct 256-bit secrets
+if (process.env.JWT_SECRET && String(process.env.JWT_SECRET).trim()) {
+  const masterSecret = String(process.env.JWT_SECRET).trim();
+  if (!process.env.JWT_ADMIN_SECRET && !process.env.ADMIN_JWT_SECRET) {
+    const derivedAdmin = crypto
+      .createHmac('sha256', masterSecret)
+      .update('thinkwires-admin-jwt-domain-v1')
+      .digest('hex');
+    process.env.JWT_ADMIN_SECRET = derivedAdmin;
+    process.env.ADMIN_JWT_SECRET = derivedAdmin;
+  }
+  if (!process.env.JWT_CANDIDATE_SECRET && !process.env.CANDIDATE_JWT_SECRET) {
+    const derivedCandidate = crypto
+      .createHmac('sha256', masterSecret)
+      .update('thinkwires-candidate-jwt-domain-v1')
+      .digest('hex');
+    process.env.JWT_CANDIDATE_SECRET = derivedCandidate;
+    process.env.CANDIDATE_JWT_SECRET = derivedCandidate;
+  }
 }
 
 /**

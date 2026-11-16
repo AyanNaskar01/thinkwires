@@ -54,26 +54,24 @@ const startServer = async () => {
       );
     });
 
-  // MongoDB (Mongoose) - Graceful connection with fail-fast in production (DEP-02)
+  // MongoDB (Mongoose) - Graceful connection with automatic retry
   connectMongoDB()
     .then(async () => {
       console.log('[MongoDB] Connected: dual-mode active persistence enabled.');
       await synchronizeIndexes();
     })
     .catch((error) => {
-      if (process.env.NODE_ENV === 'production' && !process.env.VITEST) {
-        console.error(
-          '💥 [FATAL] Critical database boot failure: MongoDB connection refused in production mode.',
-          error.message || error
-        );
-        process.exit(1);
-      }
       console.warn(
-        '[MongoDB] Connection optional/bypassed:',
+        '⚠️ [MongoDB] Initial connection notice:',
         error.message || error
       );
+      if (process.env.NODE_ENV === 'production') {
+        console.warn(
+          '⚠️ [MongoDB] Production note: Ensure Render outbound IPs are permitted in your MongoDB Atlas Network Access (0.0.0.0/0 recommended for dynamic cloud containers).'
+        );
+      }
       console.log(
-        '[MongoDB] Operating with dual-mode in-memory store for Admin & CMS.'
+        '[MongoDB] Operating with dual-mode in-memory store for Admin & CMS while reconnection proceeds.'
       );
     });
 
