@@ -1664,7 +1664,7 @@ export const getJobs = async (req, res) => {
 
       items = await JobRequirement.find(query).sort({ createdAt: -1 }).lean();
     } else {
-      items = inMemoryData.jobs.filter((j) => {
+      items = (inMemoryData.jobs || []).filter((j) => {
         let match = true;
         if (search) {
           const s = search.toLowerCase();
