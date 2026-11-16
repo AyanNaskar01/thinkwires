@@ -1,22 +1,18 @@
 import express from 'express';
-import mongoose from 'mongoose';
-import Article from '../models/article.mongo.model.js';
 import Page from '../models/page.mongo.model.js';
-import { loadSeedJson } from '../utils/seedLoader.js';
+import mongoose from 'mongoose';
 import rateLimit from 'express-rate-limit';
+import {
+  getAllArticles,
+  getFeaturedArticle,
+  getArticleByIdOrSlug,
+} from '../utils/articlesStore.js';
+import { loadSeedJson } from '../utils/seedLoader.js';
 
 const isMongoActive = () => mongoose.connection.readyState === 1;
 
 const mockData = loadSeedJson('mockData.json', {}) || {};
-const {
-  articlesData = [],
-  featuredArticleData = null,
-  researchersData = [],
-} = mockData;
-
-let articles = articlesData ? [...articlesData] : [];
-let featuredArticle = featuredArticleData ? { ...featuredArticleData } : null;
-let researchers = researchersData ? [...researchersData] : [];
+const researchers = mockData.researchersData ? [...mockData.researchersData] : [];
 
 const publicSubmissionRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -52,141 +48,70 @@ const getHomeSection = async (sectionKey, fallbackValue) => {
 
 const router = express.Router();
 
-// --- Blog & Articles ---
+// --- Public Blog & Articles ---
+
+// GET /api/articles - List published articles with search and category filtering
 router.get('/articles', async (req, res) => {
-  const { q, category } = req.query;
-  let sourceArticles = articles;
-  if (isMongoActive()) {
-    try {
-      const dbArticles = await Article.find({ status: 'published' })
-        .select('-body -content')
-        .sort({ publishedAt: -1 })
-        .lean();
-      if (dbArticles && dbArticles.length > 0) {
-        sourceArticles = dbArticles.map((a) => ({
-          ...a,
-          id: a.articleId || a.slug || a._id,
-        }));
-      }
-    } catch (dbErr) {
-      console.warn('Error reading articles from MongoDB:', dbErr.message);
-    }
+  try {
+    const { q, category } = req.query;
+    const articles = await getAllArticles({ q, category, status: 'published' });
+    res.json(articles);
+  } catch (err) {
+    console.error('[Articles Route] Error fetching articles:', err);
+    res.status(500).json({ error: 'Failed to load articles' });
   }
-
-  let filtered = [...sourceArticles];
-
-  if (q && q.trim() !== '') {
-    const query = q.trim().toLowerCase();
-    filtered = filtered.filter(
-      (art) =>
-        (art.title && art.title.toLowerCase().includes(query)) ||
-        (art.excerpt && art.excerpt.toLowerCase().includes(query)) ||
-        (art.summary && art.summary.toLowerCase().includes(query)) ||
-        (art.author &&
-          (typeof art.author === 'string' ? art.author : art.author.name || '')
-            .toLowerCase()
-            .includes(query)) ||
-        (art.badge && art.badge.toLowerCase().includes(query)) ||
-        (art.subCategory && art.subCategory.toLowerCase().includes(query))
-    );
-  }
-
-  if (category && category !== 'All' && category !== 'All Insights (15)') {
-    filtered = filtered.filter(
-      (art) =>
-        art.category === category ||
-        art.badge === category ||
-        art.subCategory === category
-    );
-  }
-
-  res.json(filtered);
 });
 
+// GET /api/articles/featured - Get featured article (or latest published fallback)
 router.get('/articles/featured', async (req, res) => {
-  if (isMongoActive()) {
-    try {
-      const feat = await Article.findOne({
-        featured: true,
-        status: 'published',
-      }).lean();
-      if (feat) {
-        return res.json({
-          ...feat,
-          id: feat.articleId || feat.slug || feat._id,
-        });
-      }
-    } catch (dbErr) {
-      console.warn(
-        'Error reading featured article from MongoDB:',
-        dbErr.message
-      );
+  try {
+    const featured = await getFeaturedArticle();
+    if (!featured) {
+      return res.status(404).json({ error: 'No articles available' });
     }
+    res.json(featured);
+  } catch (err) {
+    console.error('[Articles Route] Error fetching featured article:', err);
+    res.status(500).json({ error: 'Failed to load featured article' });
   }
-  res.json(featuredArticle);
 });
 
+// GET /api/articles/researchers - Researchers advisory list
 router.get('/articles/researchers', async (req, res) => {
-  const result = await getHomeSection('researchers', researchers);
-  res.json(result);
+  try {
+    const result = await getHomeSection('researchers', researchers);
+    res.json(result);
+  } catch (err) {
+    res.json(researchers);
+  }
 });
 
+// GET /api/articles/:id - Get single article by slug or ID
 router.get('/articles/:id', async (req, res) => {
-  const targetId = req.params.id;
-  if (isMongoActive()) {
-    try {
-      const query = mongoose.isValidObjectId(targetId)
-        ? {
-            status: 'published',
-            $or: [
-              { _id: targetId },
-              { slug: targetId },
-              { articleId: targetId },
-            ],
-          }
-        : { status: 'published', $or: [{ slug: targetId }, { articleId: targetId }] };
-      const art = await Article.findOne(query).lean();
-      if (art) {
-        return res.json({ ...art, id: art.articleId || art.slug || art._id });
-      }
-    } catch (dbErr) {
-      console.warn('Error loading article from MongoDB:', dbErr.message);
+  try {
+    const target = await getArticleByIdOrSlug(req.params.id);
+    if (!target) {
+      return res.status(404).json({ error: 'Article not found' });
     }
-  }
-
-  const article = articles.find(
-    (art) =>
-      (art.status === 'published' || !art.status) &&
-      (art.id === targetId || art.slug === targetId)
-  );
-  if (article) {
-    res.json(article);
-  } else if (
-    featuredArticle &&
-    (featuredArticle.status === 'published' || !featuredArticle.status) &&
-    (featuredArticle.id === targetId || featuredArticle.slug === targetId)
-  ) {
-    res.json(featuredArticle);
-  } else {
-    res.status(404).json({ error: 'Article not found' });
+    res.json(target);
+  } catch (err) {
+    console.error('[Articles Route] Error fetching article by ID:', err);
+    res.status(500).json({ error: 'Failed to load article' });
   }
 });
 
+// POST /api/articles/newsletter - Newsletter subscription
 router.post('/articles/newsletter', publicSubmissionRateLimiter, (req, res) => {
   const { email, role } = req.body;
   if (email && email.includes('@')) {
-    console.log('New Benchmark Dispatch Newsletter Subscription:', {
-      email,
-      role,
-    });
+    console.log('New Newsletter Subscription:', { email, role });
     res.json({
       success: true,
-      message: 'Subscribed to Benchmark Dispatch successfully!',
+      message: 'Subscribed to Thinkwires newsletter successfully!',
     });
   } else {
     res.status(400).json({ error: 'Valid email is required' });
   }
 });
-
 
 export default router;

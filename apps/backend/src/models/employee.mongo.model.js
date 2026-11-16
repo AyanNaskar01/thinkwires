@@ -68,6 +68,15 @@ const employeeSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -75,6 +84,7 @@ const employeeSchema = new mongoose.Schema(
 );
 
 employeeSchema.index({ id: 1 }, { unique: true, sparse: true });
+employeeSchema.index({ deploymentStatus: 1, createdAt: -1 });
 employeeSchema.index({ deploymentStatus: 1 });
 employeeSchema.index({ createdAt: -1 });
 

@@ -55,11 +55,22 @@ const pageSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+pageSchema.index({ status: 1, isDeleted: 1, updatedAt: -1 });
 
 const Page = mongoose.models.Page || mongoose.model('Page', pageSchema);
 

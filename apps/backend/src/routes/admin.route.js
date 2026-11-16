@@ -52,6 +52,7 @@ import {
   getCurrentUser,
   loginAdmin,
   logoutAdmin,
+  changeAdminPassword,
   getSystemMembers,
   createSystemMember,
   updateSystemMember,
@@ -98,6 +99,7 @@ router.post('/auth/logout', logoutAdmin);
 router.use(requireAuth());
 
 router.get('/auth/me', getCurrentUser);
+router.post('/auth/change-password', changeAdminPassword);
 
 const superadminGuard = requireRole('superadmin');
 const manpowerGuard = requireRole('superadmin', 'admin');

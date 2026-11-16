@@ -116,10 +116,49 @@ describe('Auth Middleware (Unit Tests)', () => {
   });
 
   describe('requireRole', () => {
+    it('fails closed with 401 Unauthorized when req.user is undefined (Issue 2 defense)', () => {
+      const middleware = requireRole(['admin']);
+      const { req, res, next } = createMockReqRes({
+        reqOverrides: { user: undefined },
+      });
+
+      middleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.jsonData.success).toBe(false);
+      expect(res.jsonData.error).toMatch(/authentication required/i);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('fails closed with 401 Unauthorized when req.user.role is missing', () => {
+      const middleware = requireRole(['admin']);
+      const { req, res, next } = createMockReqRes({
+        reqOverrides: { user: { id: 'user-1' } },
+      });
+
+      middleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.jsonData.success).toBe(false);
+      expect(res.jsonData.error).toMatch(/authentication required/i);
+      expect(next).not.toHaveBeenCalled();
+    });
+
     it('allows access when user role matches allowed roles', () => {
       const middleware = requireRole(['admin', 'superadmin']);
       const { req, res, next } = createMockReqRes({
         reqOverrides: { user: { role: 'admin' } },
+      });
+
+      middleware(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+    });
+
+    it('allows superadmin full bypass across all role requirements', () => {
+      const middleware = requireRole(['cms_admin']);
+      const { req, res, next } = createMockReqRes({
+        reqOverrides: { user: { role: 'superadmin' } },
       });
 
       middleware(req, res, next);

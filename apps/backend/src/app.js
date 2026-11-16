@@ -18,13 +18,36 @@ import industriesRoutes from './routes/industries.route.js';
 import servicesRoutes from './routes/services.route.js';
 import { downloadResume } from './controllers/candidatePortal.controller.js';
 import { isAllowedOrigin } from './middlewares/csrf.middleware.js';
+import sanitizeInputs from './middlewares/sanitize.middleware.js';
+import { isAuthorizedDiagnosticRequest } from './middlewares/auth.middleware.js';
 import { sequelize } from './configs/db.js';
 import { isRedisConnected } from './configs/redis.js';
+import healthRoutes from './routes/health.route.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Active connection draining state for graceful termination (DEP-06)
+let isShuttingDown = false;
+
+export const setShuttingDown = (value) => {
+  isShuttingDown = Boolean(value);
+};
+
+export const getShuttingDown = () => isShuttingDown;
+
 const app = express();
+
+// Active connection draining middleware
+app.use((req, res, next) => {
+  if (isShuttingDown) {
+    res.setHeader('Connection', 'close');
+    return res.status(503).json({
+      error: 'Server is currently shutting down. Please retry on an active replica.',
+    });
+  }
+  next();
+});
 
 // Trust reverse proxy (Render, Vercel, Cloudflare, AWS ALB) for accurate client IP in req.ip
 app.set('trust proxy', 1);
@@ -61,8 +84,9 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(sanitizeInputs);
 app.use(cookieParser());
 
 const uploadsDir = process.env.VERCEL
@@ -85,16 +109,32 @@ const resumesDir = path.resolve(uploadsDir, 'resumes');
 app.use('/uploads/avatars', express.static(avatarsDir));
 app.get('/uploads/resumes/:filename', downloadResume);
 
+// Standard SRE Liveness (/healthz) and Readiness (/ready) probes (DEP-05)
+app.use(healthRoutes);
+app.use('/api', healthRoutes);
+
 app.get('/api', (req, res) => {
-  res.status(200).json({
+  const isProduction = process.env.NODE_ENV === 'production';
+  const payload = {
     status: 'healthy',
     service: 'Thinkwires Enterprise Core Backend',
     version: '1.0.0',
-    environment: process.env.NODE_ENV || 'production',
-  });
+  };
+  if (!isProduction) {
+    payload.environment = process.env.NODE_ENV || 'development';
+  }
+  res.status(200).json(payload);
 });
 
 app.get('/api/health', (req, res) => {
+  const isMongoReady = mongoose.connection.readyState === 1;
+  const isPostgresReady = Boolean(sequelize);
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // DEP-04: Evaluate datastore readiness; return 503 if primary database is down in production
+  const isHealthy = isProduction ? isMongoReady : true;
+  const statusCode = isHealthy ? 200 : 503;
+
   const mongoStatusMap = {
     0: 'disconnected',
     1: 'connected',
@@ -102,30 +142,35 @@ app.get('/api/health', (req, res) => {
     3: 'disconnecting',
   };
 
-  const isPostgresReady = Boolean(sequelize);
-
-  res.status(200).json({
-    status: 'healthy',
+  const response = {
+    status: isHealthy ? 'healthy' : 'unhealthy',
     service: 'Thinkwires Enterprise Core Backend',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
-    uptime: Math.floor(process.uptime()),
-    environment: process.env.NODE_ENV || 'development',
-    databases: {
+  };
+
+  // Issue 4: Restrict detailed diagnostic telemetry (databases, memory, architecture, uptime, environment)
+  // to authenticated internal operators or development/test environments
+  if (isAuthorizedDiagnosticRequest(req)) {
+    response.uptime = Math.floor(process.uptime());
+    response.environment = process.env.NODE_ENV || 'development';
+    response.databases = {
       mongodb: mongoStatusMap[mongoose.connection.readyState] || 'unknown',
       postgresql: isPostgresReady ? 'connected' : 'optional/fallback',
       redis: isRedisConnected() ? 'connected' : 'in-memory fallback',
-    },
-    architecture: {
+    };
+    response.architecture = {
       primaryStore: 'MongoDB (Mongoose / ATS & Admin Core)',
       secondaryRelationalStore: 'PostgreSQL (Sequelize / Dual Sync)',
       dualSyncStatus: 'active',
-    },
-    memoryUsage: {
+    };
+    response.memoryUsage = {
       rssMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
       heapUsedMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-    },
-  });
+    };
+  }
+
+  res.status(statusCode).json(response);
 });
 
 app.use('/api/auth', authRoutes);
@@ -164,15 +209,26 @@ app.use((req, res) => {
   });
 });
 
-// Global central error handler for API
+// Global central error handler for API (SEC-EXP-04: production information leakage defense)
 app.use((err, req, res, next) => {
-  console.error('[Unhandled API Error]:', err);
+  const isProduction = process.env.NODE_ENV === 'production';
+  const statusCode = err.status || err.statusCode || 500;
+
+  console.error(`[Unhandled API Error ${statusCode}]:`, err);
   if (res.headersSent) {
     return next(err);
   }
-  res.status(err.status || 500).json({
+
+  let userFacingMessage = err.message || 'Internal Server Error';
+  if (isProduction && statusCode >= 500) {
+    userFacingMessage =
+      'An unexpected server error occurred. Please contact Thinkwires support.';
+  }
+
+  res.status(statusCode).json({
     success: false,
-    error: err.message || 'Internal Server Error',
+    error: userFacingMessage,
+    ...(isProduction ? {} : { stack: err.stack }),
   });
 });
 

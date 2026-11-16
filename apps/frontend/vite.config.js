@@ -53,6 +53,7 @@ export default defineConfig(({ mode }) => {
               if (normalizedId.includes('/recharts/')) return 'vendor-charts';
               if (normalizedId.includes('/framer-motion/'))
                 return 'vendor-motion';
+              if (normalizedId.includes('/xlsx/')) return 'vendor-xlsx';
               if (
                 normalizedId.includes('/react/') ||
                 normalizedId.includes('/react-dom/') ||

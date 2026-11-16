@@ -73,7 +73,10 @@ const TechStack = () => {
                   src={tech.logo}
                   alt={`${tech.name} logo`}
                   className="TechStack-logoImg"
+                  width={48}
+                  height={48}
                   loading="lazy"
+                  decoding="async"
                   draggable={false}
                 />
               </div>

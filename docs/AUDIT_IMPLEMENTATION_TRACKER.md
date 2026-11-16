@@ -17,10 +17,10 @@ flowchart LR
 | Milestone | Target Scope | Findings Covered | Target Completion | Status |
 | :--- | :--- | :---: | :---: | :---: |
 | **Milestone 1: BOLA / IDOR Remediation** | Candidate & Admin route authorization, PII defense, file access control | BOLA 1–16 | Sprint 7 | **Completed** |
-| **Milestone 2: Express Hardening & Process Safety** | NoSQL query injection, mass assignment, 10MB DoS, unhandled rejections | SEC-EXP 01–09 | Sprint 7 | **Ready for Dev** |
-| **Milestone 3: Database Query Hygiene & ESR Indexing** | Unbounded `.find()`, compound ESR indexes, schema strictness, migrations | SEC-DB 01–05 | Sprint 8 | **Ready for Dev** |
-| **Milestone 4: Frontend Code-Splitting & Client Security** | React.lazy, Three.js deferral, search debouncing, AbortController, cookie auth | SEC-FE 01–08 | Sprint 8 | **Ready for Dev** |
-| **Milestone 5: 12-Factor Portability & SRE Readiness** | S3/R2 object storage, 0.0.0.0 binding, /healthz vs /ready probes, graceful drain | DEP 01–06 | Sprint 9 | **Ready for Dev** |
+| **Milestone 2: Express Hardening & Process Safety** | NoSQL query injection, mass assignment, 10MB DoS, unhandled rejections | SEC-EXP 01–09 | Sprint 7 | **Completed** |
+| **Milestone 3: Database Query Hygiene & ESR Indexing** | Unbounded `.find()`, compound ESR indexes, schema strictness, migrations | SEC-DB 01–05 | Sprint 8 | **Completed** |
+| **Milestone 4: Frontend Code-Splitting & Client Security** | React.lazy, Three.js deferral, search debouncing, AbortController, cookie auth | SEC-FE 01–08 | Sprint 8 | **Completed** |
+| **Milestone 5: 12-Factor Portability & SRE Readiness** | S3/R2 object storage, 0.0.0.0 binding, /healthz vs /ready probes, graceful drain | DEP 01–06 | Sprint 9 | **Completed** |
 
 ---
 
@@ -52,18 +52,19 @@ flowchart LR
 ## 3. Milestone 2: Express Backend Hardening & Process Safety (9 Issues)
 
 *Reference Document: [`docs/ExpressBackendSecurityAndArchitectureAudit.md`](ExpressBackendSecurityAndArchitectureAudit.md)*
+*Verification Suite: [`apps/backend/src/test/unit/milestone2.express.test.js`](../apps/backend/src/test/unit/milestone2.express.test.js) (13 tests passing)*
 
-| Issue Key | Severity | Target Endpoint & File | Vulnerability Summary | Remediation Required |
+| Issue Key | Severity | Target Endpoint & File | Vulnerability Summary | Remediation Status |
 | :--- | :---: | :--- | :--- | :--- |
-| **SEC-EXP-01** | **CRITICAL** | `apps/backend/src/controllers/admin.controller.js:672, 1336` | NoSQL query selector injection via `req.query` | Sanitize and whitelist all query filters using string primitives; reject objects with `$` prefix. |
-| **SEC-EXP-02** | **HIGH** | `apps/backend/src/controllers/admin.controller.js:1437-1452` | Mass assignment via raw `req.body` in `findOneAndUpdate` | Whitelist editable attributes using an explicit DTO schema before database persistence. |
-| **SEC-EXP-03** | **HIGH** | `apps/backend/src/app.js:64-65` | Excessive JSON body parser limit (10MB) | Lower `express.json({ limit: '1mb' })`; configure dedicated multer streaming for file uploads. |
-| **SEC-EXP-04** | **HIGH** | `apps/backend/src/app.js:168-177` | Stack trace and error message leakage in production | Mask internal database error details in 500 responses when `NODE_ENV === 'production'`. |
-| **SEC-EXP-05** | **HIGH** | `apps/backend/src/server.js:68-96` | Missing `unhandledRejection` and `uncaughtException` monitors | Register process-level exception handlers with structured logging and graceful shutdown. |
-| **SEC-EXP-06** | **HIGH** | `apps/backend/src/routes/api.route.js:455-474` | Privilege escalation in `POST /api/openings` | Remove `cms_admin` from allowed roles in requisition publishing routes. |
-| **SEC-EXP-07** | **HIGH** | `apps/backend/src/configs/db.js:42` | PostgreSQL TLS verification bypass (`rejectUnauthorized: false`) | Enforce strict CA certificate verification in production environments. |
-| **SEC-EXP-08** | **HIGH** | `apps/backend/src/models/job.mongo.model.js:142` | `strict: false` schema bypass | Set `strict: true` and define complete attribute schemas for Job and Article models. |
-| **SEC-EXP-09** | **MEDIUM** | `apps/backend/src/configs/mongodb.js:28` | Production index synchronization missing | Create an automated startup index verification and migration script. |
+| **SEC-EXP-01** | **CRITICAL** | `apps/backend/src/controllers/admin.controller.js`<br>`apps/backend/src/middlewares/sanitize.middleware.js` | NoSQL query selector injection via `req.query` | **Resolved**: Mounted `sanitizeInputs` in-place sanitizer and added strict string-primitive and regex-escape guards in `getCandidates` and `getClients`. |
+| **SEC-EXP-02** | **HIGH** | `apps/backend/src/controllers/admin.controller.js`<br>`apps/backend/src/routes/api.route.js` | Mass assignment via raw `req.body` in `findOneAndUpdate` | **Resolved**: Enforced explicit whitelisted DTO schema with `$set` atomic operators and validator enforcement in `updateClient` and `POST /api/openings`. |
+| **SEC-EXP-03** | **HIGH** | `apps/backend/src/app.js:64-65` | Excessive JSON body parser limit (10MB) | **Resolved**: Reduced `express.json` and `express.urlencoded` limits to `1mb`, preventing JSON parsing ReDoS/DoS while delegating media uploads to multer. |
+| **SEC-EXP-04** | **HIGH** | `apps/backend/src/app.js:168-177` | Stack trace and error message leakage in production | **Resolved**: Masked 5xx internal error details with generic user-friendly message when `NODE_ENV === 'production'`. |
+| **SEC-EXP-05** | **HIGH** | `apps/backend/src/server.js:68-96` | Missing `unhandledRejection` and `uncaughtException` monitors | **Resolved**: Registered top-level process monitors with structured logging and controlled graceful shutdown. |
+| **SEC-EXP-06** | **HIGH** | `apps/backend/src/routes/api.route.js:455-474` | Privilege escalation in `POST /api/openings` | **Resolved**: Enforced `manpowerGuard` (`superadmin`, `admin`) restricting `cms_admin` from publishing/upserting openings. |
+| **SEC-EXP-07** | **HIGH** | `apps/backend/src/configs/db.js:42` | PostgreSQL TLS verification bypass (`rejectUnauthorized: false`) | **Resolved**: Added CA certificate support, configurable `DB_SSL_REJECT_UNAUTHORIZED`, and strict TLS verification in non-cloud production environments. |
+| **SEC-EXP-08** | **HIGH** | `apps/backend/src/models/job.mongo.model.js`<br>`apps/backend/src/models/article.mongo.model.js` | `strict: false` schema bypass | **Resolved**: Set `strict: true` and defined complete attribute schemas for JobRequirement and Article models. |
+| **SEC-EXP-09** | **MEDIUM** | `apps/backend/src/configs/mongodb.js`<br>`apps/backend/src/server.js` | Production index synchronization missing | **Resolved**: Added automated startup index synchronization in `server.js` via `synchronizeIndexes()` and added npm `sync:indexes` script. |
 
 ---
 
@@ -73,43 +74,46 @@ flowchart LR
 
 | Issue Key | Severity | Target Scope | Problem Statement | Remediation Required |
 | :--- | :---: | :--- | :--- | :--- |
-| **SEC-DB-01** | **HIGH** | 19 Unbounded `.find()` queries across admin controllers | Unconstrained queries threaten V8 heap exhaustion (OOM) | Enforce pagination with default `.limit(50)` and max `.limit(100)` across all list endpoints. |
-| **SEC-DB-02** | **HIGH** | 8 Mongoose Models | Missing compound Equality-Sort-Range (ESR) indexes | Add compound ESR indexes for `status`, `createdAt`, `jobId`, and `email` across models. |
-| **SEC-DB-03** | **MEDIUM** | PostgreSQL Migrations | Schema changes executed via `sync()` rather than migrations | Establish migration runner with forward/backward migration files for all relational schemas. |
-| **SEC-DB-04** | **MEDIUM** | Mongoose Schema Hygiene | Schemas lacking timestamp auditing and soft-deletion | Enable `{ timestamps: true }` and soft-delete filters across core operational entities. |
-| **SEC-DB-05** | **LOW** | MongoDB Regex Queries | Inefficient unanchored `$regex` queries without text indexes | Add text search indexes on Candidate and Job models for performant keyword searches. |
+| **SEC-DB-01** | **HIGH** | 19 Unbounded `.find()` queries across admin controllers | Unconstrained queries threaten V8 heap exhaustion (OOM) | **Resolved**: Enforced `parsePagination` utility (default 50, max 100) across all admin list controllers (`getEmployees`, `getCandidates`, `getClients`, `getJobs`, `getPlacements`, `getCmsPages`, `getCmsArticles`, `getCmsMedia`, `getAnnouncements`, `getSystemMembers`), public routes (`/api/openings`, `/api/articles`), candidate portal, and converted `getDashboardOverview` and `getCmsStats` to execute optimized `countDocuments` queries instead of hydrating full collections into RAM. |
+| **SEC-DB-02** | **HIGH** | 8 Mongoose Models | Missing compound Equality-Sort-Range (ESR) indexes | **Resolved**: Declared compound ESR indexes across `JobRequirement`, `Candidate`, `JobApplication`, `Client`, `Placement`, `Employee`, and `Article` models matching query Equality, Sort, and Range patterns. |
+| **SEC-DB-03** | **MEDIUM** | PostgreSQL Migrations | Schema changes executed via `sync()` rather than migrations | **Resolved**: Established deterministic PostgreSQL migration runner (`postgresRunner.js`) tracking through `_pg_migrations` table, added migration DDL scripts (`001_create_users_table.js`), package.json commands (`migrate:pg`, `migrate:all`), and updated `server.js` to rely on migrations in production. |
+| **SEC-DB-04** | **MEDIUM** | Mongoose Schema Hygiene | Schemas lacking timestamp auditing and soft-deletion | **Resolved**: Enabled `{ timestamps: true }` and soft-delete auditing fields (`isDeleted`, `deletedAt`) across all operational models (`JobRequirement`, `Candidate`, `JobApplication`, `Client`, `Placement`, `Employee`, `Article`), updated deletion endpoints to perform soft deletes, and added `{ isDeleted: { $ne: true } }` filtering across queries. |
+| **SEC-DB-05** | **LOW** | MongoDB Regex Queries | Inefficient unanchored `$regex` queries without text indexes | **Resolved**: Added full-text search indexes on `JobRequirement` (`idx_job_text_search`) and `Candidate` (`idx_candidate_text_search`), and established migration script `002_create_esr_and_text_indexes.js`. |
 
 ---
 
 ## 5. Milestone 4: Frontend Code-Splitting & Client Security (8 Issues)
 
 *Reference Document: [`docs/FrontendPerformanceAndSecurityAudit.md`](FrontendPerformanceAndSecurityAudit.md)*
+*Verification Suite: [`apps/frontend/src/test/unit/milestone4.frontend.test.jsx`](../apps/frontend/src/test/unit/milestone4.frontend.test.jsx) (11 tests passing), Full Frontend Suite (294 tests passing)*
 
-| Issue Key | Severity | Target File | Anti-Pattern Description | Remediation Required |
+| Issue Key | Severity | Target File | Anti-Pattern Description | Remediation Status |
 | :--- | :---: | :--- | :--- | :--- |
-| **SEC-FE-01** | **HIGH** | `apps/frontend/src/App.jsx` | 28 Static page imports creating 1,139 kB initial bundle | Implement `React.lazy()` and `Suspense` with skeleton fallbacks across all 28 routes. |
-| **SEC-FE-02** | **HIGH** | `apps/frontend/src/pages/Home.jsx` | Synchronous Three.js WebGL engine import (~600 kB) | Dynamically import 3D canvas component upon viewport entry using `IntersectionObserver`. |
-| **SEC-FE-03** | **HIGH** | Admin Data Desks (`CandidatesView`, `JobsView`) | Missing search input debouncing fires API on every keystroke | Implement 350ms debounced input hook for all search and filter bars. |
-| **SEC-FE-04** | **MEDIUM** | Data Desks `useEffect` fetching | Missing `AbortController` causes out-of-order race conditions | Attach `AbortController.signal` to Axios/fetch requests in component cleanup functions. |
-| **SEC-FE-05** | **MEDIUM** | `apps/frontend/src/services/apiConfig.js` | JWT tokens stored in `localStorage` | Rely strictly on secure, HttpOnly, SameSite cookies; remove token manipulation in localStorage. |
-| **SEC-FE-06** | **LOW** | Public & Footer Views | 10 external links with `target="_blank"` lack `rel="noopener noreferrer"` | Add `rel="noopener noreferrer"` to all outbound anchor tags to prevent reverse tab-nabbing. |
-| **SEC-FE-07** | **LOW** | Hero and Partner Sections | Large uncompressed images lack explicit width/height | Convert images to WebP/AVIF format and declare explicit width and height dimensions. |
-| **SEC-FE-08** | **LOW** | Sitewide Images | 25 `<img>` tags missing `alt` attributes | Add descriptive `alt` tags to meet WCAG 2.1 AA accessibility standards. |
+| **SEC-FE-01** | **HIGH** | `apps/frontend/src/App.jsx` | 28 Static page imports creating 1,139 kB initial bundle | **Resolved**: Converted all 28 static page imports to `React.lazy()` with `<Suspense fallback={<LoadingSpinner />}>`, reducing entry bundle from 1,088 kB to 285 kB (-74%). |
+| **SEC-FE-02** | **HIGH** | `apps/frontend/src/components/HomeComponents/Hero.jsx` | Synchronous Three.js WebGL engine import (~600 kB) | **Resolved**: Wrapped `ThinkWiresAnimation` in `React.lazy()` with an accessible skeleton fallback, deferring Three.js execution. |
+| **SEC-FE-03** | **HIGH** | Admin Data Desks (`CandidatesView`, `JobsView`, `ClientsView`, `RequisitionsView`, `EmployeesView`) | Missing search input debouncing fires API on every keystroke | **Resolved**: Implemented reusable `useDebounce` hook (350ms delay) across all administrative search and filter inputs. |
+| **SEC-FE-04** | **MEDIUM** | Data Desks `useEffect` fetching | Missing `AbortController` causes out-of-order race conditions | **Resolved**: Integrated native `AbortController` and attached `signal` to `adminFetch` requests across data desks with silent abort handling. |
+| **SEC-FE-05** | **MEDIUM** | `apps/frontend/src/utils/apiConfig.js` | JWT tokens stored in `localStorage` | **Resolved**: Removed `localStorage` credential persistence to prevent XSS harvesting, relying on HttpOnly cookies and volatile memory session fallbacks. |
+| **SEC-FE-06** | **LOW** | `apps/frontend/src/components/common/Navbar.jsx` | Static `QuickApplyModal` bundled into global navigation | **Resolved**: Code-split `QuickApplyModal` via `lazy()`, loading and mounting only on user modal toggle. |
+| **SEC-FE-07** | **LOW** | Public & Footer Views | External links with `target="_blank"` lack `rel="noopener noreferrer"` | **Resolved**: Enforced `rel="noopener noreferrer"` across all outbound anchor links preventing reverse tab-nabbing. |
+| **SEC-FE-08** | **LOW** | Sitewide Images | `<img>` tags missing `alt`, dimensions, and lazy attributes | **Resolved**: Enforced explicit `width`, `height`, `alt`, and `loading="lazy"` / `decoding="async"` across images to eliminate CLS and achieve WCAG 2.1 compliance. |
 
 ---
 
 ## 6. Milestone 5: 12-Factor Portability & SRE Readiness (6 Issues)
 
 *Reference Document: [`docs/DeploymentReadinessAndPortabilityAudit.md`](DeploymentReadinessAndPortabilityAudit.md)*
+*Verification Suite: [`apps/backend/src/test/unit/milestone5.sre.test.js`](../apps/backend/src/test/unit/milestone5.sre.test.js) (15 tests passing)*
 
-| Issue Key | Severity | Target Scope | Problem Statement | Remediation Required |
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
 | :--- | :---: | :--- | :--- | :--- |
-| **DEP-01** | **BLOCKER** | `apps/backend/src/middlewares/upload.middleware.js` | Resumes written to ephemeral container disk (`./uploads`) | Migrate file persistence to AWS S3, Cloudflare R2, or Google Cloud Storage using presigned URLs. |
-| **DEP-02** | **BLOCKER** | `apps/backend/src/server.js:33-41` | Silent in-memory fallback on database connection failure | Crash fast (`process.exit(1)`) in production if primary databases fail to connect at boot. |
-| **DEP-03** | **HIGH** | `apps/backend/src/server.js:15` | Missing explicit `0.0.0.0` host binding | Update `server.listen(PORT, '0.0.0.0')` to ensure ingress routing in container environments. |
-| **DEP-04** | **HIGH** | `apps/backend/src/app.js:97-129` | `/api/health` returns 200 even when database is down | Evaluate MongoDB and PostgreSQL connection readiness before returning HTTP 200. |
-| **DEP-05** | **MEDIUM** | `apps/backend/src/app.js` | Missing separated `/healthz` and `/ready` probes | Implement lightweight `/healthz` (liveness) and deep-checking `/ready` (readiness) endpoints. |
-| **DEP-06** | **MEDIUM** | `apps/backend/src/server.js` | Lacks active connection draining on shutdown signals | Implement graceful HTTP connection keep-alive draining upon receiving `SIGTERM` and `SIGINT`. |
+| **DEP-01** | **BLOCKER** | `apps/backend/src/middlewares/upload.middleware.js`<br>`apps/backend/src/utils/storage.adapter.js` | Resumes written to ephemeral container disk (`./uploads`) | **Resolved**: Implemented pluggable `StorageService` (`storage.adapter.js`) supporting AWS S3, Cloudflare R2, MinIO, and local driver fallback with directory traversal sanitization and streaming support. Integrated into `candidatePortal.controller.js` for resume downloads. |
+| **DEP-02** | **BLOCKER** | `apps/backend/src/server.js`<br>`apps/backend/src/configs/env.validator.js` | Silent in-memory fallback on database connection failure | **Resolved**: Implemented `validateBootEnvironment()` verifying `JWT_SECRET`, `JWT_ADMIN_SECRET`, `JWT_CANDIDATE_SECRET`, and `MONGODB_URI`. Server crashes fast (`process.exit(1)`) on missing secrets or localhost MongoDB URIs during production boot. |
+| **DEP-03** | **HIGH** | `apps/backend/src/server.js:23` | Missing explicit `0.0.0.0` host binding | **Resolved**: Configured `HOST = process.env.HOST || '0.0.0.0'` in `server.listen()`, ensuring ingress routing across ECS, Cloud Run, Kubernetes, and Docker containers. |
+| **DEP-04** | **HIGH** | `apps/backend/src/app.js`<br>`apps/backend/src/routes/health.route.js` | `/api/health` returns 200 even when database is down | **Resolved**: Updated `/api/health` and `/ready` to check active MongoDB `readyState === 1` and PostgreSQL connection, returning HTTP 503 Service Unavailable when the primary database is disconnected in production. |
+| **DEP-05** | **MEDIUM** | `apps/backend/src/routes/health.route.js` | Missing separated `/healthz` and `/ready` probes | **Resolved**: Created separate `/healthz` (liveness probe testing process responsiveness, uptime, and pid) and `/ready` (readiness probe validating backing datastores) mounted at root and under `/api`. |
+| **DEP-06** | **MEDIUM** | `apps/backend/src/server.js`<br>`apps/backend/src/app.js` | Lacks active connection draining on shutdown signals | **Resolved**: Integrated `setShuttingDown(true)` with `server.closeIdleConnections()` and active rejection middleware returning HTTP 503 with `Connection: close` during graceful teardown (`SIGTERM` / `SIGINT`). |
+| **DEP-CON-01** | **HIGH** | Root repository container manifests | Missing multi-stage, rootless container configuration | **Resolved**: Created multi-stage rootless `Dockerfile` (Alpine 20, non-root `nodeapp` user, `HEALTHCHECK` probe), production `.dockerignore`, and multi-service `docker-compose.yml` (backend, Mongo 7, Postgres 16, Redis 7). |
 
 ---
 

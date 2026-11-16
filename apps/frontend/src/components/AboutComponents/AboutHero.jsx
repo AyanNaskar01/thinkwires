@@ -159,7 +159,10 @@ const AboutHero = ({ data, stats = [] }) => {
                 src={resolvedImageSrc}
                 alt={heroImageAlt}
                 className="AboutHero-image"
+                width={800}
+                height={533}
                 loading="eager"
+                decoding="async"
                 onError={() => setImgError(true)}
               />
               <div className="AboutHero-imageOverlay" />

@@ -21,7 +21,13 @@
     "migrate:up": "node src/migrations/runner.js up",
     "migrate:down": "node src/migrations/runner.js down",
     "migrate:status": "node src/migrations/runner.js status",
-    "migrate:create": "node src/migrations/runner.js create"
+    "migrate:create": "node src/migrations/runner.js create",
+    "migrate:pg": "node src/migrations/postgresRunner.js up",
+    "migrate:pg:up": "node src/migrations/postgresRunner.js up",
+    "migrate:pg:down": "node src/migrations/postgresRunner.js down",
+    "migrate:pg:status": "node src/migrations/postgresRunner.js status",
+    "migrate:all": "npm run migrate && npm run migrate:pg",
+    "sync:indexes": "node -e \"import('./src/configs/mongodb.js').then(m => m.connectMongoDB().then(() => m.synchronizeIndexes().then(() => process.exit(0))))\""
   },
   "keywords": [],
   "author": "",

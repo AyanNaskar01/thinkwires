@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import logo from '../../assets/logo/logo.png';
-import QuickApplyModal from './QuickApplyModal';
 import { useTheme } from '../../useTheme';
 import { GlobeIcon, MailIcon } from '../../admin/AdminIcons';
+
+// Lazy-load modal only when requested to reduce global bundle footprint (SEC-FE-06)
+const QuickApplyModal = lazy(() => import('./QuickApplyModal'));
 
 const Navbar = () => {
   const headerRef = useRef(null);
@@ -571,11 +573,15 @@ const Navbar = () => {
         </nav>
       </header>
 
-      <QuickApplyModal
-        isOpen={isApplyModalOpen}
-        onClose={() => setIsApplyModalOpen(false)}
-        roleTitle="General Engineering Candidate Pool"
-      />
+      {isApplyModalOpen && (
+        <Suspense fallback={null}>
+          <QuickApplyModal
+            isOpen={isApplyModalOpen}
+            onClose={() => setIsApplyModalOpen(false)}
+            roleTitle="General Engineering Candidate Pool"
+          />
+        </Suspense>
+      )}
     </>
   );
 };

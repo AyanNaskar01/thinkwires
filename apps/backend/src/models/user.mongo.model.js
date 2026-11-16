@@ -40,6 +40,10 @@ const userMongoSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
+    },
     tokenVersion: {
       type: Number,
       default: 0,

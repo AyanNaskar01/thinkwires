@@ -43,11 +43,22 @@ const mediaSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+mediaSchema.index({ isDeleted: 1, createdAt: -1 });
 
 const Media = mongoose.models.Media || mongoose.model('Media', mediaSchema);
 

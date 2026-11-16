@@ -45,6 +45,15 @@ const clientSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -53,6 +62,7 @@ const clientSchema = new mongoose.Schema(
 
 clientSchema.index({ email: 1 }, { unique: true });
 clientSchema.index({ companyName: 1, status: 1 });
+clientSchema.index({ status: 1, createdAt: -1 });
 clientSchema.index({ createdAt: -1 });
 
 const Client = mongoose.models.Client || mongoose.model('Client', clientSchema);

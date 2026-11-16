@@ -5,6 +5,7 @@ import {
   fetchArticles,
   fetchFeaturedArticle,
 } from '../../store/slices/blogSlice';
+import { BlogCardSkeleton } from '../common/Skeleton';
 
 const FALLBACK_IMAGES = {
   'card-1':
@@ -213,7 +214,7 @@ const Reports = () => {
 
   // Deep-link destination for modal reader on Blog page
   const getReportDestination = (article) => {
-    if (article.slug) return `/blog?article=${encodeURIComponent(article.slug)}`;
+    if (article.slug) return `/blog/${encodeURIComponent(article.slug)}`;
     if (article.id) return `/blog?article=${encodeURIComponent(article.id)}`;
     return `/blog?article=${encodeURIComponent(article.title)}`;
   };
@@ -235,18 +236,7 @@ const Reports = () => {
             </div>
           </div>
           <div className="Reports-grid">
-            {[1, 2, 3].map((idx) => (
-              <div key={idx} className="Reports-card animate-pulse">
-                <div className="Reports-imageContainer bg-slate-200" />
-                <div className="Reports-content space-y-3">
-                  <div className="h-4 bg-slate-200 rounded w-1/3" />
-                  <div className="h-6 bg-slate-200 rounded w-4/5" />
-                  <div className="h-4 bg-slate-200 rounded w-full" />
-                  <div className="h-4 bg-slate-200 rounded w-2/3" />
-                  <div className="h-8 bg-slate-200 rounded w-1/4 mt-4" />
-                </div>
-              </div>
-            ))}
+            <BlogCardSkeleton count={cardsPerView || 3} />
           </div>
         </div>
       </section>
@@ -402,7 +392,10 @@ const Reports = () => {
                         src={imageSrc}
                         alt={article.title}
                         className="Reports-image"
+                        width={600}
+                        height={340}
                         loading="lazy"
+                        decoding="async"
                       />
                       <span
                         className="Reports-tagBadge"
@@ -416,7 +409,9 @@ const Reports = () => {
                       </span>
                       {readTimeText && (
                         <span className="Reports-readBadge">
-                          <span>⏱</span>
+                          <span className="material-symbols-outlined text-[14px]">
+                            schedule
+                          </span>
                           <span>{readTimeText}</span>
                         </span>
                       )}
@@ -454,6 +449,10 @@ const Reports = () => {
                           src={authorAvatar}
                           alt={authorName}
                           className="Reports-authorAvatar"
+                          width={28}
+                          height={28}
+                          loading="lazy"
+                          decoding="async"
                           style={{
                             width: 28,
                             height: 28,

@@ -99,14 +99,24 @@ const articleSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: () => new Date().toISOString(),
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
-    strict: false,
+    strict: true,
   }
 );
 
 articleSchema.index({ status: 1, publishedAt: -1, createdAt: -1 });
+articleSchema.index({ category: 1, status: 1, createdAt: -1 });
 articleSchema.index({ articleId: 1 }, { sparse: true });
 
 const Article =

@@ -50,6 +50,15 @@ const placementSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -57,6 +66,8 @@ const placementSchema = new mongoose.Schema(
 );
 
 placementSchema.index({ candidateOrEmployeeName: 1, clientName: 1, assignmentStatus: 1 });
+placementSchema.index({ assignmentStatus: 1, createdAt: -1 });
+placementSchema.index({ clientName: 1, createdAt: -1 });
 placementSchema.index({ createdAt: -1 });
 placementSchema.index({ assignmentStatus: 1 });
 

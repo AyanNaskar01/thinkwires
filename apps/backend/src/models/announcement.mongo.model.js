@@ -35,11 +35,22 @@ const announcementSchema = new mongoose.Schema(
       type: String,
       default: 'Operations Lead',
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+announcementSchema.index({ status: 1, isDeleted: 1, createdAt: -1 });
 
 const Announcement =
   mongoose.models.Announcement ||

@@ -3,43 +3,51 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { checkAuthSession } from './store/slices/authSlice';
 
-import HomePage from './pages/HomePage';
-import AboutPage from './pages/AboutPage';
-import JobPage from './pages/JobPage';
-import BlogPage from './pages/BlogPage';
-import ContactPage from './pages/ContactPage';
-import IndustriesPage from './pages/IndustriesPage';
-import IndustryDetailPage from './pages/IndustryDetailPage';
-import BenchPage from './pages/BenchPage';
-import PayrollPage from './pages/PayrollPage';
-import EorPage from './pages/EorPage';
-import StaffAugmentationPage from './pages/StaffAugmentationPage';
-import PermanentStaffingPage from './pages/PermanentStaffingPage';
-import ServicesPage from './pages/ServicesPage';
-import FindTalentPage from './pages/FindTalentPage';
-import LegalPage from './pages/LegalPage';
-import FaqPage from './pages/FaqPage';
-import NotFoundPage from './pages/NotFoundPage';
-import MissionVisionPage from './pages/MissionVisionPage';
-import ValuesCodeOfConductPage from './pages/ValuesCodeOfConductPage';
-import LifeAtThinkwiresPage from './pages/LifeAtThinkwiresPage';
-import ComingSoonPage from './pages/ComingSoonPage';
 import ScrollAnimationManager from './components/common/ScrollAnimationManager';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import GlobalErrorBoundary from './components/common/GlobalErrorBoundary';
 
-// Authentication Pages
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
-import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+// Public Website Pages (Code-split with React.lazy for SEC-FE-01)
+const HomePage = lazy(() => import('./pages/HomePage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const JobPage = lazy(() => import('./pages/JobPage'));
+const BlogPage = lazy(() => import('./pages/BlogPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const IndustriesPage = lazy(() => import('./pages/IndustriesPage'));
+const IndustryDetailPage = lazy(() => import('./pages/IndustryDetailPage'));
+const BenchPage = lazy(() => import('./pages/BenchPage'));
+const PayrollPage = lazy(() => import('./pages/PayrollPage'));
+const EorPage = lazy(() => import('./pages/EorPage'));
+const StaffAugmentationPage = lazy(() => import('./pages/StaffAugmentationPage'));
+const PermanentStaffingPage = lazy(() => import('./pages/PermanentStaffingPage'));
+const ServicesPage = lazy(() => import('./pages/ServicesPage'));
+const FindTalentPage = lazy(() => import('./pages/FindTalentPage'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
+const FaqPage = lazy(() => import('./pages/FaqPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const MissionVisionPage = lazy(() => import('./pages/MissionVisionPage'));
+const ValuesCodeOfConductPage = lazy(() => import('./pages/ValuesCodeOfConductPage'));
+const LifeAtThinkwiresPage = lazy(() => import('./pages/LifeAtThinkwiresPage'));
+const ComingSoonPage = lazy(() => import('./pages/ComingSoonPage'));
 
-// Protected Candidate Portal Pages
-import CandidateDashboardPage from './pages/candidate/CandidateDashboardPage';
-import CandidateProfilePage from './pages/candidate/CandidateProfilePage';
-import CandidateApplicationsPage from './pages/candidate/CandidateApplicationsPage';
-import JobApplyPage from './pages/candidate/JobApplyPage';
+// Authentication Pages (Code-split with React.lazy)
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'));
+
+// Protected Candidate Portal Pages (Code-split with React.lazy)
+const CandidateDashboardPage = lazy(
+  () => import('./pages/candidate/CandidateDashboardPage')
+);
+const CandidateProfilePage = lazy(
+  () => import('./pages/candidate/CandidateProfilePage')
+);
+const CandidateApplicationsPage = lazy(
+  () => import('./pages/candidate/CandidateApplicationsPage')
+);
+const JobApplyPage = lazy(() => import('./pages/candidate/JobApplyPage'));
 
 // Thinkwires Admin Dashboard & CMS Modules (Code-split with React.lazy)
 const AdminLayout = lazy(() => import('./admin/AdminLayout'));
@@ -86,6 +94,7 @@ function App() {
           <Route path="/jobs" element={<JobPage />} />
           <Route path="/hot-jobs" element={<JobPage />} />
           <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogPage />} />
           <Route path="/contact" element={<ContactPage />} />
 
           {/* Resources Routes (Issue #170) */}

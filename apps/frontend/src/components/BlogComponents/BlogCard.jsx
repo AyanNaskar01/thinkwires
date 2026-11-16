@@ -1,5 +1,20 @@
 import React from 'react';
 
+const formatDisplayDate = (dateString) => {
+  if (!dateString) return 'Recent';
+  try {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return dateString;
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return dateString;
+  }
+};
+
 const BlogCard = ({ article, onReadClick }) => {
   if (!article) return null;
 
@@ -12,8 +27,44 @@ const BlogCard = ({ article, onReadClick }) => {
     boxBg: '#f1f5f9',
   };
 
+  const coverImage = article.featuredImageUrl || article.imageUrl;
+
   return (
     <article className="FigmaBlogCard-container">
+      {/* 16:9 Cover Image Banner */}
+      {coverImage && (
+        <div
+          style={{
+            width: '100%',
+            aspectRatio: '16/9',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            marginBottom: '1rem',
+            backgroundColor: '#f1f5f9',
+            cursor: 'pointer',
+          }}
+          onClick={() => onReadClick && onReadClick(article)}
+        >
+          <img
+            src={coverImage}
+            alt={article.title}
+            width={400}
+            height={225}
+            loading="lazy"
+            decoding="async"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+            }}
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+        </div>
+      )}
+
       {/* Top Badge & Read Time Header */}
       <div className="FigmaBlogCard-topRow">
         <span
@@ -25,14 +76,27 @@ const BlogCard = ({ article, onReadClick }) => {
         >
           {article.badge || article.category}
         </span>
-        <span className="FigmaBlogCard-readTime">
-          ⏱ {article.readTime || '8 min read'}
+        <span className="FigmaBlogCard-readTime" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          {article.readTime || '8 min read'}
         </span>
       </div>
 
       {/* Date & Sub-Category Row */}
       <div className="FigmaBlogCard-dateSubRow">
-        <span>{article.publishedAt || 'Aug 26, 2026'}</span>
+        <span>{formatDisplayDate(article.publishedAt)}</span>
         <span className="FigmaBlogCard-dot">•</span>
         <span className="FigmaBlogCard-subCategory">
           {article.subCategory || 'Talent Benchmarks'}
@@ -128,6 +192,10 @@ const BlogCard = ({ article, onReadClick }) => {
               src={article.author.avatar}
               alt={article.author.name}
               className="FigmaBlogCard-avatar"
+              width={28}
+              height={28}
+              loading="lazy"
+              decoding="async"
             />
           ) : (
             <span className="FigmaBlogCard-initialsBubble">

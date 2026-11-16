@@ -16,6 +16,7 @@ import {
   ClockIcon,
 } from './AdminIcons';
 import SkillSearchInput from '../components/common/SkillSearchInput';
+import { useDebounce } from '../hooks/useDebounce';
 
 const ENGAGEMENT_MODELS = [
   'Staff Augmentation',
@@ -49,6 +50,7 @@ const RequisitionsView = () => {
 
   // Filter states
   const [search, setSearch] = useState(searchParams.get('search') || '');
+  const debouncedSearch = useDebounce(search, 350);
   const [activeTab, setActiveTab] = useState(
     searchParams.get('status') || 'All'
   );
@@ -97,7 +99,7 @@ const RequisitionsView = () => {
     setLoading(true);
     adminApi
       .getRequisitions({
-        search,
+        search: debouncedSearch,
       })
       .then((res) => {
         setRequisitions(res.jobs || []);
@@ -110,27 +112,30 @@ const RequisitionsView = () => {
   };
 
   useEffect(() => {
-    let isMounted = true;
+    const abortController = new AbortController();
+    setLoading(true);
+
     adminApi
-      .getRequisitions({
-        search,
-      })
+      .getRequisitions(
+        { search: debouncedSearch },
+        { signal: abortController.signal }
+      )
       .then((res) => {
-        if (isMounted) {
-          setRequisitions(res.jobs || []);
-          setLoading(false);
-        }
+        setRequisitions(res.jobs || []);
+        setLoading(false);
       })
       .catch((err) => {
-        if (isMounted) {
-          setLoading(false);
-          showToast(`Failed to load requisitions: ${err.message}`);
+        if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
+          return;
         }
+        setLoading(false);
+        showToast(`Failed to load requisitions: ${err.message}`);
       });
+
     return () => {
-      isMounted = false;
+      abortController.abort();
     };
-  }, [search, showToast]);
+  }, [debouncedSearch, showToast]);
 
   useEffect(() => {
     adminApi
