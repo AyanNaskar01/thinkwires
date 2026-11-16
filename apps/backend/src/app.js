@@ -126,14 +126,14 @@ app.get('/api', (req, res) => {
   res.status(200).json(payload);
 });
 
-app.get('/api/health', (req, res) => {
+app.get(['/health', '/api/health'], (req, res) => {
   const isMongoReady = mongoose.connection.readyState === 1;
   const isPostgresReady = Boolean(sequelize);
   const isProduction = process.env.NODE_ENV === 'production';
 
-  // DEP-04: Evaluate datastore readiness; return 503 if primary database is down in production
-  const isHealthy = isProduction ? isMongoReady : true;
-  const statusCode = isHealthy ? 200 : 503;
+  // Liveness / Health check: process is alive and responsive; datastore readiness is reflected in payload and on /ready
+  const isHealthy = isMongoReady;
+  const statusCode = 200;
 
   const mongoStatusMap = {
     0: 'disconnected',
