@@ -25,6 +25,61 @@ import bcrypt from 'bcryptjs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+export const validateSuperadminPasswordStrength = (password) => {
+  if (!password || typeof password !== 'string') {
+    return { isValid: false, error: 'INITIAL_SUPERADMIN_PASSWORD must be a non-empty string.' };
+  }
+  if (password.length < 16) {
+    return {
+      isValid: false,
+      error: 'INITIAL_SUPERADMIN_PASSWORD must be at least 16 characters long.',
+    };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { isValid: false, error: 'INITIAL_SUPERADMIN_PASSWORD must contain at least one uppercase letter.' };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { isValid: false, error: 'INITIAL_SUPERADMIN_PASSWORD must contain at least one lowercase letter.' };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { isValid: false, error: 'INITIAL_SUPERADMIN_PASSWORD must contain at least one digit.' };
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return { isValid: false, error: 'INITIAL_SUPERADMIN_PASSWORD must contain at least one special character symbol.' };
+  }
+
+  const lowered = password.toLowerCase();
+  const INSECURE_PATTERNS = [
+    'thinkwires@admin2026',
+    'thinkwires@2026',
+    'thinkwires',
+    'admin123',
+    'password',
+    'changeme',
+    'superadmin',
+  ];
+  if (INSECURE_PATTERNS.some((p) => lowered.includes(p))) {
+    return {
+      isValid: false,
+      error: 'INITIAL_SUPERADMIN_PASSWORD cannot be a known default, demo, or easily guessable password.',
+    };
+  }
+
+  return { isValid: true };
+};
+
+export const validateSuperadminEmail = (email) => {
+  if (!email || typeof email !== 'string' || !email.trim()) {
+    return { isValid: false, error: 'INITIAL_SUPERADMIN_EMAIL is missing or invalid (must be a non-empty string).' };
+  }
+  const cleanEmail = email.trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(cleanEmail)) {
+    return { isValid: false, error: 'INITIAL_SUPERADMIN_EMAIL format is invalid.' };
+  }
+  return { isValid: true, email: cleanEmail };
+};
+
 export const seedDatabase = async () => {
   const adminSeedFilePath = path.join(__dirname, 'adminSeedData.json');
   const mockSeedFilePath = path.join(__dirname, 'mockData.json');
@@ -34,56 +89,41 @@ export const seedDatabase = async () => {
     ? JSON.parse(fs.readFileSync(mockSeedFilePath, 'utf8'))
     : {};
 
-  // Bootstrap initial Superadmin if none exists
   const isProduction = process.env.NODE_ENV === 'production';
+
+  // 1. Accidental production demo seeding prevention (Requirement 9)
+  if (isProduction && process.env.ALLOW_PRODUCTION_SEED !== 'true') {
+    const errorMsg =
+      '🚨 [FATAL SECURITY DEFENSE] Demo data seeding is strictly blocked in production mode. To bootstrap initial credentials on a new production instance, set ALLOW_PRODUCTION_SEED=true alongside explicitly configured INITIAL_SUPERADMIN_EMAIL and INITIAL_SUPERADMIN_PASSWORD.';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  // 2. Explicit Superadmin environment variable validation (Requirements 1, 2, 3, 4, 6)
   const rawAdminEmail = process.env.INITIAL_SUPERADMIN_EMAIL;
   const rawAdminPassword = process.env.INITIAL_SUPERADMIN_PASSWORD;
 
-  // 1. Refuse production seeding if explicit credentials are missing or insecure
-  if (isProduction) {
-    if (!rawAdminEmail || !rawAdminPassword) {
-      console.error(
-        '🚨 [FATAL SECURITY DEFENSE] Production database seeding halted: Missing required INITIAL_SUPERADMIN_EMAIL or INITIAL_SUPERADMIN_PASSWORD.'
-      );
-      throw new Error(
-        'Refusing production seed: Missing required INITIAL_SUPERADMIN_EMAIL or INITIAL_SUPERADMIN_PASSWORD environment variables.'
-      );
-    }
-    const loweredPass = rawAdminPassword.toLowerCase();
-    if (
-      loweredPass.includes('thinkwires@admin2026') ||
-      loweredPass.includes('thinkwires@2026') ||
-      loweredPass.includes('admin123') ||
-      loweredPass.includes('password') ||
-      rawAdminPassword.length < 16
-    ) {
-      console.error(
-        '🚨 [FATAL SECURITY DEFENSE] Insecure or known default INITIAL_SUPERADMIN_PASSWORD in production.'
-      );
-      throw new Error(
-        'Refusing production seed: INITIAL_SUPERADMIN_PASSWORD cannot be a known default, demo password, or under 16 characters.'
-      );
-    }
+  const emailValidation = validateSuperadminEmail(rawAdminEmail);
+  if (!emailValidation.isValid) {
+    const errorMsg = `Refusing seed: Missing required INITIAL_SUPERADMIN_EMAIL or INITIAL_SUPERADMIN_PASSWORD environment variables. (${emailValidation.error})`;
+    console.error(`🚨 [FATAL SECURITY DEFENSE] ${errorMsg}`);
+    throw new Error(errorMsg);
   }
 
-  // 2. Resolve credentials (generate random password in dev if omitted)
-  const adminEmail = (rawAdminEmail || 'admin.local@thinkwires.com').toLowerCase().trim();
-  let adminPassword = rawAdminPassword;
-
-  if (!adminPassword) {
-    // Generate cryptographically strong random password for local development
-    adminPassword = crypto.randomBytes(18).toString('base64url');
-    console.log('\n========================================================================');
-    console.log('🔑 [SECURITY ALERT] Generated ephemeral initial Superadmin credentials:');
-    console.log(`   Email:    ${adminEmail}`);
-    console.log(`   Password: ${adminPassword}`);
-    console.log('   Save this password immediately or set INITIAL_SUPERADMIN_PASSWORD.');
-    console.log('========================================================================\n');
+  const passwordValidation = validateSuperadminPasswordStrength(rawAdminPassword);
+  if (!passwordValidation.isValid) {
+    const errorMsg = `Refusing seed: INITIAL_SUPERADMIN_PASSWORD cannot be a known default, demo password, or under 16 characters. (${passwordValidation.error})`;
+    console.error(`🚨 [FATAL SECURITY DEFENSE] ${errorMsg}`);
+    throw new Error(errorMsg);
   }
 
+  const adminEmail = emailValidation.email;
+  const adminPassword = rawAdminPassword;
+
+  // Never log passwords, tokens, or credentials (Requirement 5)
   const defaultHashedPassword = await hashPassword(adminPassword);
 
-  // 3. Mongo user creation & credential rotation check
+  // 3. Mongo user creation & idempotent protection (Requirements 7 & 8)
   if (mongoose.connection.readyState === 1) {
     const existingAdmin = await UserMongo.findOne({ email: adminEmail }).select('+password');
     if (!existingAdmin) {
@@ -98,14 +138,14 @@ export const seedDatabase = async () => {
       });
       console.log(`[MongoDB] Initial Superadmin bootstrapped: ${adminEmail} (mustChangePassword: true)`);
     } else {
-      console.log(`[MongoDB] Superadmin account present: ${adminEmail}`);
-      // Rotate / audit credentials if existing admin uses deprecated default passwords
+      console.log(`[MongoDB] Superadmin account already exists: ${adminEmail}. Preserving existing credentials.`);
+      // Enforce mustChangePassword if existing admin was seeded with legacy defaults
       const isKnownDefault =
         (await bcrypt.compare('Thinkwires@Admin2026!', existingAdmin.password).catch(() => false)) ||
         (await bcrypt.compare('Thinkwires@2026', existingAdmin.password).catch(() => false));
       if (isKnownDefault) {
         console.warn(
-          `🚨 [SECURITY RISK] Existing Superadmin account (${adminEmail}) uses a known public default password! Enforcing mustChangePassword = true.`
+          `🚨 [SECURITY RISK] Existing Superadmin account (${adminEmail}) uses a legacy default password! Enforcing mustChangePassword = true.`
         );
         existingAdmin.mustChangePassword = true;
         await existingAdmin.save();
@@ -113,7 +153,7 @@ export const seedDatabase = async () => {
     }
   }
 
-  // 4. PostgreSQL user creation & credential rotation check
+  // 4. PostgreSQL user creation & idempotent protection (Requirements 7 & 8)
   try {
     await sequelize.authenticate();
     await sequelize.sync();
@@ -130,13 +170,13 @@ export const seedDatabase = async () => {
       });
       console.log(`[PostgreSQL] Initial Superadmin bootstrapped: ${adminEmail} (mustChangePassword: true)`);
     } else {
-      console.log(`[PostgreSQL] Superadmin account present: ${adminEmail}`);
+      console.log(`[PostgreSQL] Superadmin account already exists: ${adminEmail}. Preserving existing credentials.`);
       const isKnownDefault =
         (await bcrypt.compare('Thinkwires@Admin2026!', existingPgAdmin.password).catch(() => false)) ||
         (await bcrypt.compare('Thinkwires@2026', existingPgAdmin.password).catch(() => false));
       if (isKnownDefault) {
         console.warn(
-          `🚨 [SECURITY RISK] Existing PostgreSQL Superadmin (${adminEmail}) uses a known default password! Enforcing mustChangePassword = true.`
+          `🚨 [SECURITY RISK] Existing PostgreSQL Superadmin (${adminEmail}) uses a legacy default password! Enforcing mustChangePassword = true.`
         );
         existingPgAdmin.mustChangePassword = true;
         await existingPgAdmin.save();
@@ -144,6 +184,12 @@ export const seedDatabase = async () => {
     }
   } catch (pgErr) {
     console.log(`[PostgreSQL] User table bootstrap bypassed: ${pgErr.message}`);
+  }
+
+  // 5. In production mode, abort before inserting any demo entities (Requirement 9)
+  if (isProduction) {
+    console.log('🔒 [Production Boot] Skipping demo data seeding (mock clients, placements, resumes). Only Superadmin initialization executed.');
+    return;
   }
 
   if (mongoose.connection.readyState === 1) {
