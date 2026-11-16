@@ -26,7 +26,7 @@ const LifeAtThinkwiresPage = () => {
 
       <Navbar />
 
-      <main style={{ paddingTop: '80px', minHeight: 'calc(100vh - 400px)' }}>
+      <main style={{ minHeight: 'calc(100vh - 400px)' }}>
         <LifeAtThinkwires />
       </main>
 

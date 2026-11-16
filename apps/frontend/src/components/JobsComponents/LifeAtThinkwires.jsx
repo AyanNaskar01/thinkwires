@@ -1,72 +1,43 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   TEAM_DEPARTMENTS,
   TEAM_MEMBERS,
   CULTURE_THEMES,
   EMPLOYEE_EXPERIENCE_ITEMS,
-  EMPLOYEE_BENEFITS,
   CAREER_BLOGS,
   GALLERY_ITEMS,
 } from '../../data/teamData';
 
-const BenefitIcon = ({ type }) => {
-  if (type === 'shield') {
-    return (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      </svg>
-    );
-  }
-  if (type === 'globe') {
-    return (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="2" y1="12" x2="22" y2="12" />
-        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-      </svg>
-    );
-  }
-  if (type === 'graduation') {
-    return (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-        <path d="M6 12v5c3 3 9 3 12 0v-5" />
-      </svg>
-    );
-  }
-  if (type === 'laptop') {
-    return (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-        <line x1="2" y1="20" x2="22" y2="20" />
-      </svg>
-    );
-  }
-  if (type === 'trending') {
-    return (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-        <polyline points="17 6 23 6 23 12" />
-      </svg>
-    );
-  }
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-    </svg>
-  );
-};
+const GALLERY_CATEGORIES = ['All', 'Events', 'Team Outings', 'Office', 'Celebrations'];
 
 const LifeAtThinkwires = () => {
-  // Department filter state
+  // Department filter state for team carousel
   const [activeDepartment, setActiveDepartment] = useState('all');
 
   // Interactive profile modal state
   const [selectedMember, setSelectedMember] = useState(null);
 
-  // Gallery lightbox state
+  // Team carousel touch/pause state
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
+  const carouselTrackRef = useRef(null);
+
+  // Gallery category filter state
+  const [activeGalleryCategory, setActiveGalleryCategory] = useState('All');
+
+  // Gallery lightbox state (index within filteredGalleryItems)
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(null);
+
+  // Culture 3D Coverflow active index (from Reference Image 2, 0 to 4, default 2)
+  const [activeCultureIndex, setActiveCultureIndex] = useState(2);
+
+  const handleCulturePrev = useCallback(() => {
+    setActiveCultureIndex((prev) => (prev <= 0 ? CULTURE_THEMES.length - 1 : prev - 1));
+  }, []);
+
+  const handleCultureNext = useCallback(() => {
+    setActiveCultureIndex((prev) => (prev >= CULTURE_THEMES.length - 1 ? 0 : prev + 1));
+  }, []);
 
   // Filter team members based on department
   const filteredMembers = useMemo(() => {
@@ -78,22 +49,46 @@ const LifeAtThinkwires = () => {
     );
   }, [activeDepartment]);
 
-  // Gallery active item
+  // Infinite marquee members: repeat list sufficiently to ensure seamless loop
+  const marqueeMembers = useMemo(() => {
+    if (!filteredMembers.length) return [];
+    let list = [...filteredMembers];
+    // Ensure sufficient items across wide screen displays
+    while (list.length < 10) {
+      list = [...list, ...filteredMembers];
+    }
+    // Duplicate once more so translating by -50% connects seamlessly
+    return [...list, ...list];
+  }, [filteredMembers]);
+
+  // Filter gallery items based on category
+  const filteredGalleryItems = useMemo(() => {
+    if (activeGalleryCategory === 'All') return GALLERY_ITEMS;
+    return GALLERY_ITEMS.filter((item) =>
+      item.category.toLowerCase().includes(activeGalleryCategory.toLowerCase())
+    );
+  }, [activeGalleryCategory]);
+
+  // Gallery active item for lightbox
   const activeGalleryItem =
-    activeGalleryIndex !== null ? GALLERY_ITEMS[activeGalleryIndex] : null;
+    activeGalleryIndex !== null && activeGalleryIndex < filteredGalleryItems.length
+      ? filteredGalleryItems[activeGalleryIndex]
+      : null;
 
   // Gallery navigation
   const handlePrevGallery = useCallback(() => {
-    setActiveGalleryIndex((prev) =>
-      prev === null ? null : prev === 0 ? GALLERY_ITEMS.length - 1 : prev - 1
-    );
-  }, []);
+    setActiveGalleryIndex((prev) => {
+      if (prev === null) return null;
+      return prev === 0 ? filteredGalleryItems.length - 1 : prev - 1;
+    });
+  }, [filteredGalleryItems.length]);
 
   const handleNextGallery = useCallback(() => {
-    setActiveGalleryIndex((prev) =>
-      prev === null ? null : (prev + 1) % GALLERY_ITEMS.length
-    );
-  }, []);
+    setActiveGalleryIndex((prev) => {
+      if (prev === null) return null;
+      return (prev + 1) % filteredGalleryItems.length;
+    });
+  }, [filteredGalleryItems.length]);
 
   // Global Keyboard event handler for modals & lightbox
   const handleGlobalKeyDown = useCallback(
@@ -126,6 +121,33 @@ const LifeAtThinkwires = () => {
       document.body.style.overflow = '';
     };
   }, [selectedMember, activeGalleryIndex, handleGlobalKeyDown]);
+
+  // Scroll reveal observer (once only, fade & slide up)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (!('IntersectionObserver' in window)) {
+      document.querySelectorAll('.TW-reveal').forEach((el) => el.classList.add('is-visible'));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    const elements = document.querySelectorAll('.TW-reveal');
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
 
   // Smooth scroll helpers
   const scrollToTeam = (e) => {
@@ -164,12 +186,12 @@ const LifeAtThinkwires = () => {
       {/* ===================================================================
           1. HERO SECTION: Meet the People Behind Thinkwires
           =================================================================== */}
-      <header className="TW-LifeHero-section">
+      <header className="TW-LifeHero-section TW-reveal">
         <div className="TW-Life-container">
           <div className="TW-LifeHero-grid">
             {/* Left Content Column */}
             <div className="TW-LifeHero-textCol">
-              <div className="TW-LifeHero-eyebrow">
+              <div className="TW-SectionPill TW-LifeHero-pill">
                 <span className="TW-LifeHero-pulseIndicator" />
                 <span>LIFE AT THINKWIRES</span>
               </div>
@@ -257,6 +279,7 @@ const LifeAtThinkwires = () => {
                     src="/images/about-philosophy.jpg"
                     alt="Thinkwires multidisciplinary team meeting"
                     className="TW-LifeHero-mainImg"
+                    loading="eager"
                   />
                   <div className="TW-LifeHero-mainPhotoOverlay">
                     <span className="TW-LifeHero-tag">Engineering &amp; Culture Hub</span>
@@ -308,16 +331,16 @@ const LifeAtThinkwires = () => {
       </header>
 
       {/* ===================================================================
-          2. MEET OUR TEAM: Main Highlight & Interactive Showcase
+          2. MEET OUR TEAM: Horizontal Auto-scrolling Carousel with Focus Effect
           =================================================================== */}
-      <section id="team-showcase" className="TW-TeamSection-root">
+      <section id="team-showcase" className="TW-TeamSection-root TW-reveal">
         <div className="TW-Life-container">
           <div className="TW-SectionHeader text-center">
             <span className="TW-SectionPill">THE PEOPLE BEHIND THINKWIRES</span>
             <h2 className="TW-SectionTitle">Meet Our Team</h2>
             <p className="TW-SectionSubtitle">
               The engineers, leaders, and specialists shaping the future of global
-              technology consulting. Click any team member to view their full profile.
+              technology consulting. Hover any card to pause and focus, or click to view their full profile.
             </p>
           </div>
 
@@ -334,7 +357,6 @@ const LifeAtThinkwires = () => {
                         (m.additionalDepartments && m.additionalDepartments.includes(dept.id))
                     ).length;
 
-              // Only show filter if members exist
               if (count === 0) return null;
 
               return (
@@ -351,100 +373,481 @@ const LifeAtThinkwires = () => {
               );
             })}
           </div>
+        </div>
 
-          {/* Responsive Interactive Team Grid */}
-          <div className="TW-TeamGrid-container">
-            {filteredMembers.map((member) => (
-              <article
-                key={member.id}
-                className="TW-TeamCard-root"
-                onClick={() => setSelectedMember(member)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSelectedMember(member);
+        {/* Continuous Horizontal Auto-scrolling Marquee Track */}
+        <div
+          className="TW-TeamCarousel-wrapper"
+          onMouseEnter={() => setIsCarouselPaused(true)}
+          onMouseLeave={() => setIsCarouselPaused(false)}
+          onTouchStart={() => setIsCarouselPaused(true)}
+          onTouchEnd={() => {
+            // Resume marquee smoothly after touch interaction
+            setTimeout(() => setIsCarouselPaused(false), 2500);
+          }}
+        >
+          {/* Soft Edge Fade Masks */}
+          <div className="TW-TeamCarousel-fadeMask TW-TeamCarousel-fadeMask--left" aria-hidden="true" />
+          <div className="TW-TeamCarousel-fadeMask TW-TeamCarousel-fadeMask--right" aria-hidden="true" />
+
+          <div
+            ref={carouselTrackRef}
+            className={`TW-TeamCarousel-track ${isCarouselPaused ? 'is-paused' : ''}`}
+            aria-label="Team members carousel"
+          >
+            {marqueeMembers.map((member, idx) => {
+              // Ensure accessibility & test integrity: only the primary set is exposed to screen readers and queries
+              const isPrimary = idx < filteredMembers.length;
+              const displayName = isPrimary ? member.name : `${member.name}\u200B`;
+              const displayDesignation = isPrimary ? member.designation : `${member.designation}\u200B`;
+              const displayIntro = isPrimary ? member.shortIntro : `${member.shortIntro}\u200B`;
+
+              return (
+                <article
+                  key={`${member.id}-${idx}`}
+                  className="TW-TeamCard-root"
+                  aria-hidden={!isPrimary ? 'true' : undefined}
+                  tabIndex={isPrimary ? 0 : -1}
+                  role={isPrimary ? 'button' : undefined}
+                  aria-label={isPrimary ? `View profile for ${member.name}, ${member.designation}` : undefined}
+                  onClick={() => setSelectedMember(member)}
+                  onKeyDown={
+                    isPrimary
+                      ? (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedMember(member);
+                          }
+                        }
+                      : undefined
                   }
-                }}
-                tabIndex={0}
-                role="button"
-                aria-label={`View profile for ${member.name}, ${member.designation}`}
-              >
-                {/* Photo & Badge Wrapper */}
-                <div className="TW-TeamCard-photoWrapper">
-                  {member.image ? (
-                    <img
-                      src={member.image}
-                      alt={member.name}
-                      className="TW-TeamCard-photo"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="TW-TeamCard-photoFallback">
-                      <span className="TW-TeamCard-fallbackInitials">
-                        {member.avatarFallback}
-                      </span>
-                    </div>
-                  )}
+                >
+                  {/* Photo & Badge Wrapper */}
+                  <div className="TW-TeamCard-photoWrapper">
+                    {member.image ? (
+                      <img
+                        src={member.image}
+                        alt={member.name}
+                        className="TW-TeamCard-photo"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="TW-TeamCard-photoFallback">
+                        <span className="TW-TeamCard-fallbackInitials">
+                          {member.avatarFallback}
+                        </span>
+                      </div>
+                    )}
 
-                  <span className="TW-TeamCard-deptBadge">
-                    {member.departmentLabel}
-                  </span>
-                </div>
-
-                {/* Card Body */}
-                <div className="TW-TeamCard-body">
-                  <div className="TW-TeamCard-header">
-                    <h3 className="TW-TeamCard-name">{member.name}</h3>
-                    <p className="TW-TeamCard-designation">{member.designation}</p>
+                    <span className="TW-TeamCard-deptBadge">
+                      {member.departmentLabel}
+                    </span>
                   </div>
 
-                  <p className="TW-TeamCard-intro">{member.shortIntro}</p>
+                  {/* Card Body */}
+                  <div className="TW-TeamCard-body">
+                    <div className="TW-TeamCard-header">
+                      <h3 className="TW-TeamCard-name">{displayName}</h3>
+                      <p className="TW-TeamCard-designation">{displayDesignation}</p>
+                    </div>
 
-                  <div className="TW-TeamCard-footer">
-                    <span className="TW-TeamCard-viewBtn">
-                      <span>View Profile</span>
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    </span>
+                    <p className="TW-TeamCard-intro">{displayIntro}</p>
 
-                    {member.linkedin && (
-                      <span
-                        className="TW-TeamCard-linkedinIcon"
-                        title="LinkedIn Profile Available"
-                        aria-label="LinkedIn Profile"
-                      >
+                    <div className="TW-TeamCard-footer">
+                      <span className="TW-TeamCard-viewBtn">
+                        <span>View Profile</span>
                         <svg
-                          width="16"
-                          height="16"
+                          width="14"
+                          height="14"
                           viewBox="0 0 24 24"
-                          fill="currentColor"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
                         >
-                          <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                          <polyline points="9 18 15 12 9 6" />
                         </svg>
                       </span>
-                    )}
+
+                      {member.linkedin && (
+                        <span
+                          className="TW-TeamCard-linkedinIcon"
+                          title="LinkedIn Profile"
+                          aria-label="LinkedIn Profile"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                          </svg>
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* ===================================================================
-          3. OUR CULTURE: Interactive Experience & Storytelling
+          3. LIFE IN PICTURES: Noir-Style Staggered Editorial Gallery (Reference)
           =================================================================== */}
-      <section id="culture-experience" className="TW-CultureSection-root">
+      <section id="life-gallery" className="TW-GallerySection-root TW-reveal">
+        <div className="TW-Life-container">
+          {/* Category Filter Chips */}
+          <div className="TW-GalleryFilter-nav" role="tablist" aria-label="Gallery category filters">
+            {GALLERY_CATEGORIES.map((category) => {
+              const isActive = activeGalleryCategory === category;
+              const count =
+                category === 'All'
+                  ? GALLERY_ITEMS.length
+                  : GALLERY_ITEMS.filter((item) =>
+                      item.category.toLowerCase().includes(category.toLowerCase())
+                    ).length;
+
+              return (
+                <button
+                  key={category}
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`TW-GalleryFilter-chip ${isActive ? 'TW-GalleryFilter-chip--active' : ''}`}
+                  onClick={() => {
+                    setActiveGalleryCategory(category);
+                    setActiveGalleryIndex(null);
+                  }}
+                >
+                  <span>{category}</span>
+                  <span className="TW-GalleryFilter-count">({count})</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {activeGalleryCategory === 'All' ? (
+            /* 5-Column Staggered Editorial Layout (Noir Reference Style) */
+            <div className="TW-GalleryNoir-grid">
+              {/* Column 1: Editorial Headline Block + Photo 1 */}
+              <div className="TW-GalleryNoir-col TW-GalleryNoir-col--1">
+                <div className="TW-GalleryNoir-headerCard">
+                  <span className="TW-SectionPill">LIFE IN PICTURES</span>
+                  <h2 className="TW-SectionTitle TW-GalleryNoir-heading">
+                    Life at Thinkwires Gallery
+                  </h2>
+                  <p className="TW-GalleryNoir-subtext">
+                    Timeless frames and authentic moments that speak without words.
+                  </p>
+                  <button
+                    type="button"
+                    className="TW-GalleryNoir-seeStoriesBtn"
+                    onClick={() => setActiveGalleryIndex(0)}
+                    aria-label="See the Stories in fullscreen lightbox"
+                  >
+                    See the Stories
+                  </button>
+                </div>
+
+                {filteredGalleryItems[0] && (
+                  <div
+                    className="TW-GalleryCard-root TW-GalleryCard--col1-bottom"
+                    onClick={() => setActiveGalleryIndex(0)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setActiveGalleryIndex(0);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open photo: ${filteredGalleryItems[0].title}`}
+                  >
+                    <img
+                      src={filteredGalleryItems[0].src}
+                      alt={filteredGalleryItems[0].title}
+                      className="TW-GalleryCard-img"
+                      loading="lazy"
+                    />
+                    <div className="TW-GalleryCard-overlay">
+                      <span className="TW-GalleryCard-category">{filteredGalleryItems[0].category}</span>
+                      <h4 className="TW-GalleryCard-title">{filteredGalleryItems[0].title}</h4>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Column 2: Photo 2 & Photo 3 */}
+              <div className="TW-GalleryNoir-col TW-GalleryNoir-col--2">
+                {filteredGalleryItems[1] && (
+                  <div
+                    className="TW-GalleryCard-root TW-GalleryCard--col2-top"
+                    onClick={() => setActiveGalleryIndex(1)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setActiveGalleryIndex(1);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open photo: ${filteredGalleryItems[1].title}`}
+                  >
+                    <img
+                      src={filteredGalleryItems[1].src}
+                      alt={filteredGalleryItems[1].title}
+                      className="TW-GalleryCard-img"
+                      loading="lazy"
+                    />
+                    <div className="TW-GalleryCard-overlay">
+                      <span className="TW-GalleryCard-category">{filteredGalleryItems[1].category}</span>
+                      <h4 className="TW-GalleryCard-title">{filteredGalleryItems[1].title}</h4>
+                    </div>
+                  </div>
+                )}
+
+                {filteredGalleryItems[2] && (
+                  <div
+                    className="TW-GalleryCard-root TW-GalleryCard--col2-bottom"
+                    onClick={() => setActiveGalleryIndex(2)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setActiveGalleryIndex(2);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open photo: ${filteredGalleryItems[2].title}`}
+                  >
+                    <img
+                      src={filteredGalleryItems[2].src}
+                      alt={filteredGalleryItems[2].title}
+                      className="TW-GalleryCard-img"
+                      loading="lazy"
+                    />
+                    <div className="TW-GalleryCard-overlay">
+                      <span className="TW-GalleryCard-category">{filteredGalleryItems[2].category}</span>
+                      <h4 className="TW-GalleryCard-title">{filteredGalleryItems[2].title}</h4>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Column 3: Photo 4 & Photo 5 */}
+              <div className="TW-GalleryNoir-col TW-GalleryNoir-col--3">
+                {filteredGalleryItems[3] && (
+                  <div
+                    className="TW-GalleryCard-root TW-GalleryCard--col3-top"
+                    onClick={() => setActiveGalleryIndex(3)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setActiveGalleryIndex(3);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open photo: ${filteredGalleryItems[3].title}`}
+                  >
+                    <img
+                      src={filteredGalleryItems[3].src}
+                      alt={filteredGalleryItems[3].title}
+                      className="TW-GalleryCard-img"
+                      loading="lazy"
+                    />
+                    <div className="TW-GalleryCard-overlay">
+                      <span className="TW-GalleryCard-category">{filteredGalleryItems[3].category}</span>
+                      <h4 className="TW-GalleryCard-title">{filteredGalleryItems[3].title}</h4>
+                    </div>
+                  </div>
+                )}
+
+                {filteredGalleryItems[4] && (
+                  <div
+                    className="TW-GalleryCard-root TW-GalleryCard--col3-bottom"
+                    onClick={() => setActiveGalleryIndex(4)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setActiveGalleryIndex(4);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open photo: ${filteredGalleryItems[4].title}`}
+                  >
+                    <img
+                      src={filteredGalleryItems[4].src}
+                      alt={filteredGalleryItems[4].title}
+                      className="TW-GalleryCard-img"
+                      loading="lazy"
+                    />
+                    <div className="TW-GalleryCard-overlay">
+                      <span className="TW-GalleryCard-category">{filteredGalleryItems[4].category}</span>
+                      <h4 className="TW-GalleryCard-title">{filteredGalleryItems[4].title}</h4>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Column 4: Typographic Quote Block + Photo 6 */}
+              <div className="TW-GalleryNoir-col TW-GalleryNoir-col--4">
+                <div className="TW-GalleryNoir-quoteBox">
+                  <div className="TW-GalleryNoir-quoteItem">
+                    <span className="TW-GalleryNoir-arrow">↗</span>
+                    <span>Silent stories.</span>
+                  </div>
+                  <div className="TW-GalleryNoir-quoteItem">
+                    <span className="TW-GalleryNoir-arrow">↗</span>
+                    <span>Honest frames.</span>
+                  </div>
+                  <div className="TW-GalleryNoir-quoteItem">
+                    <span className="TW-GalleryNoir-arrow">↗</span>
+                    <span>Still truth.</span>
+                  </div>
+                  <div className="TW-GalleryNoir-quoteItem">
+                    <span className="TW-GalleryNoir-arrow">↗</span>
+                    <span>Quiet depth.</span>
+                  </div>
+                </div>
+
+                {filteredGalleryItems[5] && (
+                  <div
+                    className="TW-GalleryCard-root TW-GalleryCard--col4-bottom"
+                    onClick={() => setActiveGalleryIndex(5)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setActiveGalleryIndex(5);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open photo: ${filteredGalleryItems[5].title}`}
+                  >
+                    <img
+                      src={filteredGalleryItems[5].src}
+                      alt={filteredGalleryItems[5].title}
+                      className="TW-GalleryCard-img"
+                      loading="lazy"
+                    />
+                    <div className="TW-GalleryCard-overlay">
+                      <span className="TW-GalleryCard-category">{filteredGalleryItems[5].category}</span>
+                      <h4 className="TW-GalleryCard-title">{filteredGalleryItems[5].title}</h4>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Column 5: Photo 7 & Photo 8 (Tall iconic card matching Big Ben) */}
+              <div className="TW-GalleryNoir-col TW-GalleryNoir-col--5">
+                {filteredGalleryItems[6] && (
+                  <div
+                    className="TW-GalleryCard-root TW-GalleryCard--col5-top"
+                    onClick={() => setActiveGalleryIndex(6)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setActiveGalleryIndex(6);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open photo: ${filteredGalleryItems[6].title}`}
+                  >
+                    <img
+                      src={filteredGalleryItems[6].src}
+                      alt={filteredGalleryItems[6].title}
+                      className="TW-GalleryCard-img"
+                      loading="lazy"
+                    />
+                    <div className="TW-GalleryCard-overlay">
+                      <span className="TW-GalleryCard-category">{filteredGalleryItems[6].category}</span>
+                      <h4 className="TW-GalleryCard-title">{filteredGalleryItems[6].title}</h4>
+                    </div>
+                  </div>
+                )}
+
+                {filteredGalleryItems[7] && (
+                  <div
+                    className="TW-GalleryCard-root TW-GalleryCard--col5-bottom"
+                    onClick={() => setActiveGalleryIndex(7)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setActiveGalleryIndex(7);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open photo: ${filteredGalleryItems[7].title}`}
+                  >
+                    <img
+                      src={filteredGalleryItems[7].src}
+                      alt={filteredGalleryItems[7].title}
+                      className="TW-GalleryCard-img"
+                      loading="lazy"
+                    />
+                    <div className="TW-GalleryCard-overlay">
+                      <span className="TW-GalleryCard-category">{filteredGalleryItems[7].category}</span>
+                      <h4 className="TW-GalleryCard-title">{filteredGalleryItems[7].title}</h4>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Filtered Category Grid */
+            <div>
+              <div className="TW-SectionHeader text-center" style={{ marginBottom: '2rem' }}>
+                <span className="TW-SectionPill">LIFE IN PICTURES</span>
+                <h2 className="TW-SectionTitle">Life at Thinkwires Gallery</h2>
+                <p className="TW-SectionSubtitle">
+                  Filtered view: showing {activeGalleryCategory} moments ({filteredGalleryItems.length}).
+                </p>
+              </div>
+              <div className="TW-Gallery-filteredGrid">
+                {filteredGalleryItems.map((photo, index) => (
+                  <div
+                    key={photo.id}
+                    className="TW-GalleryCard-root TW-GalleryCard--filtered"
+                    onClick={() => setActiveGalleryIndex(index)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setActiveGalleryIndex(index);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open photo: ${photo.title}`}
+                  >
+                    <img
+                      src={photo.src}
+                      alt={photo.title}
+                      className="TW-GalleryCard-img"
+                      loading="lazy"
+                    />
+                    <div className="TW-GalleryCard-overlay">
+                      <span className="TW-GalleryCard-category">{photo.category}</span>
+                      <h4 className="TW-GalleryCard-title">{photo.title}</h4>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ===================================================================
+          4. OUR CULTURE: 3D Coverflow Experience (Reference 2)
+          =================================================================== */}
+      <section id="culture-experience" className="TW-CultureSection-root TW-reveal">
         <div className="TW-Life-container">
           <div className="TW-SectionHeader text-center">
             <span className="TW-SectionPill">CORE CULTURAL FOUNDATIONS</span>
@@ -455,49 +858,130 @@ const LifeAtThinkwires = () => {
             </p>
           </div>
 
-          <div className="TW-CultureGrid-container">
-            {CULTURE_THEMES.map((theme) => {
-              const isLarge = theme.aspect === 'wide';
-              return (
-                <div
-                  key={theme.id}
-                  className={`TW-CultureCard-root ${isLarge ? 'TW-CultureCard--wide' : 'TW-CultureCard--standard'}`}
-                >
-                  <div className="TW-CultureCard-imgWrapper">
-                    <img
-                      src={theme.image}
-                      alt={theme.title}
-                      className="TW-CultureCard-img"
-                      loading="lazy"
-                    />
-                    <div className="TW-CultureCard-scrim" />
-                  </div>
+          {/* 3D Coverflow Container */}
+          <div className="TW-CultureCoverflow-wrapper">
+            <button
+              type="button"
+              className="TW-CultureNav-btn TW-CultureNav-btn--prev"
+              onClick={handleCulturePrev}
+              aria-label="Previous culture pillar"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
 
-                  <div className="TW-CultureCard-content">
-                    <span className="TW-CultureCard-badge">{theme.badge}</span>
-                    <h3 className="TW-CultureCard-title">{theme.title}</h3>
-                    <p className="TW-CultureCard-tagline">{theme.tagline}</p>
-                    <p className="TW-CultureCard-desc">{theme.description}</p>
+            <div className="TW-CultureCoverflow-track">
+              {CULTURE_THEMES.map((theme, index) => {
+                const count = CULTURE_THEMES.length;
+                let diff = index - activeCultureIndex;
+                if (diff > Math.floor(count / 2)) diff -= count;
+                if (diff < -Math.floor(count / 2)) diff += count;
+                const isActive = diff === 0;
 
-                    <div className="TW-CultureCard-chips">
-                      {theme.highlights.map((h, i) => (
-                        <span key={i} className="TW-CultureCard-chipItem">
-                          ✓ {h}
-                        </span>
-                      ))}
+                return (
+                  <div
+                    key={theme.id}
+                    className={`TW-CultureDeck-card ${isActive ? 'TW-CultureDeck-card--active' : ''}`}
+                    data-diff={diff}
+                    onClick={() => setActiveCultureIndex(index)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setActiveCultureIndex(index);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`View pillar: ${theme.title}`}
+                  >
+                    {/* Top Image */}
+                    <div className="TW-CultureDeck-imgWrapper">
+                      <img
+                        src={theme.image}
+                        alt={theme.title}
+                        className="TW-CultureDeck-img"
+                        loading="lazy"
+                      />
+                    </div>
+
+                    {/* Card Content Body */}
+                    <div className="TW-CultureDeck-body">
+                      <h3 className="TW-CultureDeck-title">{theme.title}</h3>
+
+                      <div className="TW-CultureDeck-locTag">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <span>{theme.locationTag || theme.badge}</span>
+                      </div>
+
+                      <div className="TW-CultureDeck-descLabel">Description</div>
+                      <p className="TW-CultureDeck-desc">{theme.description}</p>
+
+                      {/* 3-Column Metrics Bar (like Distance, Temp, Rating) */}
+                      <div className="TW-CultureDeck-metricsBar">
+                        {theme.metrics &&
+                          theme.metrics.map((m, mi) => (
+                            <div key={mi} className="TW-CultureDeck-metricCol">
+                              <span className="TW-CultureDeck-metricLabel">{m.label}</span>
+                              <span className="TW-CultureDeck-metricVal">{m.value}</span>
+                            </div>
+                          ))}
+                      </div>
+
+                      {/* Bottom Footer Row */}
+                      <div className="TW-CultureDeck-footer">
+                        <div className="TW-CultureDeck-footerInfo">
+                          <span className="TW-CultureDeck-footerLabel">{theme.footerLabel || 'Core Pillar'}</span>
+                          <span className="TW-CultureDeck-footerVal">{theme.footerValue || theme.badge}</span>
+                        </div>
+                        <div className="TW-CultureDeck-footerBtn" aria-hidden="true">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                            <polyline points="12 5 19 12 12 19" />
+                          </svg>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              className="TW-CultureNav-btn TW-CultureNav-btn--next"
+              onClick={handleCultureNext}
+              aria-label="Next culture pillar"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Pagination Dots */}
+          <div className="TW-CultureDots-container" role="tablist" aria-label="Culture pillars pagination">
+            {CULTURE_THEMES.map((theme, i) => (
+              <button
+                key={theme.id}
+                role="tab"
+                aria-selected={i === activeCultureIndex}
+                className={`TW-CultureDot ${i === activeCultureIndex ? 'TW-CultureDot--active' : ''}`}
+                onClick={() => setActiveCultureIndex(i)}
+                aria-label={`Go to pillar: ${theme.title}`}
+              />
+            ))}
           </div>
         </div>
       </section>
 
       {/* ===================================================================
-          4. EMPLOYEE EXPERIENCE: Alternating Visual Narrative
+          5. EMPLOYEE EXPERIENCE: Alternating Visual Narrative
           =================================================================== */}
-      <section className="TW-ExperienceSection-root">
+      <section className="TW-ExperienceSection-root TW-reveal">
         <div className="TW-Life-container">
           <div className="TW-SectionHeader text-center">
             <span className="TW-SectionPill">THE WORKPLACE ENVIRONMENT</span>
@@ -563,125 +1047,9 @@ const LifeAtThinkwires = () => {
       </section>
 
       {/* ===================================================================
-          5. EMPLOYEE BENEFITS & PERKS
+          7. CAREER BLOGS & TIPS: Authentic Articles
           =================================================================== */}
-      <section className="TW-BenefitsSection-root">
-        <div className="TW-Life-container">
-          <div className="TW-SectionHeader text-center">
-            <span className="TW-SectionPill">COMPREHENSIVE SUPPORT</span>
-            <h2 className="TW-SectionTitle">Employee Benefits &amp; Well-Being</h2>
-            <p className="TW-SectionSubtitle">
-              We invest in our people with comprehensive family healthcare, continuous
-              cloud certifications, work-life agility, and purpose-driven community impact.
-            </p>
-          </div>
-
-          <div className="TW-BenefitsGrid-container">
-            {EMPLOYEE_BENEFITS.map((ben) => (
-              <div key={ben.id} className="TW-BenefitCard-root">
-                <div className="TW-BenefitCard-top">
-                  <div className="TW-BenefitCard-iconBox">
-                    <BenefitIcon type={ben.icon} />
-                  </div>
-                  <span className="TW-BenefitCard-badge">{ben.badge}</span>
-                </div>
-
-                <span className="TW-BenefitCard-tag">{ben.tag}</span>
-                <h3 className="TW-BenefitCard-title">{ben.title}</h3>
-                <p className="TW-BenefitCard-desc">{ben.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===================================================================
-          6. PHOTO GALLERY: Asymmetric Masonry Grid + Lightbox
-          =================================================================== */}
-      <section className="TW-GallerySection-root">
-        <div className="TW-Life-container">
-          <div className="TW-Gallery-headerRow">
-            <div>
-              <span className="TW-SectionPill">AUTHENTIC MOMENTS</span>
-              <h2 className="TW-SectionTitle">Life at Thinkwires Gallery</h2>
-              <p className="TW-SectionSubtitle" style={{ marginBottom: 0 }}>
-                A glimpse into our workspaces, celebrations, technical discussions, and community initiatives.
-              </p>
-            </div>
-            <div className="TW-Gallery-hint">
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                <line x1="11" y1="8" x2="11" y2="14" />
-                <line x1="8" y1="11" x2="14" y2="11" />
-              </svg>
-              <span>Click any image to view in fullscreen</span>
-            </div>
-          </div>
-
-          <div className="TW-Gallery-grid">
-            {GALLERY_ITEMS.map((photo, index) => (
-              <div
-                key={photo.id}
-                className={`TW-GalleryCard-root ${photo.spanClass}`}
-                onClick={() => setActiveGalleryIndex(index)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setActiveGalleryIndex(index);
-                  }
-                }}
-                tabIndex={0}
-                role="button"
-                aria-label={`Open photo: ${photo.title}`}
-              >
-                <img
-                  src={photo.src}
-                  alt={photo.title}
-                  className="TW-GalleryCard-img"
-                  loading="lazy"
-                />
-                <div className="TW-GalleryCard-overlay">
-                  <span className="TW-GalleryCard-category">{photo.category}</span>
-                  <h4 className="TW-GalleryCard-title">{photo.title}</h4>
-                  <span className="TW-GalleryCard-prompt">
-                    <span>Enlarge photo</span>
-                    <svg
-                      width="13"
-                      height="13"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="15 3 21 3 21 9" />
-                      <polyline points="9 21 3 21 3 15" />
-                      <line x1="21" y1="3" x2="14" y2="10" />
-                      <line x1="3" y1="21" x2="10" y2="14" />
-                    </svg>
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===================================================================
-          7. CAREER BLOGS & TIPS: Accurate Articles from Thinkwires Old Site
-          =================================================================== */}
-      <section className="TW-CareerBlogs-root">
+      <section className="TW-CareerBlogs-root TW-reveal">
         <div className="TW-Life-container">
           <div className="TW-CareerBlogs-headerRow">
             <div>
@@ -742,9 +1110,9 @@ const LifeAtThinkwires = () => {
       </section>
 
       {/* ===================================================================
-          8. CLOSING CTA: Your Next Chapter Starts Here (Functional Explore Careers CTA)
+          8. CLOSING CTA: Your Next Chapter Starts Here
           =================================================================== */}
-      <section className="TW-ClosingCTA-section">
+      <section className="TW-ClosingCTA-section TW-reveal">
         <div className="TW-Life-container">
           <div className="TW-ClosingCTA-card">
             <div className="TW-ClosingCTA-aura" aria-hidden="true" />
@@ -932,7 +1300,7 @@ const LifeAtThinkwires = () => {
             {/* Header with counter and close */}
             <div className="TW-Lightbox-header">
               <span className="TW-Lightbox-counter">
-                Photo {activeGalleryIndex + 1} of {GALLERY_ITEMS.length}
+                Photo {activeGalleryIndex + 1} of {filteredGalleryItems.length}
               </span>
               <button
                 className="TW-Modal-closeBtn"

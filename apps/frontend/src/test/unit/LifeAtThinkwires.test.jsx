@@ -120,18 +120,6 @@ describe('LifeAtThinkwires Component (Comprehensive Culture & Experience Tests)'
     expect(screen.getByText('Continuous Learning & Career Mobility')).toBeInTheDocument();
   });
 
-  it('renders Employee Benefits & Well-Being section with all 6 authentic benefit cards', () => {
-    renderWithProviders(<LifeAtThinkwires />);
-
-    expect(screen.getByRole('heading', { name: /Employee Benefits & Well-Being/i })).toBeInTheDocument();
-    expect(screen.getByText('Comprehensive Health & Wellness')).toBeInTheDocument();
-    expect(screen.getByText('Global Client Footprint')).toBeInTheDocument();
-    expect(screen.getByText('Continuous Tech Upskilling')).toBeInTheDocument();
-    expect(screen.getByText('Work-Life Agility')).toBeInTheDocument();
-    expect(screen.getByText('Transparent Career Pathing')).toBeInTheDocument();
-    expect(screen.getByText('Impact & Social Purpose')).toBeInTheDocument();
-  });
-
   it('renders Career Blogs & Tips section with accurate articles from the old website', () => {
     renderWithProviders(<LifeAtThinkwires />);
 
