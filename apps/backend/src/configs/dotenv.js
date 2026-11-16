@@ -68,6 +68,10 @@ export default {
   REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
   AI_SERVICE_URL: process.env.AI_SERVICE_URL || 'http://localhost:8000',
   JWT_SECRET: process.env.JWT_SECRET,
+  JWT_ADMIN_SECRET: process.env.JWT_ADMIN_SECRET || process.env.ADMIN_JWT_SECRET,
+  ADMIN_JWT_SECRET: process.env.ADMIN_JWT_SECRET || process.env.JWT_ADMIN_SECRET,
+  JWT_CANDIDATE_SECRET: process.env.JWT_CANDIDATE_SECRET || process.env.CANDIDATE_JWT_SECRET,
+  CANDIDATE_JWT_SECRET: process.env.CANDIDATE_JWT_SECRET || process.env.JWT_CANDIDATE_SECRET,
   COOKIE_SAME_SITE: process.env.COOKIE_SAME_SITE,
   ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
 };

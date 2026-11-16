@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { sequelize } from '../configs/db.js';
 import { isRedisConnected } from '../configs/redis.js';
+import { isAuthorizedDiagnosticRequest } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
@@ -11,12 +12,18 @@ const router = express.Router();
  * Used by Kubernetes, AWS ECS, GCP Cloud Run, and Render to restart frozen containers.
  */
 router.get('/healthz', (req, res) => {
-  res.status(200).json({
+  const isProduction = process.env.NODE_ENV === 'production';
+  const response = {
     status: 'alive',
     timestamp: new Date().toISOString(),
     uptimeSeconds: Math.floor(process.uptime()),
-    pid: process.pid,
-  });
+  };
+
+  if (!isProduction || isAuthorizedDiagnosticRequest(req)) {
+    response.pid = process.pid;
+  }
+
+  res.status(200).json(response);
 });
 
 /**
@@ -42,15 +49,21 @@ router.get('/ready', async (req, res) => {
   const isHealthy = isMongoReady;
   const statusCode = isHealthy ? 200 : 503;
 
-  res.status(statusCode).json({
+  const response = {
     status: isHealthy ? 'ready' : 'unready',
     timestamp: new Date().toISOString(),
-    checks: {
+  };
+
+  // Telemetry details only for authorized diagnostic operators or non-production
+  if (isAuthorizedDiagnosticRequest(req)) {
+    response.checks = {
       mongodb: isMongoReady ? 'connected' : 'disconnected',
       postgresql: isPostgresReady ? 'connected' : 'optional/disconnected',
       redis: isRedisConnected() ? 'connected' : 'in-memory-fallback',
-    },
-  });
+    };
+  }
+
+  res.status(statusCode).json(response);
 });
 
 export default router;
