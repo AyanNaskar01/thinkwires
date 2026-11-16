@@ -1905,7 +1905,7 @@ export const getJobs = async (req, res) => {
         items = fallbackList.slice(skip, skip + limit);
       }
     } else {
-      items = (inMemoryData.jobs || []).filter((j) => {
+      const filtered = (inMemoryData.jobs || []).filter((j) => {
         let match = true;
         if (search) {
           const s = search.toLowerCase();
