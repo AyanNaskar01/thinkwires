@@ -35726,13 +35726,14 @@ body {
   align-items: center;
 }
 
+.TW-LifeHero-pill,
 .TW-LifeHero-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.85rem;
   background: rgba(21, 81, 209, 0.06);
   border: 1px solid rgba(21, 81, 209, 0.2);
-  padding: 0.4rem 0.95rem;
+  padding: 0.45rem 1.15rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 800;
@@ -35747,23 +35748,9 @@ body {
   height: 8px;
   border-radius: 50%;
   background-color: #1551d1;
-  box-shadow: 0 0 0 0 rgba(21, 81, 209, 0.7);
-  animation: TW-Life-pulse 2s infinite cubic-bezier(0.45, 0, 0.55, 1);
-}
-
-@keyframes TW-Life-pulse {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(21, 81, 209, 0.7);
-  }
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 8px rgba(21, 81, 209, 0);
-  }
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(21, 81, 209, 0);
-  }
+  display: inline-block;
+  flex-shrink: 0;
+  margin-right: 0.4rem;
 }
 
 .TW-LifeHero-title {
@@ -35868,13 +35855,17 @@ body {
 
 .TW-LifeHero-mainPhotoOverlay {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(11, 19, 43, 0.05) 0%, rgba(11, 19, 43, 0.4) 50%, rgba(11, 19, 43, 0.92) 100%);
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, rgba(11, 19, 43, 0.88) 0%, rgba(11, 19, 43, 0.45) 55%, rgba(11, 19, 43, 0) 100%);
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  padding: 2rem;
+  justify-content: flex-start;
+  padding: 1.75rem 2rem;
   color: #ffffff;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .TW-LifeHero-tag {
@@ -36013,37 +36004,97 @@ body {
   opacity: 0.85;
 }
 
-.TW-TeamGrid-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem;
+/* Continuous Horizontal Auto-scrolling Marquee Track */
+.TW-TeamCarousel-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  padding: 2.25rem 0;
 }
 
-/* Team Member Card */
+.TW-TeamCarousel-fadeMask {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 120px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.TW-TeamCarousel-fadeMask--left {
+  left: 0;
+  background: linear-gradient(90deg, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+.TW-TeamCarousel-fadeMask--right {
+  right: 0;
+  background: linear-gradient(270deg, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+.TW-TeamCarousel-track {
+  display: flex;
+  gap: 1.5rem;
+  width: max-content;
+  will-change: transform;
+  animation: twTeamMarquee 38s linear infinite;
+  padding: 0 1rem;
+}
+
+.TW-TeamCarousel-track.is-paused,
+.TW-TeamCarousel-track:hover {
+  animation-play-state: paused !important;
+}
+
+@keyframes twTeamMarquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Team Member Card in Marquee Track */
 .TW-TeamCard-root {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s ease,
+              opacity 0.35s ease,
+              filter 0.35s ease,
+              border-color 0.35s ease;
   display: flex;
   flex-direction: column;
   cursor: pointer;
   outline: none;
+  flex: 0 0 260px;
+  width: 260px;
 }
 
-.TW-TeamCard-root:hover,
-.TW-TeamCard-root:focus-visible {
-  transform: translateY(-6px);
-  border-color: #93c5fd;
-  box-shadow: 0 20px 40px -10px rgba(21, 81, 209, 0.12);
+/* Dim Siblings on Hover (Step 3 Requirement) */
+.TW-TeamCarousel-track:hover .TW-TeamCard-root:not(:hover) {
+  transform: scale(0.93);
+  opacity: 0.6;
+  filter: blur(0.5px) grayscale(20%);
+}
+
+.TW-TeamCarousel-track .TW-TeamCard-root:hover,
+.TW-TeamCarousel-track .TW-TeamCard-root:focus-visible {
+  transform: scale(1.08) translateY(-6px);
+  z-index: 10;
+  opacity: 1 !important;
+  filter: none !important;
+  border-color: #1551d1;
+  box-shadow: 0 25px 50px -10px rgba(21, 81, 209, 0.28), 0 0 0 2px rgba(21, 81, 209, 0.2);
 }
 
 .TW-TeamCard-photoWrapper {
   position: relative;
   width: 100%;
-  height: 310px;
+  height: 250px;
   background: #0f172a;
   overflow: hidden;
 }
@@ -36162,124 +36213,365 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   3. OUR CULTURE: Interactive Experience & Storytelling
+   3. OUR CULTURE: 3D Coverflow Deck (Reference 2)
    -------------------------------------------------------------------------- */
 .TW-CultureSection-root {
-  padding: 6rem 0;
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.TW-CultureGrid-container {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 2rem;
-}
-
-.TW-CultureCard-root {
+  padding: 6rem 0 calc(6rem + 1.5rem);
+  background: radial-gradient(circle at 50% 25%, #0f1c3f 0%, #060a17 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
-  border-radius: 22px;
   overflow: hidden;
-  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08);
-  background: #0b132b;
-  min-height: 440px;
+  color: #ffffff;
+}
+
+.TW-CultureSection-root .TW-SectionTitle {
+  color: #ffffff;
+}
+
+.TW-CultureSection-root .TW-SectionSubtitle {
+  color: #94a3b8;
+}
+
+.TW-CultureCoverflow-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 1160px;
+  margin: 2rem auto 0;
+  min-height: 580px;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
 }
 
-.TW-CultureCard--wide {
-  grid-column: span 7;
+.TW-CultureCoverflow-track {
+  position: relative;
+  width: 100%;
+  height: 560px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1200px;
 }
 
-.TW-CultureCard--standard {
-  grid-column: span 5;
-}
-
-.TW-CultureCard-imgWrapper {
+/* Individual Coverflow Card (Solid 100% Opaque White Surface) */
+.TW-CultureDeck-card {
   position: absolute;
-  inset: 0;
-  z-index: 1;
+  width: 320px;
+  background: #ffffff !important;
+  color: #0f172a;
+  border-radius: 26px;
+  padding: 14px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.5s ease, filter 0.5s ease;
+  will-change: transform;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  user-select: none;
+  opacity: 1 !important; /* 100% solid & completely opaque: no details bleed through! */
 }
 
-.TW-CultureCard-img {
+/* Card States by Diff from Active */
+.TW-CultureDeck-card[data-diff="0"] {
+  transform: translateX(0) translateY(-8px) scale(1.05);
+  z-index: 10;
+  opacity: 1 !important;
+  filter: brightness(1);
+  box-shadow: 0 35px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  cursor: default;
+}
+
+.TW-CultureDeck-card[data-diff="-1"] {
+  transform: translateX(-205px) scale(0.91);
+  z-index: 7;
+  opacity: 1 !important;
+  filter: brightness(0.93);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.32);
+}
+
+.TW-CultureDeck-card[data-diff="1"] {
+  transform: translateX(205px) scale(0.91);
+  z-index: 7;
+  opacity: 1 !important;
+  filter: brightness(0.93);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.32);
+}
+
+.TW-CultureDeck-card[data-diff="-2"] {
+  transform: translateX(-375px) scale(0.79);
+  z-index: 4;
+  opacity: 1 !important;
+  filter: brightness(0.85);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+}
+
+.TW-CultureDeck-card[data-diff="2"] {
+  transform: translateX(375px) scale(0.79);
+  z-index: 4;
+  opacity: 1 !important;
+  filter: brightness(0.85);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+}
+
+/* Top Image matching Screenshot 2 */
+.TW-CultureDeck-imgWrapper {
+  width: 100%;
+  height: 185px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #0f172a;
+}
+
+.TW-CultureDeck-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.5s ease;
 }
 
-.TW-CultureCard-root:hover .TW-CultureCard-img {
-  transform: scale(1.05);
+.TW-CultureDeck-card:hover .TW-CultureDeck-img {
+  transform: scale(1.04);
 }
 
-.TW-CultureCard-scrim {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(11, 19, 43, 0.1) 0%, rgba(11, 19, 43, 0.5) 40%, rgba(11, 19, 43, 0.95) 100%);
+/* Body Content */
+.TW-CultureDeck-body {
+  padding: 1rem 0.4rem 0.2rem;
+  display: flex;
+  flex-direction: column;
 }
 
-.TW-CultureCard-content {
-  position: relative;
-  z-index: 2;
-  padding: 2.5rem;
-  color: #ffffff;
-}
-
-.TW-CultureCard-badge {
-  display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 750;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.15);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  padding: 0.3rem 0.8rem;
-  border-radius: 9999px;
-  margin-bottom: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.TW-CultureCard-title {
-  font-size: 1.75rem;
+.TW-CultureDeck-title {
+  font-size: 1.35rem;
   font-weight: 850;
-  color: #ffffff;
-  margin: 0 0 0.5rem;
+  color: #0f172a;
+  margin: 0 0 0.35rem;
   line-height: 1.25;
 }
 
-.TW-CultureCard-tagline {
-  font-size: 0.98rem;
+.TW-CultureDeck-locTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  color: #7dd3fc;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+}
+
+.TW-CultureDeck-locTag svg {
+  color: #0284c7;
+  flex-shrink: 0;
+}
+
+.TW-CultureDeck-descLabel {
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #334155;
+  margin-bottom: 0.25rem;
+}
+
+.TW-CultureDeck-desc {
+  font-size: 0.82rem;
+  color: #475569;
+  line-height: 1.48;
   margin: 0 0 0.85rem;
-  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 3.6rem;
 }
 
-.TW-CultureCard-desc {
-  font-size: 0.94rem;
-  color: #cbd5e1;
-  line-height: 1.65;
-  margin: 0 0 1.25rem;
+/* 3-Column Metrics Bar (like Distance, Temp, Rating in Screenshot 2) */
+.TW-CultureDeck-metricsBar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 0.55rem 0.65rem;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+  border: 1px solid #e2e8f0;
 }
 
-.TW-CultureCard-chips {
+.TW-CultureDeck-metricCol {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
+  flex-direction: column;
+  text-align: center;
 }
 
-.TW-CultureCard-chipItem {
-  font-size: 0.76rem;
+.TW-CultureDeck-metricLabel {
+  font-size: 0.66rem;
+  font-weight: 650;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 0.15rem;
+}
+
+.TW-CultureDeck-metricVal {
+  font-size: 0.82rem;
+  font-weight: 750;
+  color: #0284c7;
+}
+
+/* Footer Row matching Screenshot 2 */
+.TW-CultureDeck-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.4rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.TW-CultureDeck-footerInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.TW-CultureDeck-footerLabel {
+  font-size: 0.68rem;
+  color: #94a3b8;
   font-weight: 600;
+  text-transform: uppercase;
+}
+
+.TW-CultureDeck-footerVal {
+  font-size: 1.05rem;
+  font-weight: 850;
+  color: #0f172a;
+}
+
+/* Circular Floating Button matching Airplane Button in Screenshot 2 */
+.TW-CultureDeck-footerBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #0f172a;
   color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.25);
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.TW-CultureDeck-card:hover .TW-CultureDeck-footerBtn {
+  background: var(--tw-primary, #1551d1);
+  transform: scale(1.08);
+}
+
+/* Navigation Buttons on Left & Right */
+.TW-CultureNav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 0.35rem 0.75rem;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 25;
+  transition: all 0.25s ease;
+}
+
+.TW-CultureNav-btn:hover {
+  background: #ffffff;
+  color: #0f172a;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.TW-CultureNav-btn--prev {
+  left: 0.5rem;
+}
+
+.TW-CultureNav-btn--next {
+  right: 0.5rem;
+}
+
+/* Dot pagination */
+.TW-CultureDots-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+}
+
+.TW-CultureDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.25);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.TW-CultureDot:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.TW-CultureDot--active {
+  width: 28px;
+  background: var(--tw-primary, #1551d1);
+  box-shadow: 0 0 12px rgba(21, 81, 209, 0.8);
+}
+
+@media (max-width: 900px) {
+  .TW-CultureCoverflow-track {
+    perspective: 800px;
+  }
+  .TW-CultureDeck-card[data-diff="-1"] {
+    transform: translateX(-120px) scale(0.88);
+    opacity: 1 !important;
+  }
+  .TW-CultureDeck-card[data-diff="1"] {
+    transform: translateX(120px) scale(0.88);
+    opacity: 1 !important;
+  }
+  .TW-CultureDeck-card[data-diff="-2"] {
+    transform: translateX(-210px) scale(0.74);
+    opacity: 1 !important;
+    filter: brightness(0.8);
+  }
+  .TW-CultureDeck-card[data-diff="2"] {
+    transform: translateX(210px) scale(0.74);
+    opacity: 1 !important;
+    filter: brightness(0.8);
+  }
+}
+
+@media (max-width: 600px) {
+  .TW-CultureNav-btn {
+    display: none;
+  }
+  .TW-CultureDeck-card {
+    width: 290px;
+  }
+  .TW-CultureDeck-card[data-diff="-1"] {
+    transform: translateX(-70px) scale(0.86);
+    opacity: 1 !important;
+    filter: brightness(0.88);
+  }
+  .TW-CultureDeck-card[data-diff="1"] {
+    transform: translateX(70px) scale(0.86);
+    opacity: 1 !important;
+    filter: brightness(0.88);
+  }
+  .TW-CultureDeck-card[data-diff="-2"],
+  .TW-CultureDeck-card[data-diff="2"] {
+    display: none;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -36507,133 +36799,326 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   6. PHOTO GALLERY: Asymmetric Masonry Grid + Lightbox
+   6. PHOTO GALLERY: Noir-Style Staggered Editorial Gallery (Reference)
    -------------------------------------------------------------------------- */
 .TW-GallerySection-root {
-  padding: 6rem 0;
-  background: #f8fafc;
+  padding: 6rem 0 calc(6rem + 1rem);
+  background: #ffffff;
   border-top: 1px solid #e2e8f0;
+  position: relative;
+  overflow: hidden;
 }
 
-.TW-Gallery-headerRow {
+.TW-GalleryFilter-nav {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 2.75rem;
+  justify-content: center;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  gap: 0.65rem;
+  margin-bottom: 2.5rem;
 }
 
-.TW-Gallery-hint {
+.TW-GalleryFilter-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #64748b;
+  gap: 0.45rem;
   background: #ffffff;
-  padding: 0.5rem 1rem;
-  border-radius: 9999px;
   border: 1px solid #e2e8f0;
+  padding: 0.55rem 1.15rem;
+  border-radius: 9999px;
+  font-size: 0.84rem;
+  font-weight: 650;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
 }
 
-.TW-Gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 1.75rem;
+.TW-GalleryFilter-chip:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
 }
 
+.TW-GalleryFilter-chip--active {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+}
+
+.TW-GalleryFilter-count {
+  font-size: 0.74rem;
+  opacity: 0.8;
+}
+
+/* 5-Column Staggered Noir Layout */
+.TW-GalleryNoir-grid {
+  display: grid;
+  grid-template-columns: 1.18fr 0.95fr 0.95fr 0.95fr 1fr;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+/* Column Flex Alignment: every column anchors flush to the shared bottom baseline */
+.TW-GalleryNoir-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.TW-GalleryNoir-col--1 {
+  justify-content: space-between;
+}
+
+.TW-GalleryNoir-col--2 {
+  justify-content: flex-end;
+}
+
+.TW-GalleryNoir-col--3 {
+  justify-content: flex-end;
+}
+
+.TW-GalleryNoir-col--4 {
+  justify-content: flex-end;
+}
+
+.TW-GalleryNoir-col--5 {
+  justify-content: flex-end;
+}
+
+.TW-GalleryNoir-headerCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0 0.25rem 0.5rem 0;
+}
+
+.TW-GalleryNoir-heading {
+  font-size: clamp(1.85rem, 2.8vw, 2.5rem);
+  font-weight: 850;
+  color: #0f172a;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.TW-GalleryNoir-subtext {
+  font-size: 0.92rem;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0 0 1.25rem;
+}
+
+.TW-GalleryNoir-seeStoriesBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 650;
+  padding: 0.75rem 1.6rem;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+  transition: all 0.25s ease;
+}
+
+.TW-GalleryNoir-seeStoriesBtn:hover {
+  background: var(--tw-primary, #1551d1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(21, 81, 209, 0.3);
+}
+
+/* Typographic Quote Box in Column 4 (Matching Screenshot `↗ Silent stories.`) */
+.TW-GalleryNoir-quoteBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem 0.25rem 0.65rem;
+  user-select: none;
+}
+
+.TW-GalleryNoir-quoteItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 750;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.TW-GalleryNoir-arrow {
+  font-size: 1.1rem;
+  color: #64748b;
+  font-weight: 400;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.TW-GalleryNoir-quoteItem:hover .TW-GalleryNoir-arrow {
+  transform: translate(2px, -2px);
+  color: var(--tw-primary, #1551d1);
+}
+
+/* Individual Noir Gallery Cards */
 .TW-GalleryCard-root {
   position: relative;
+  width: 100%;
   border-radius: 20px;
   overflow: hidden;
   cursor: pointer;
-  background: #0f172a;
-  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08);
-  transition: transform 0.35s ease, box-shadow 0.35s ease;
+  background: #0a0f1d;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.3s ease;
 }
 
-.TW-GalleryCard-root:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.16);
-}
-
-.TW-Gal-span-featured {
-  grid-column: span 7;
-  height: 420px;
-}
-
-.TW-Gal-span-tall {
-  grid-column: span 5;
-  height: 420px;
-}
-
-.TW-Gal-span-standard {
-  grid-column: span 4;
-  height: 290px;
-}
-
-.TW-Gal-span-wide {
-  grid-column: span 4;
-  height: 290px;
+.TW-GalleryCard-root:hover,
+.TW-GalleryCard-root:focus-visible {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.25);
+  border-color: rgba(15, 23, 42, 0.2);
 }
 
 .TW-GalleryCard-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  filter: grayscale(75%) contrast(1.06) brightness(0.96);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease;
 }
 
 .TW-GalleryCard-root:hover .TW-GalleryCard-img {
   transform: scale(1.06);
+  filter: grayscale(0%) contrast(1.02) brightness(1);
 }
 
+/* Specific Card Heights: perfectly calibrated so all 5 columns align to a razor-sharp bottom baseline */
+.TW-GalleryCard--col1-bottom {
+  height: 155px; /* Compact image in Col 1 as requested, cleanly aligned with bottom baseline */
+}
+
+.TW-GalleryCard--col2-top {
+  height: 200px;
+}
+
+.TW-GalleryCard--col2-bottom {
+  height: 220px;
+}
+
+.TW-GalleryCard--col3-top {
+  height: 230px;
+}
+
+.TW-GalleryCard--col3-bottom {
+  height: 240px;
+}
+
+.TW-GalleryCard--col4-bottom {
+  height: 215px; /* Compact image in Col 4 as requested, cleanly aligned with bottom baseline */
+}
+
+.TW-GalleryCard--col5-top {
+  height: 175px;
+}
+
+.TW-GalleryCard--col5-bottom {
+  height: 335px; /* Tall iconic card matching reference */
+}
+
+/* Card Overlay with caption & category */
 .TW-GalleryCard-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(10, 17, 40, 0.15) 0%, rgba(10, 17, 40, 0.4) 40%, rgba(10, 17, 40, 0.94) 100%);
+  background: linear-gradient(180deg, rgba(7, 13, 31, 0) 35%, rgba(7, 13, 31, 0.88) 100%);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 1.6rem;
+  padding: 1.25rem 1rem 1rem;
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 
-.TW-GalleryCard-root:hover .TW-GalleryCard-overlay {
+.TW-GalleryCard-root:hover .TW-GalleryCard-overlay,
+.TW-GalleryCard-root:focus-visible .TW-GalleryCard-overlay {
   opacity: 1;
 }
 
 .TW-GalleryCard-category {
   align-self: flex-start;
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   font-weight: 750;
   color: #38bdf8;
-  background: rgba(11, 19, 43, 0.75);
-  backdrop-filter: blur(8px);
-  padding: 0.3rem 0.75rem;
+  background: rgba(7, 13, 31, 0.8);
+  backdrop-filter: blur(6px);
+  padding: 0.2rem 0.55rem;
   border-radius: 9999px;
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  margin-bottom: 0.5rem;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  margin-bottom: 0.35rem;
 }
 
 .TW-GalleryCard-title {
-  font-size: 1.15rem;
+  font-size: 0.9rem;
   font-weight: 750;
   color: #ffffff;
-  margin: 0 0 0.5rem;
+  margin: 0;
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
-.TW-GalleryCard-prompt {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-size: 0.76rem;
-  font-weight: 600;
-  color: #94a3b8;
+/* Filtered Grid for Category View */
+.TW-Gallery-filteredGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+.TW-GalleryCard--filtered {
+  height: 280px;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1100px) {
+  .TW-GalleryNoir-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .TW-GalleryNoir-col {
+    height: auto;
+    justify-content: flex-start;
+  }
+  .TW-Gallery-filteredGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .TW-GalleryNoir-grid {
+    grid-template-columns: 1fr;
+  }
+  .TW-GalleryNoir-quoteBox {
+    padding: 0.75rem 0;
+  }
+  .TW-Gallery-filteredGrid {
+    grid-template-columns: 1fr;
+  }
+  .TW-GalleryCard--col1-bottom,
+  .TW-GalleryCard--col2-top,
+  .TW-GalleryCard--col2-bottom,
+  .TW-GalleryCard--col3-top,
+  .TW-GalleryCard--col3-bottom,
+  .TW-GalleryCard--col4-bottom,
+  .TW-GalleryCard--col5-top,
+  .TW-GalleryCard--col5-bottom {
+    height: 240px;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -36677,8 +37162,8 @@ body {
 
 .TW-CareerBlogs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
 }
 
 .TW-BlogCard-root {
@@ -36689,6 +37174,7 @@ body {
   box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
   display: flex;
   flex-direction: column;
+  height: 100%;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -37180,9 +37666,19 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 1.75rem;
+  min-height: 60px;
+  padding: 0.75rem 1.6rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
+}
+
+.TW-Lightbox-header .TW-Modal-closeBtn {
+  position: relative;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  margin: 0;
 }
 
 .TW-Lightbox-counter {
