@@ -27,9 +27,9 @@ const TARGET_SELECTORS = [
   '.StatsJourney-spineCard',
   '.StatsJourney-spineSection',
   '.Industries-header',
-  '.Industries-card',
+  '.Industries-carouselWrapper',
   '.Reports-header',
-  '.Reports-carouselTrack',
+  '.Reports-carouselWrapper',
   '.CTA-card',
 
   // --- About Page ---

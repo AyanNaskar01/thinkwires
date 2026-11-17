@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
@@ -52,13 +52,6 @@ const getAuthorInitials = (author) => {
   return 'TW';
 };
 
-const getInitialCardsPerView = () => {
-  if (typeof window === 'undefined') return 3;
-  if (window.innerWidth < 768) return 1;
-  if (window.innerWidth < 1200) return 2;
-  return 3;
-};
-
 const Reports = () => {
   const dispatch = useDispatch();
   const {
@@ -69,16 +62,10 @@ const Reports = () => {
   } = useSelector((state) => state.blog);
 
   const trackRef = useRef(null);
-  const currentSlideRef = useRef(0);
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [cardsPerView, setCardsPerView] = useState(getInitialCardsPerView);
   const [isPaused, setIsPaused] = useState(false);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  });
+  const [isHovered, setIsHovered] = useState(false);
 
-  // Combine featured flagship paper and all published blog articles without arbitrary slicing
+  // Combine featured flagship paper and all published blog articles
   const allArticles = useMemo(() => {
     const list = [];
     if (featuredArticle && featuredArticle.id) {
@@ -98,10 +85,15 @@ const Reports = () => {
     return list;
   }, [featuredArticle, blogArticles]);
 
-  const totalReports = allArticles.length;
-
-  // Reduce dots count to valid scroll stops: totalReports - cardsPerView + 1
-  const maxDots = Math.max(1, totalReports - cardsPerView + 1);
+  // Create duplicated seamless array for continuous 0% -> -50% CSS marquee loop
+  const marqueeArticles = useMemo(() => {
+    if (!allArticles || allArticles.length === 0) return [];
+    let base = [...allArticles];
+    while (base.length < 6) {
+      base = [...base, ...allArticles];
+    }
+    return [...base, ...base];
+  }, [allArticles]);
 
   // Fetch blog data if idle
   useEffect(() => {
@@ -110,107 +102,6 @@ const Reports = () => {
       dispatch(fetchFeaturedArticle());
     }
   }, [dispatch, blogStatus]);
-
-  // Track responsive cards per view
-  useEffect(() => {
-    const handleResize = () => {
-      let perView = 3;
-      if (window.innerWidth < 768) {
-        perView = 1;
-      } else if (window.innerWidth < 1200) {
-        perView = 2;
-      }
-      setCardsPerView(perView);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Listen for reduced motion preference
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const handler = (e) => setPrefersReducedMotion(e.matches);
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, []);
-
-  // Programmatic scroll to a specific slide index using scrollIntoView
-  const handleScrollToSlide = useCallback(
-    (idx) => {
-      const targetIdx = Math.max(0, Math.min(idx, maxDots - 1));
-      currentSlideRef.current = targetIdx;
-      setActiveSlide(targetIdx);
-
-      const el = trackRef.current;
-      if (el) {
-        const cards = el.querySelectorAll('.Reports-slide');
-        if (cards[targetIdx]) {
-          const cardLeft = cards[targetIdx].offsetLeft - el.offsetLeft;
-          el.scrollTo({
-            left: cardLeft,
-            behavior: prefersReducedMotion ? 'auto' : 'smooth',
-          });
-        }
-      }
-    },
-    [maxDots, prefersReducedMotion]
-  );
-
-  // Update active slide indicator as user scrolls manually
-  const handleScroll = useCallback(() => {
-    const el = trackRef.current;
-    if (!el) return;
-
-    const { scrollLeft } = el;
-    const cards = el.querySelectorAll('.Reports-slide');
-    if (!cards.length) return;
-
-    const firstCard = cards[0];
-    const cardStep = firstCard.offsetWidth + 24; // width + gap
-    if (cardStep > 0) {
-      let idx = Math.round(scrollLeft / cardStep);
-      idx = Math.max(0, Math.min(idx, maxDots - 1));
-      currentSlideRef.current = idx;
-      setActiveSlide(idx);
-    }
-  }, [maxDots]);
-
-  useEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
-
-    handleScroll();
-    el.addEventListener('scroll', handleScroll, { passive: true });
-    return () => el.removeEventListener('scroll', handleScroll);
-  }, [handleScroll, allArticles]);
-
-  // Keyboard navigation on track focus
-  const handleKeyDown = (e) => {
-    if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      const prevIdx = (currentSlideRef.current - 1 + maxDots) % maxDots;
-      handleScrollToSlide(prevIdx);
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      const nextIdx = (currentSlideRef.current + 1) % maxDots;
-      handleScrollToSlide(nextIdx);
-    }
-  };
-
-  // Continuous Auto-Scrolling every 5 seconds with pause on hover/touch
-  useEffect(() => {
-    if (isPaused || prefersReducedMotion || totalReports <= cardsPerView) {
-      return;
-    }
-
-    const timer = setInterval(() => {
-      const nextIdx = (currentSlideRef.current + 1) % maxDots;
-      handleScrollToSlide(nextIdx);
-    }, 5000);
-
-    return () => clearInterval(timer);
-  }, [isPaused, prefersReducedMotion, totalReports, cardsPerView, maxDots, handleScrollToSlide]);
 
   // Deep-link destination for modal reader on Blog page
   const getReportDestination = (article) => {
@@ -236,7 +127,7 @@ const Reports = () => {
             </div>
           </div>
           <div className="Reports-grid">
-            <BlogCardSkeleton count={cardsPerView || 3} />
+            <BlogCardSkeleton count={3} />
           </div>
         </div>
       </section>
@@ -339,178 +230,175 @@ const Reports = () => {
               Our Latest Tech &amp; Market Reports
             </h2>
           </div>
-          <Link to="/blog" className="Reports-browseLink group">
-            <span>Browse All Reports</span>
-            <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
-              arrow_forward
-            </span>
-          </Link>
+          <div className="Reports-headerRight flex items-center gap-3">
+            {/* Play / Pause Toggle Button */}
+            <button
+              type="button"
+              className="Reports-pauseBtn"
+              onClick={() => setIsPaused((prev) => !prev)}
+              aria-label={isPaused ? 'Resume auto-sliding' : 'Pause auto-sliding'}
+              title={isPaused ? 'Resume auto-sliding' : 'Pause auto-sliding'}
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                {isPaused ? 'play_arrow' : 'pause'}
+              </span>
+            </button>
+            <Link to="/blog" className="Reports-browseLink group">
+              <span>Browse All Reports</span>
+              <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
+                arrow_forward
+              </span>
+            </Link>
+          </div>
         </div>
 
-        {/* Carousel Viewport with Native Horizontal Scroll & CSS Scroll-Snap */}
+        {/* Infinite Scrolling Marquee Carousel with Gradient Masks & Hover Pause */}
         <div
-          ref={trackRef}
-          className="Reports-carouselTrack"
-          tabIndex={0}
-          role="region"
-          aria-roledescription="carousel"
-          aria-label="Talent Advisory Insights Carousel"
-          onKeyDown={handleKeyDown}
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-          onTouchStart={() => setIsPaused(true)}
-          onTouchEnd={() => setIsPaused(false)}
+          className="Reports-carouselWrapper Reports-marqueeWrapper"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          onTouchStart={() => setIsHovered(true)}
+          onTouchEnd={() => setIsHovered(false)}
         >
-          {allArticles.map((article) => {
-            const destination = getReportDestination(article);
-            const imageSrc = getArticleImage(article);
-            const badgeText =
-              article.badge || article.category || article.tag || 'Insights';
-            const readTimeText = article.readTime || '8 min read';
-            const publishDate =
-              article.publishedAt || article.date || 'Aug 2026';
-            const subCategoryText =
-              article.subCategory || article.category;
-            const authorName =
-              typeof article.author === 'object'
-                ? article.author?.name || 'Thinkwires Advisory Team'
-                : article.author || 'Thinkwires Advisory Team';
-            const authorAvatar =
-              typeof article.author === 'object' ? article.author?.avatar : null;
-            const authorInitials = getAuthorInitials(article.author);
+          <div
+            ref={trackRef}
+            className={`Reports-carouselTrack Reports-marqueeTrack ${
+              isPaused || isHovered ? 'is-paused' : ''
+            }`}
+            tabIndex={0}
+            role="region"
+            aria-roledescription="carousel"
+            aria-label="Talent Advisory Insights Carousel"
+          >
+            {marqueeArticles.map((article, index) => {
+              const destination = getReportDestination(article);
+              const imageSrc = getArticleImage(article);
+              const badgeText =
+                article.badge || article.category || article.tag || 'Insights';
+              const readTimeText = article.readTime || '8 min read';
+              const publishDate =
+                article.publishedAt || article.date || 'Aug 2026';
+              const subCategoryText =
+                article.subCategory || article.category;
+              const authorName =
+                typeof article.author === 'object'
+                  ? article.author?.name || 'Thinkwires Advisory Team'
+                  : article.author || 'Thinkwires Advisory Team';
+              const authorAvatar =
+                typeof article.author === 'object' ? article.author?.avatar : null;
+              const authorInitials = getAuthorInitials(article.author);
 
-            return (
-              <div
-                key={article.id || article.slug || article.title}
-                className="Reports-slide"
-              >
-                <article className="Reports-card">
-                  <div className="Reports-cardBody">
-                    {/* Standardized Card Image Header */}
-                    <div className="Reports-imageContainer">
-                      <img
-                        src={imageSrc}
-                        alt={article.title}
-                        className="Reports-image"
-                        width={600}
-                        height={340}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      <span
-                        className="Reports-tagBadge"
-                        style={{
-                          backgroundColor:
-                            article.badgeBg || 'rgba(15, 23, 42, 0.85)',
-                          color: article.badgeColor || '#ffffff',
-                        }}
-                      >
-                        {badgeText}
-                      </span>
-                      {readTimeText && (
-                        <span className="Reports-readBadge">
-                          <span className="material-symbols-outlined text-[14px]">
-                            schedule
-                          </span>
-                          <span>{readTimeText}</span>
+              return (
+                <div
+                  key={`${article.id || article.slug || 'art'}-${index}`}
+                  className="Reports-slide"
+                >
+                  <article className="Reports-card">
+                    <div className="Reports-cardBody">
+                      {/* Standardized Card Image Header */}
+                      <div className="Reports-imageContainer">
+                        <img
+                          src={imageSrc}
+                          alt={article.title}
+                          className="Reports-image"
+                          width={600}
+                          height={340}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        <span
+                          className="Reports-tagBadge"
+                          style={{
+                            backgroundColor:
+                              article.badgeBg || 'rgba(15, 23, 42, 0.85)',
+                            color: article.badgeColor || '#ffffff',
+                          }}
+                        >
+                          {badgeText}
                         </span>
-                      )}
-                    </div>
-
-                    {/* Content Area with aligned typography */}
-                    <div className="Reports-content">
-                      <div className="Reports-metaRow">
-                        <span className="Reports-metaDate">{publishDate}</span>
-                        {subCategoryText && (
-                          <>
-                            <span className="Reports-metaDot">•</span>
-                            <span className="Reports-metaCategory">
-                              {subCategoryText}
+                        {readTimeText && (
+                          <span className="Reports-readBadge">
+                            <span className="material-symbols-outlined text-[14px]">
+                              schedule
                             </span>
-                          </>
+                            <span>{readTimeText}</span>
+                          </span>
                         )}
                       </div>
 
-                      <h3 className="Reports-cardTitle">
-                        {article.title}
-                      </h3>
-
-                      <p className="Reports-cardDesc">
-                        {article.excerpt || article.summary || article.desc}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Aligned footer with author and Read Analysis */}
-                  <div className="Reports-footer">
-                    <div className="Reports-authorGroup">
-                      {authorAvatar ? (
-                        <img
-                          src={authorAvatar}
-                          alt={authorName}
-                          className="Reports-authorAvatar"
-                          width={28}
-                          height={28}
-                          loading="lazy"
-                          decoding="async"
-                          style={{
-                            width: 28,
-                            height: 28,
-                            minWidth: 28,
-                            minHeight: 28,
-                            maxWidth: 28,
-                            maxHeight: 28,
-                            borderRadius: '50%',
-                            objectFit: 'cover',
-                          }}
-                        />
-                      ) : (
-                        <div className="Reports-authorBubble">
-                          {authorInitials}
+                      {/* Content Area with aligned typography */}
+                      <div className="Reports-content">
+                        <div className="Reports-metaRow">
+                          <span className="Reports-metaDate">{publishDate}</span>
+                          {subCategoryText && (
+                            <>
+                              <span className="Reports-metaDot">•</span>
+                              <span className="Reports-metaCategory">
+                                {subCategoryText}
+                              </span>
+                            </>
+                          )}
                         </div>
-                      )}
-                      <span className="Reports-authorName">
-                        {authorName}
-                      </span>
+
+                        <h3 className="Reports-cardTitle">
+                          {article.title}
+                        </h3>
+
+                        <p className="Reports-cardDesc">
+                          {article.excerpt || article.summary || article.desc}
+                        </p>
+                      </div>
                     </div>
 
-                    <Link
-                      to={destination}
-                      className="Reports-readLink"
-                    >
-                      <span>Read Analysis</span>
-                      <span className="material-symbols-outlined text-[16px]">
-                        arrow_forward
-                      </span>
-                    </Link>
-                  </div>
-                </article>
-              </div>
-            );
-          })}
-        </div>
+                    {/* Aligned footer with author and Read Analysis */}
+                    <div className="Reports-footer">
+                      <div className="Reports-authorGroup">
+                        {authorAvatar ? (
+                          <img
+                            src={authorAvatar}
+                            alt={authorName}
+                            className="Reports-authorAvatar"
+                            width={28}
+                            height={28}
+                            loading="lazy"
+                            decoding="async"
+                            style={{
+                              width: 28,
+                              height: 28,
+                              minWidth: 28,
+                              minHeight: 28,
+                              maxWidth: 28,
+                              maxHeight: 28,
+                              borderRadius: '50%',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        ) : (
+                          <div className="Reports-authorBubble">
+                            {authorInitials}
+                          </div>
+                        )}
+                        <span className="Reports-authorName">
+                          {authorName}
+                        </span>
+                      </div>
 
-        {/* Slide Indicator / Pagination Dots (Reduced to valid scroll stops) */}
-        {maxDots > 1 && (
-          <div
-            className="Reports-dotsContainer"
-            role="tablist"
-            aria-label="Carousel pagination"
-          >
-            {Array.from({ length: maxDots }).map((_, dotIdx) => (
-              <button
-                key={dotIdx}
-                type="button"
-                onClick={() => handleScrollToSlide(dotIdx)}
-                aria-label={`Go to slide ${dotIdx + 1} of ${maxDots}`}
-                aria-current={activeSlide === dotIdx ? 'true' : undefined}
-                className={`Reports-dot ${
-                  activeSlide === dotIdx ? 'active' : ''
-                }`}
-              />
-            ))}
+                      <Link
+                        to={destination}
+                        className="Reports-readLink"
+                      >
+                        <span>Read Analysis</span>
+                        <span className="material-symbols-outlined text-[16px]">
+                          arrow_forward
+                        </span>
+                      </Link>
+                    </div>
+                  </article>
+                </div>
+              );
+            })}
           </div>
-        )}
+        </div>
       </div>
     </section>
   );
