@@ -63,6 +63,11 @@ const FindTalentIntakeForm = ({ data }) => {
   };
 
   const handleReset = () => {
+    try {
+      sessionStorage.removeItem('tw_draft_find_talent');
+    } catch {
+      // Storage unavailable
+    }
     dispatch(resetRequisitionState());
     setTargetRole('');
     setFullName('');
@@ -71,6 +76,52 @@ const FindTalentIntakeForm = ({ data }) => {
     setPhone('');
     setJobDescription('');
   };
+
+  // Restore form draft on mount to survive network dropouts or accidental tab refresh
+  React.useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('tw_draft_find_talent');
+      if (saved) {
+        const d = JSON.parse(saved);
+        if (d.targetRole) setTargetRole(d.targetRole);
+        if (d.fullName) setFullName(d.fullName);
+        if (d.corporateEmail) setCorporateEmail(d.corporateEmail);
+        if (d.company) setCompany(d.company);
+        if (d.phone) setPhone(d.phone);
+        if (d.jobDescription) setJobDescription(d.jobDescription);
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  // Auto-save form draft debounced on user input
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        if (targetRole || fullName || corporateEmail || company || phone || jobDescription) {
+          sessionStorage.setItem(
+            'tw_draft_find_talent',
+            JSON.stringify({ targetRole, fullName, corporateEmail, company, phone, jobDescription })
+          );
+        }
+      } catch {
+        // Storage unavailable
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [targetRole, fullName, corporateEmail, company, phone, jobDescription]);
+
+  // Purge saved draft once submission succeeds
+  React.useEffect(() => {
+    if (submitSuccess) {
+      try {
+        sessionStorage.removeItem('tw_draft_find_talent');
+      } catch {
+        // Storage unavailable
+      }
+    }
+  }, [submitSuccess]);
 
   return (
     <section className="FindTalent-intakeSection" id="talent-intake-form">

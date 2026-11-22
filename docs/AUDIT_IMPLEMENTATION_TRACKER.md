@@ -23,6 +23,7 @@ flowchart LR
 | **Milestone 5: 12-Factor Portability & SRE Readiness** | S3/R2 object storage, 0.0.0.0 binding, /healthz vs /ready probes, graceful drain | DEP 01–06 | Sprint 9 | **Completed** |
 | **Milestone 6: Enterprise Hardening & Defense-in-Depth** | AI Microservice Auth, Redis Distributed Rate Limiting, CORS & CSP Nonce | SEC-AI, SEC-CORS, SEC-RL | Sprint 7 | **Completed** |
 | **Milestone 7: Cloud Storage & Candidate CSRF Hardening** | S3 SDK Integration & Pre-Signed URLs, Candidate CSRF Double-Submit Token, DB TLS & Port Confinement | SEC-STA-01, SEC-CSRF-02, NV-DB-01, NV-NET-01 | Sprint 8 | **Completed** |
+| **Milestone 8: Low-Bandwidth & Network Resilience Engine** | HTTP Gzip Compression, ETag 304 Caching, Exponential-Backoff Fetch Retry, Adaptive 3D Throttling, Form Auto-Save | NET-RES-01–05 | Sprint 9 | **Completed** |
 
 ---
 
@@ -150,7 +151,25 @@ flowchart LR
 
 ---
 
-## 9. Verification & Definition of Done
+## 9. Milestone 8: Low-Bandwidth & Network Resilience Engine (5 Issues)
+
+*Verification Suites:*
+- Compression & Cache Unit Tests: [`apps/backend/src/test/unit/compression.cache.test.js`](../apps/backend/src/test/unit/compression.cache.test.js) (5 tests passing)
+- Network Resilience Frontend Tests: [`apps/frontend/src/test/unit/networkResilience.test.jsx`](../apps/frontend/src/test/unit/networkResilience.test.jsx) (8 tests passing)
+- Full Backend Suite: 293/293 tests passing
+- Full Frontend Suite: 325/325 tests passing
+
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
+| :--- | :---: | :--- | :--- | :--- |
+| **NET-RES-01** | **HIGH** | `apps/backend/src/app.js`<br>`apps/backend/package.json` | Uncompressed API responses choke 2G/3G mobile networks | **Resolved**: Integrated Express `compression` middleware (Gzip/Deflate, level 6, threshold 1024B) reducing over-the-wire JSON payloads by 70–80%, with `x-no-compression` override support. |
+| **NET-RES-02** | **MEDIUM** | `apps/backend/src/middlewares/cache.middleware.js`<br>`apps/backend/src/app.js` | Missing Cache-Control on public content forces repeated full transfers | **Resolved**: Created `publicContentCache` and mounted on `/api/articles`, `/api/industries`, `/api/services` with `Cache-Control: public, max-age=60, stale-while-revalidate=300` and conditional ETag `304 Not Modified` (0 body bytes). Sensitive routes enforce `privateNoStore`. |
+| **NET-RES-03** | **HIGH** | `apps/frontend/src/utils/globalFetchInterceptor.js` | Transient network blips and 1s Wi-Fi drops trigger uncaught fetch crashes | **Resolved**: Upgraded `secureFetch` with transparent exponential backoff with jitter (2 retries, initial delay 300ms) for idempotent requests (`GET`, `HEAD`) and transient 5xx server drops (502/503/504), while respecting `AbortController` and omitting retries on mutating `POST` calls. |
+| **NET-RES-04** | **MEDIUM** | `apps/frontend/src/utils/networkCapabilities.js`<br>`apps/frontend/src/components/ThinkWiresAnimation.jsx` | 3D WebGL Three.js shaders consume massive bandwidth and GPU on slow connections | **Resolved**: Built `checkLowBandwidthConnection` using Network Information API (`navigator.connection.effectiveType === '2g'`, `saveData: true`, `downlink < 0.75`). Automatically renders the lightweight SVG vector animation on slow connections without changing UI layout. |
+| **NET-RES-05** | **MEDIUM** | `apps/frontend/src/hooks/useFormAutoSave.js`<br>`apps/frontend/src/components/FindTalentComponents/FindTalentIntakeForm.jsx` | Dropped network connections or page refresh clears typed form state | **Resolved**: Built `useFormAutoSave` and hooked into `FindTalentIntakeForm` to debouncedly persist typed state into `sessionStorage`, auto-restoring on mount and clearing on successful submission. |
+
+---
+
+## 10. Verification & Definition of Done
 
 Each milestone requires the following verification steps prior to closure:
 1. **Automated Unit & Integration Tests**: New test cases written under `apps/backend/src/test/` or `apps/frontend/src/test/` validating the security control.

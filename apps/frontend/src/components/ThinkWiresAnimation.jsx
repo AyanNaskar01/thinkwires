@@ -2,6 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import {
+  checkLowBandwidthConnection,
+  subscribeToNetworkChange,
+} from '../utils/networkCapabilities.js';
 
 const ThinkWiresAnimation = () => {
   const mountRef = useRef(null);
@@ -9,17 +13,24 @@ const ThinkWiresAnimation = () => {
     if (typeof window === 'undefined') return false;
     return window.innerWidth <= 480;
   });
+  const [isLowBandwidth, setIsLowBandwidth] = React.useState(() =>
+    checkLowBandwidthConnection()
+  );
 
   React.useEffect(() => {
     const handleResize = () => {
       setIsSmallScreen(window.innerWidth <= 480);
     };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const unsubscribeNetwork = subscribeToNetworkChange(setIsLowBandwidth);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      unsubscribeNetwork();
+    };
   }, []);
 
   useEffect(() => {
-    if (isSmallScreen) return;
+    if (isSmallScreen || isLowBandwidth) return;
     if (!mountRef.current) return;
 
     const container = mountRef.current;
@@ -647,7 +658,7 @@ const ThinkWiresAnimation = () => {
     };
   }, [isSmallScreen]);
 
-  if (isSmallScreen) {
+  if (isSmallScreen || isLowBandwidth) {
     return (
       <div
         className="ThinkWiresMobileFallback absolute inset-0 w-full h-full pointer-events-none z-50 flex items-center justify-center overflow-hidden"

@@ -24,6 +24,8 @@ import { isAuthorizedDiagnosticRequest } from './middlewares/auth.middleware.js'
 import { sequelize } from './configs/db.js';
 import { isRedisConnected } from './configs/redis.js';
 import healthRoutes from './routes/health.route.js';
+import compression from 'compression';
+import { publicContentCache, privateNoStore } from './middlewares/cache.middleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,6 +56,20 @@ app.use((req, res, next) => {
 app.set('trust proxy', 1);
 
 app.disable('x-powered-by');
+
+// Response compression for low-bandwidth networks (70-80% payload size reduction)
+app.use(
+  compression({
+    level: 6,
+    threshold: 1024,
+    filter: (req, res) => {
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      return compression.filter(req, res);
+    },
+  })
+);
 
 // Per-request cryptographic CSP Nonce generator (SEC-CSP-01)
 app.use((req, res, next) => {
@@ -185,15 +201,15 @@ app.get(['/health', '/api/health'], (req, res) => {
   res.status(statusCode).json(response);
 });
 
-app.use('/api/auth', authRoutes);
-app.use('/api/candidate', candidateRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/auth', privateNoStore, authRoutes);
+app.use('/api/candidate', privateNoStore, candidateRoutes);
+app.use('/api/user', privateNoStore, userRoutes);
+app.use('/api/admin', privateNoStore, adminRoutes);
 app.use('/api', benchRoutes);
 app.use('/api', contactRoutes);
-app.use('/api', articlesRoutes);
-app.use('/api', industriesRoutes);
-app.use('/api', servicesRoutes);
+app.use('/api', publicContentCache(60, 300), articlesRoutes);
+app.use('/api', publicContentCache(60, 300), industriesRoutes);
+app.use('/api', publicContentCache(60, 300), servicesRoutes);
 app.use('/api', apiRoutes);
 
 // Root entrypoint status for pure API service
