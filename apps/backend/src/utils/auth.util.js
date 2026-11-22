@@ -1,6 +1,16 @@
 import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+let bcrypt;
+try {
+  bcrypt = (await import('bcryptjs')).default;
+} catch {
+  bcrypt = null;
+}
+let jwt;
+try {
+  jwt = (await import('jsonwebtoken')).default;
+} catch {
+  jwt = null;
+}
 import config from '../configs/dotenv.js';
 import { getRedisClient } from '../configs/redis.js';
 

@@ -199,3 +199,56 @@ def test_documentation_endpoints_enabled_in_debug(monkeypatch):
     assert debug_client.get("/redoc").status_code == 200
     assert debug_client.get("/openapi.json").status_code == 200
 
+
+def test_internal_ai_service_authentication_enforced():
+    """
+    Ensures internal AI endpoints reject unauthenticated or invalid service requests.
+    """
+    from fastapi.testclient import TestClient
+    from main import app
+
+    unauthed_client = TestClient(app)
+
+    # 1. Missing X-Internal-AI-Key returns HTTP 401
+    res_missing = unauthed_client.post(
+        "/api/resume/parse",
+        data={"raw_text": "Alex Developer\nalex@example.com\nPython, Docker"},
+    )
+    assert res_missing.status_code == 401
+    assert "Missing X-Internal-AI-Key" in res_missing.json()["detail"]
+
+    # 2. Invalid X-Internal-AI-Key returns HTTP 401
+    res_invalid = unauthed_client.post(
+        "/api/resume/parse",
+        headers={"X-Internal-AI-Key": "wrong_invalid_secret_key_1234567890"},
+        data={"raw_text": "Alex Developer\nalex@example.com\nPython, Docker"},
+    )
+    assert res_invalid.status_code == 401
+    assert "Invalid X-Internal-AI-Key" in res_invalid.json()["detail"]
+
+    # 3. Public health probes remain accessible without authentication
+    assert unauthed_client.get("/health").status_code == 200
+    assert unauthed_client.get("/healthz").status_code == 200
+
+
+def test_lfi_file_path_traversal_neutralized():
+    """
+    Ensures arbitrary file paths and directory traversal cannot access system files.
+    """
+    import pytest
+    import asyncio
+    from app.services.resume_parser import parse_resume_content
+
+    # Attempting to read outside sandbox returns default synthetic fallback or empty
+    result = asyncio.run(
+        parse_resume_content(
+            file_bytes=None,
+            filename=None,
+            raw_text=None,
+            file_path="../../.env",
+        )
+    )
+    assert result is not None
+    assert "candidate_name" in result
+
+

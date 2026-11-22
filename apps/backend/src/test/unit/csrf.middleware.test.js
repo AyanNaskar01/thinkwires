@@ -68,8 +68,13 @@ describe('CSRF & Origin Verification (Unit Tests)', () => {
         )
       ).toBe(true);
       expect(
-        isAllowedOrigin('https://thinkwires-git-feat-preview-123.vercel.app')
+        isAllowedOrigin(
+          'https://thinkwires-git-feat-preview-123-tanjil-alams-projects.vercel.app'
+        )
       ).toBe(true);
+      expect(
+        isAllowedOrigin('https://thinkwires-git-feat-preview-123.vercel.app')
+      ).toBe(false);
       expect(
         isAllowedOrigin(
           'https://thinkwires-deploy-tanjil-alams-projects.vercel.app'

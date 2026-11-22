@@ -7,8 +7,11 @@ from main import app
 
 @pytest.fixture(scope="session")
 def client():
-    """FastAPI TestClient fixture."""
-    return TestClient(app)
+    """FastAPI TestClient fixture authenticated with official internal service key."""
+    from app.config import settings
+    c = TestClient(app)
+    c.headers.update({"X-Internal-AI-Key": settings.INTERNAL_AI_SECRET})
+    return c
 
 @pytest.fixture
 def sample_resume_text():

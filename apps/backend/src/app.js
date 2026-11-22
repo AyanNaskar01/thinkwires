@@ -4,6 +4,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import mongoose from 'mongoose';
 import { fileURLToPath } from 'url';
 import apiRoutes from './routes/api.route.js';
@@ -54,13 +55,24 @@ app.set('trust proxy', 1);
 
 app.disable('x-powered-by');
 
+// Per-request cryptographic CSP Nonce generator (SEC-CSP-01)
+app.use((req, res, next) => {
+  res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  next();
+});
+
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        styleSrc: [
+          "'self'",
+          (req, res) => `'nonce-${res.locals.cspNonce}'`,
+          "'unsafe-inline'",
+          'https://fonts.googleapis.com',
+        ],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'https:'],
         connectSrc: ["'self'"],

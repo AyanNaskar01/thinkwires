@@ -15,11 +15,10 @@ router = APIRouter(prefix="/api/resume", tags=["Resume Parsing & ATS Matching"])
 async def parse_resume_endpoint(
     file: Optional[UploadFile] = File(None),
     raw_text: Optional[str] = Form(None),
-    file_path: Optional[str] = Form(None),
 ):
     """
-    Parses resume from either an uploaded document (PDF/DOCX/TXT),
-    a raw text string, or a local file path.
+    Parses resume from either an uploaded document (PDF/DOCX/TXT) or a raw text string.
+    Local file_path parameter is deprecated to eliminate Local File Inclusion (LFI) risks (SEC-AI-01).
     """
     file_bytes = None
     filename = None
@@ -31,7 +30,6 @@ async def parse_resume_endpoint(
         file_bytes=file_bytes,
         filename=filename,
         raw_text=raw_text,
-        file_path=file_path,
     )
 
     return ParsedResumeResponse(

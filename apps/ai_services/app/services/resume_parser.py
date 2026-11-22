@@ -301,13 +301,23 @@ async def parse_resume_content(
             except Exception:
                 extracted_text = ""
 
-    if not extracted_text and file_path and os.path.exists(file_path):
-        if file_path.lower().endswith(".pdf"):
-            with open(file_path, "rb") as f:
-                extracted_text, extracted_links = extract_text_and_links_from_pdf(f.read())
+    # Sandbox and path traversal defense (SEC-AI-01):
+    # Only allow reading internal file_path if strictly located within authorized uploads/resumes directory
+    if not extracted_text and file_path:
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        allowed_dir = os.path.realpath(
+            os.getenv("ALLOWED_RESUME_DIR", os.path.join(base_dir, "uploads", "resumes"))
+        )
+        resolved_path = os.path.realpath(file_path)
+        if resolved_path.startswith(allowed_dir) and os.path.isfile(resolved_path):
+            if resolved_path.lower().endswith(".pdf"):
+                with open(resolved_path, "rb") as f:
+                    extracted_text, extracted_links = extract_text_and_links_from_pdf(f.read())
+            else:
+                with open(resolved_path, "r", encoding="utf-8", errors="ignore") as f:
+                    extracted_text = f.read()
         else:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                extracted_text = f.read()
+            logger.warning(f"[Security] Blocked unauthorized file access attempt outside sandbox: {file_path}")
 
     if not extracted_text and raw_text:
         extracted_text = raw_text

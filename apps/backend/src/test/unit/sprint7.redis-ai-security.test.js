@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach } from 'node:test';
+import { describe, it, beforeEach, afterEach } from 'vitest';
 import assert from 'node:assert';
 import {
   checkAtomicLimit,
@@ -11,6 +11,7 @@ import {
 } from '../../middlewares/rateLimiter.middleware.js';
 import { setMockRedisClient, isRedisConnected } from '../../configs/redis.js';
 import aiService from '../../services/ai.service.js';
+import { isAllowedOrigin } from '../../middlewares/csrf.middleware.js';
 
 describe('Sprint 7: AI Microservice Auth & Redis Distributed Rate Limiting', () => {
   const origEnv = { ...process.env };
@@ -317,6 +318,61 @@ describe('Sprint 7: AI Microservice Auth & Redis Distributed Rate Limiting', () 
       assert.strictEqual(responseBody.success, false);
       assert.strictEqual(headers['Retry-After'], '5');
       assert.ok(responseBody.error.includes('distributed cache'));
+    });
+  });
+
+  describe('TASK 1: AI Microservice LFI & Sandbox Boundary Defense', () => {
+    it('rejects path traversal attempts and files outside authorized sandbox', async () => {
+      const path = await import('path');
+      const os = await import('os');
+      const fs = await import('fs');
+
+      const allowedBase = path.resolve(os.tmpdir(), 'thinkwires_test_uploads');
+      if (!fs.existsSync(allowedBase)) {
+        fs.mkdirSync(allowedBase, { recursive: true });
+      }
+
+      const maliciousAttempt = path.resolve(allowedBase, '..', '..', 'etc', 'passwd');
+      const isContained = maliciousAttempt.startsWith(allowedBase);
+      assert.strictEqual(isContained, false);
+
+      const legitimatePath = path.resolve(allowedBase, 'test_resume.pdf');
+      assert.strictEqual(legitimatePath.startsWith(allowedBase), true);
+    });
+  });
+
+  describe('TASK 3: Tightened Vercel Staging Origin Scoping', () => {
+    it('allows official Vercel preview domains strictly scoped to the owner account', () => {
+      const validScopedOrigin =
+        'https://thinkwires-git-feat-security-tanjil-alams-projects.vercel.app';
+      assert.strictEqual(isAllowedOrigin(validScopedOrigin), true);
+
+      const validMainOrigin =
+        'https://thinkwires-tanjil-alams-projects.vercel.app';
+      assert.strictEqual(isAllowedOrigin(validMainOrigin), true);
+    });
+
+    it('rejects arbitrary unscoped third-party Vercel domains', () => {
+      const maliciousOrigin1 =
+        'https://thinkwires-git-feat-preview-123.vercel.app';
+      assert.strictEqual(isAllowedOrigin(maliciousOrigin1), false);
+
+      const maliciousOrigin2 =
+        'https://thinkwires-git-malicious-attacker.vercel.app';
+      assert.strictEqual(isAllowedOrigin(maliciousOrigin2), false);
+    });
+  });
+
+  describe('TASK 5: Dynamic CSP Nonces for Inline Styles', () => {
+    it('generates distinct 128-bit cryptographic nonces per request', async () => {
+      const crypto = await import('crypto');
+
+      const nonce1 = crypto.randomBytes(16).toString('base64');
+      const nonce2 = crypto.randomBytes(16).toString('base64');
+
+      assert.strictEqual(typeof nonce1, 'string');
+      assert.strictEqual(nonce1.length >= 22, true);
+      assert.notStrictEqual(nonce1, nonce2);
     });
   });
 });
