@@ -69,26 +69,9 @@ import {
   adminCsrfProtection,
   getCsrfTokenHandler,
 } from '../middlewares/csrf.middleware.js';
-import rateLimit from 'express-rate-limit';
+import { adminLoginRateLimiter } from '../middlewares/rateLimiter.middleware.js';
 
 const router = express.Router();
-
-// Throttle admin login attempts to mitigate brute-force
-const adminLoginRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: {
-    xForwardedForHeader: false,
-    forwardedHeader: false,
-  },
-  message: {
-    success: false,
-    error:
-      'Too many administrative login attempts from this network. Access is temporarily throttled for 15 minutes to protect system security.',
-  },
-});
 
 router.use(adminCsrfProtection);
 

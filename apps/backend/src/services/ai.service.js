@@ -131,6 +131,37 @@ class AIServiceClient {
   }
 
   /**
+   * Constructs secure internal service-to-service headers including X-Internal-AI-Key
+   * @param {Object} customHeaders
+   * @returns {Object}
+   */
+  getInternalHeaders(customHeaders = {}) {
+    const headers = { ...customHeaders };
+    let secret = (
+      process.env.INTERNAL_AI_SECRET ||
+      config.INTERNAL_AI_SECRET ||
+      ''
+    ).trim();
+
+    if (!secret && process.env.JWT_SECRET) {
+      try {
+        const crypto = require('crypto');
+        secret = crypto
+          .createHmac('sha256', String(process.env.JWT_SECRET).trim())
+          .update('thinkwires-internal-ai-service-key-v1')
+          .digest('hex');
+      } catch {
+        // fallback
+      }
+    }
+
+    if (secret) {
+      headers['X-Internal-AI-Key'] = secret;
+    }
+    return headers;
+  }
+
+  /**
    * Parse resume file or text into structured candidate fields
    * @param {Buffer|null} fileBuffer - Binary buffer of uploaded resume file
    * @param {string} originalname - Original file name (e.g. resume.pdf)
@@ -152,6 +183,7 @@ class AIServiceClient {
 
         const response = await fetch(this.resolveUrl('api/resume/parse'), {
           method: 'POST',
+          headers: this.getInternalHeaders(),
           body: formData,
           signal: AbortSignal.timeout(10000),
         });
@@ -170,6 +202,7 @@ class AIServiceClient {
 
         const response = await fetch(this.resolveUrl('api/resume/parse'), {
           method: 'POST',
+          headers: this.getInternalHeaders(),
           body: formData,
           signal: AbortSignal.timeout(10000),
         });
@@ -215,7 +248,7 @@ class AIServiceClient {
     try {
       const response = await fetch(this.resolveUrl('api/resume/match-score'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getInternalHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(8000),
       });
@@ -250,7 +283,7 @@ class AIServiceClient {
     try {
       const response = await fetch(this.resolveUrl('api/screening/evaluate-candidate'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getInternalHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(10000),
       });
@@ -336,7 +369,7 @@ class AIServiceClient {
         this.resolveUrl('api/screening/generate-test'),
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this.getInternalHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(payload),
           signal: AbortSignal.timeout(8000),
         }
@@ -371,7 +404,7 @@ class AIServiceClient {
         this.resolveUrl('api/screening/evaluate-test'),
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this.getInternalHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(payload),
           signal: AbortSignal.timeout(8000),
         }

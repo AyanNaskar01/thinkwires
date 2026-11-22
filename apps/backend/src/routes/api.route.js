@@ -83,25 +83,11 @@ let currentCandidatePortalData = candidatePortalData
 
 const router = express.Router();
 
+import { publicLeadRateLimiter } from '../middlewares/rateLimiter.middleware.js';
+
 // Strict RBAC guards separating manpower recruitment operations from CMS content publishing
 const manpowerGuard = requireAuth(['superadmin', 'admin']);
 const cmsGuard = requireAuth(['superadmin', 'cms_admin']);
-
-// Rate limiter for public lead generation / consultation submissions to prevent spam and DoS
-const publicSubmissionRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // limit each IP to 30 submissions per 15 minutes
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: {
-    xForwardedForHeader: false,
-    forwardedHeader: false,
-  },
-  message: {
-    success: false,
-    error: 'Too many requests from this network. Please wait a few minutes before submitting again.',
-  },
-});
 
 // Mutable in-memory state for fallback & instant local responses
 let techStack = [...(initialTechStack || [])];
@@ -975,7 +961,7 @@ router.get('/find-talent', async (req, res) => {
   res.json(result);
 });
 
-router.post('/find-talent/requisition', publicSubmissionRateLimiter, async (req, res) => {
+router.post('/find-talent/requisition', publicLeadRateLimiter, async (req, res) => {
   if (!isMongoActive() && process.env.NODE_ENV === 'production') {
     return res.status(503).json({
       success: false,

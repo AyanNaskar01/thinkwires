@@ -21,26 +21,10 @@ import {
 } from '../middlewares/auth.middleware.js';
 import { resumeUpload, avatarUpload } from '../middlewares/upload.middleware.js';
 import { isAllowedOrigin } from '../middlewares/csrf.middleware.js';
+import { aiEndpointRateLimiter } from '../middlewares/rateLimiter.middleware.js';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
-
-// Throttle PDF parsing to prevent resource exhaustion
-const parseResumeRateLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 15,
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: {
-    xForwardedForHeader: false,
-    forwardedHeader: false,
-  },
-  message: {
-    success: false,
-    error:
-      'Too many resume parse requests from this network. Please wait 10 minutes before uploading again.',
-  },
-});
 
 // Throttle job applications to prevent abuse and spam submissions (Issue #187)
 const candidateApplyRateLimiter = rateLimit({
@@ -89,7 +73,7 @@ const candidateOriginProtection = (req, res, next) => {
 
 router.post(
   '/parse-resume',
-  parseResumeRateLimiter,
+  aiEndpointRateLimiter,
   candidateOriginProtection,
   resumeUpload.single('resume'),
   parseResumeForAutoFill

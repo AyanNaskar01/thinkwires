@@ -1,5 +1,8 @@
 import os
 import logging
+import hashlib
+import hmac
+import secrets
 from typing import List
 from dotenv import load_dotenv
 
@@ -42,6 +45,37 @@ class Settings:
             if origin.strip() and origin.strip() != "*"
         ]
         return parsed or self._DEFAULT_CORS_ORIGINS
+
+    # Internal Service-to-Service Security Key (min 32 characters / 256 bits)
+    _raw_internal_secret: str = (
+        os.getenv("INTERNAL_AI_SECRET", "")
+        or os.getenv("AI_SERVICE_SECRET", "")
+    ).strip()
+
+    @property
+    def INTERNAL_AI_SECRET(self) -> str:
+        if self._raw_internal_secret:
+            return self._raw_internal_secret
+        shared_master = os.getenv("JWT_SECRET", "").strip()
+        if shared_master:
+            return hmac.new(
+                shared_master.encode("utf-8"),
+                b"thinkwires-internal-ai-service-key-v1",
+                hashlib.sha256
+            ).hexdigest()
+        if not hasattr(self, "_generated_dev_secret"):
+            self._generated_dev_secret = secrets.token_hex(32)
+        return self._generated_dev_secret
+
+    def validate_security_configuration(self) -> None:
+        """Validates internal service security settings during startup."""
+        is_prod = not self.DEBUG and os.getenv("ENVIRONMENT", "").lower() == "production"
+        secret = self.INTERNAL_AI_SECRET
+        if is_prod:
+            if not secret or len(secret) < 32 or secret.startswith("your_"):
+                raise RuntimeError(
+                    "FATAL: INTERNAL_AI_SECRET in production must be configured with at least 32 characters (256 bits of entropy)."
+                )
 
     # Multi-Provider Free LLM Integration
     PRIMARY_LLM_PROVIDER: str = os.getenv("PRIMARY_LLM_PROVIDER", "auto").lower().strip()

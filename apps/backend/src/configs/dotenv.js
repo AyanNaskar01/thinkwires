@@ -1,4 +1,9 @@
-import dotenv from 'dotenv';
+let dotenv;
+try {
+  dotenv = (await import('dotenv')).default;
+} catch {
+  dotenv = { config: () => {} };
+}
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -40,6 +45,13 @@ if (process.env.JWT_SECRET && String(process.env.JWT_SECRET).trim()) {
       .digest('hex');
     process.env.JWT_CANDIDATE_SECRET = derivedCandidate;
     process.env.CANDIDATE_JWT_SECRET = derivedCandidate;
+  }
+  if (!process.env.INTERNAL_AI_SECRET && !process.env.AI_SERVICE_SECRET) {
+    const derivedAISecret = crypto
+      .createHmac('sha256', masterSecret)
+      .update('thinkwires-internal-ai-service-key-v1')
+      .digest('hex');
+    process.env.INTERNAL_AI_SECRET = derivedAISecret;
   }
 }
 
@@ -90,6 +102,7 @@ export default {
   MONGODB_URI: resolveMongoUri(),
   REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
   AI_SERVICE_URL: process.env.AI_SERVICE_URL || 'http://localhost:8000',
+  INTERNAL_AI_SECRET: process.env.INTERNAL_AI_SECRET || process.env.AI_SERVICE_SECRET || '',
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_ADMIN_SECRET: process.env.JWT_ADMIN_SECRET || process.env.ADMIN_JWT_SECRET,
   ADMIN_JWT_SECRET: process.env.ADMIN_JWT_SECRET || process.env.JWT_ADMIN_SECRET,

@@ -1,4 +1,10 @@
-import { createClient } from 'redis';
+let createClient;
+try {
+  const redisPkg = await import('redis');
+  createClient = redisPkg.createClient;
+} catch {
+  createClient = null;
+}
 import config from './dotenv.js';
 
 let redisClient = null;

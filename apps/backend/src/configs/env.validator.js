@@ -58,6 +58,18 @@ export const validateBootEnvironment = (env = process.env) => {
         throw new Error(errorMsg);
       }
     }
+
+    const internalAiSecret = env.INTERNAL_AI_SECRET || config.INTERNAL_AI_SECRET;
+    if (internalAiSecret) {
+      if (internalAiSecret.length < 32 || String(internalAiSecret).startsWith('your_')) {
+        const errorMsg = '🚨 [FATAL] INTERNAL_AI_SECRET in production must be at least 32 characters (256 bits of entropy) and not a known placeholder.';
+        console.error(errorMsg);
+        if (!env.VITEST && env.NODE_ENV === 'production') {
+          process.exit(1);
+        }
+        throw new Error(errorMsg);
+      }
+    }
   }
 
   return { isValid: true, isProduction, checkedVars: REQUIRED_PRODUCTION_VARS };

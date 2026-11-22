@@ -1,5 +1,10 @@
 import express from 'express';
-import rateLimit from 'express-rate-limit';
+import {
+  candidateLoginRateLimiter,
+  candidateRegisterRateLimiter,
+  passwordResetRateLimiter,
+  tokenRefreshRateLimiter,
+} from '../middlewares/rateLimiter.middleware.js';
 import {
   registerCandidate,
   loginCandidate,
@@ -12,33 +17,16 @@ import { requireCandidateAuth } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
-// Rate limiter for login and password reset to protect against brute-force attacks
-const authRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // limit each IP to 20 attempts per window
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: {
-    xForwardedForHeader: false,
-    forwardedHeader: false,
-  },
-  message: {
-    success: false,
-    error:
-      'Too many authentication attempts from this IP. Please try again after 15 minutes.',
-  },
-});
-
 // Candidate Registration & Login
-router.post('/register', authRateLimiter, registerCandidate);
-router.post('/login', authRateLimiter, loginCandidate);
+router.post('/register', candidateRegisterRateLimiter, registerCandidate);
+router.post('/login', candidateLoginRateLimiter, loginCandidate);
 router.post('/logout', logoutCandidate);
 
 // Password recovery
-router.post('/forgot-password', authRateLimiter, forgotPassword);
-router.post('/reset-password', authRateLimiter, resetPassword);
+router.post('/forgot-password', passwordResetRateLimiter, forgotPassword);
+router.post('/reset-password', passwordResetRateLimiter, resetPassword);
 
 // Session check / restoration
-router.get('/me', requireCandidateAuth, getMe);
+router.get('/me', tokenRefreshRateLimiter, requireCandidateAuth, getMe);
 
 export default router;
