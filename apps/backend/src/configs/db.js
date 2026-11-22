@@ -28,7 +28,7 @@ const enableSsl =
   process.env.DB_SSL === 'true' ||
   (process.env.DB_SSL !== 'false' && (isCloudManaged || (isProduction && !isLocalhost)));
 
-// SEC-EXP-07: PostgreSQL TLS verification hardening
+// SEC-EXP-07 & NV-DB-01: PostgreSQL TLS verification hardening
 const rejectUnauthorized = (() => {
   if (process.env.DB_SSL_REJECT_UNAUTHORIZED !== undefined) {
     return process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true';
@@ -36,8 +36,8 @@ const rejectUnauthorized = (() => {
   if (process.env.DB_CA_CERT || process.env.NODE_EXTRA_CA_CERTS) {
     return true;
   }
-  // Enforce strict TLS certificate verification in production
-  if (isProduction && !isCloudManaged) {
+  // Enforce strict TLS certificate verification by default in production
+  if (isProduction) {
     return true;
   }
   return false;

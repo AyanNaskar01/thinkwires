@@ -1559,8 +1559,12 @@ export const downloadResume = async (req, res) => {
     }
 
     if (storageService.driver === 's3') {
-      const remoteUrl = storageService.getFileUrl(safeFilename, 'resumes');
-      return res.redirect(remoteUrl);
+      const presignedUrl = await storageService.getPresignedDownloadUrl(
+        safeFilename,
+        'resumes',
+        900
+      );
+      return res.redirect(presignedUrl);
     }
 
     const resumesDir = process.env.VERCEL

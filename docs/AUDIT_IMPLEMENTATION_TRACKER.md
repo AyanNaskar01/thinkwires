@@ -21,6 +21,8 @@ flowchart LR
 | **Milestone 3: Database Query Hygiene & ESR Indexing** | Unbounded `.find()`, compound ESR indexes, schema strictness, migrations | SEC-DB 01–05 | Sprint 8 | **Completed** |
 | **Milestone 4: Frontend Code-Splitting & Client Security** | React.lazy, Three.js deferral, search debouncing, AbortController, cookie auth | SEC-FE 01–08 | Sprint 8 | **Completed** |
 | **Milestone 5: 12-Factor Portability & SRE Readiness** | S3/R2 object storage, 0.0.0.0 binding, /healthz vs /ready probes, graceful drain | DEP 01–06 | Sprint 9 | **Completed** |
+| **Milestone 6: Enterprise Hardening & Defense-in-Depth** | AI Microservice Auth, Redis Distributed Rate Limiting, CORS & CSP Nonce | SEC-AI, SEC-CORS, SEC-RL | Sprint 7 | **Completed** |
+| **Milestone 7: Cloud Storage & Candidate CSRF Hardening** | S3 SDK Integration & Pre-Signed URLs, Candidate CSRF Double-Submit Token, DB TLS & Port Confinement | SEC-STA-01, SEC-CSRF-02, NV-DB-01, NV-NET-01 | Sprint 8 | **Completed** |
 
 ---
 
@@ -131,7 +133,24 @@ flowchart LR
 
 ---
 
-## 8. Verification & Definition of Done
+## 8. Milestone 7: Cloud Storage & Candidate CSRF Hardening (4 Issues)
+
+*Verification Suites:*
+- S3 Storage Unit Tests: [`apps/backend/src/test/unit/s3.storage.test.js`](../apps/backend/src/test/unit/s3.storage.test.js) (5 tests passing)
+- Candidate CSRF Unit Tests: [`apps/backend/src/test/unit/candidate.csrf.test.js`](../apps/backend/src/test/unit/candidate.csrf.test.js) (8 tests passing)
+- Full Backend Suite: 288/288 tests passing
+- Full Frontend Suite: 317/317 tests passing
+
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
+| :--- | :---: | :--- | :--- | :--- |
+| **SEC-STA-01** | **HIGH** | `apps/backend/src/utils/storage.adapter.js`<br>`apps/backend/src/controllers/candidatePortal.controller.js` | Storage adapter missing buffer upload implementation; public redirect exposed private bucket objects | **Resolved**: Installed `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner`. Implemented real S3 buffer persistence (`PutObjectCommand`) with server-side encryption (`AES256`), secure streaming (`GetObjectCommand`), object deletion (`DeleteObjectCommand`), and pre-signed GET URL generation (`getSignedUrl` with 900-second expiration). Resume download endpoints redirect to pre-signed URLs when configured with S3 driver. |
+| **SEC-CSRF-02** | **MEDIUM** | `apps/backend/src/middlewares/csrf.middleware.js`<br>`apps/backend/src/utils/auth.util.js`<br>`apps/frontend/src/utils/apiConfig.js` | Candidate Portal mutating routes lacked CSRF token validation while relying on cookies with `SameSite=None` default | **Resolved**: Updated `setAuthCookie` and `clearAuthCookie` so `sameSite` defaults to `'lax'` in production. Implemented `candidateCsrfProtection` enforcing double-submit cookie and `X-CSRF-Token` header validation with `crypto.timingSafeEqual` constant-time comparison on state-changing requests (`POST`, `PUT`, `DELETE`). Added `/api/auth/csrf-token` provider and updated frontend candidate API client to auto-extract and attach `X-CSRF-Token`. |
+| **NV-DB-01** | **MEDIUM** | `apps/backend/src/configs/db.js` | PostgreSQL SSL certificate chain verification (`rejectUnauthorized`) could fall back to insecure default in production | **Resolved**: Set `rejectUnauthorized: true` as strict default in production whenever SSL is enabled, preventing MitM attacks against managed cloud database instances. |
+| **NV-NET-01** | **LOW** | `docker-compose.yml` | Containerized database and cache services exposed on all network interfaces (`0.0.0.0`) | **Resolved**: Confined container port mappings for MongoDB (`127.0.0.1:27017:27017`), PostgreSQL (`127.0.0.1:5432:5432`), and Redis (`127.0.0.1:6379:6379`) to host loopback interface only. |
+
+---
+
+## 9. Verification & Definition of Done
 
 Each milestone requires the following verification steps prior to closure:
 1. **Automated Unit & Integration Tests**: New test cases written under `apps/backend/src/test/` or `apps/frontend/src/test/` validating the security control.

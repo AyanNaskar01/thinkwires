@@ -20,7 +20,7 @@ import {
   optionalCandidateAuth,
 } from '../middlewares/auth.middleware.js';
 import { resumeUpload, avatarUpload } from '../middlewares/upload.middleware.js';
-import { isAllowedOrigin } from '../middlewares/csrf.middleware.js';
+import { candidateCsrfProtection } from '../middlewares/csrf.middleware.js';
 import { aiEndpointRateLimiter } from '../middlewares/rateLimiter.middleware.js';
 import rateLimit from 'express-rate-limit';
 
@@ -43,43 +43,15 @@ const candidateApplyRateLimiter = rateLimit({
   },
 });
 
-const candidateOriginProtection = (req, res, next) => {
-  const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
-  if (safeMethods.includes(req.method.toUpperCase())) {
-    return next();
-  }
-
-  const origin = req.headers.origin;
-  const referer = req.headers.referer;
-  let effectiveOrigin = origin;
-  if (!effectiveOrigin && referer) {
-    try {
-      effectiveOrigin = new URL(referer).origin;
-    } catch {
-      effectiveOrigin = null;
-    }
-  }
-
-  if (effectiveOrigin && !isAllowedOrigin(effectiveOrigin)) {
-    return res.status(403).json({
-      success: false,
-      error: 'Cross-origin request blocked: Untrusted origin or referer.',
-      origin: effectiveOrigin,
-    });
-  }
-
-  next();
-};
-
 router.post(
   '/parse-resume',
   aiEndpointRateLimiter,
-  candidateOriginProtection,
+  candidateCsrfProtection,
   resumeUpload.single('resume'),
   parseResumeForAutoFill
 );
 
-router.use(candidateOriginProtection);
+router.use(candidateCsrfProtection);
 router.use(requireCandidateAuth);
 
 router.get('/dashboard', getCandidateDashboard);

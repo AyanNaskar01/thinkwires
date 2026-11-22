@@ -14,8 +14,12 @@ import {
   resetPassword,
 } from '../controllers/auth.controller.js';
 import { requireCandidateAuth } from '../middlewares/auth.middleware.js';
+import { getCsrfTokenHandler } from '../middlewares/csrf.middleware.js';
 
 const router = express.Router();
+
+// Anti-CSRF Token Provider
+router.get('/csrf-token', getCsrfTokenHandler);
 
 // Candidate Registration & Login
 router.post('/register', candidateRegisterRateLimiter, registerCandidate);

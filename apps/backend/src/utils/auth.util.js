@@ -232,8 +232,7 @@ export const hashResetToken = (rawToken) => {
 
 export const setAuthCookie = (res, token) => {
   const isProduction = process.env.NODE_ENV === 'production';
-  const sameSite =
-    process.env.COOKIE_SAME_SITE || (isProduction ? 'none' : 'lax');
+  const sameSite = process.env.COOKIE_SAME_SITE || 'lax';
   const secure = isProduction || sameSite.toLowerCase() === 'none';
   res.cookie('thinkwires_candidate_jwt', token, {
     httpOnly: true,
@@ -246,8 +245,7 @@ export const setAuthCookie = (res, token) => {
 
 export const clearAuthCookie = (res) => {
   const isProduction = process.env.NODE_ENV === 'production';
-  const sameSite =
-    process.env.COOKIE_SAME_SITE || (isProduction ? 'none' : 'lax');
+  const sameSite = process.env.COOKIE_SAME_SITE || 'lax';
   const secure = isProduction || sameSite.toLowerCase() === 'none';
   const opts = {
     httpOnly: true,

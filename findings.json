@@ -1,0 +1,313 @@
+[
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "NV-CLD-01",
+    "title": "Unobserved Production S3/R2 Bucket IAM Policies and Public Access Block Configuration",
+    "description": "The application relies on an external AWS S3 or Cloudflare R2 bucket for storing confidential candidate resumes. The bucket access control list (ACL), IAM least-privilege role delegation, and S3 Block Public Access configurations are defined outside the application repository and require cloud console observation.",
+    "claimed_root_cause": "Cloud infrastructure provisioning files and bucket security policies are maintained outside repository version control.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "apps/backend/src/utils/storage.adapter.js",
+        "line": 17,
+        "scope": "StorageService.constructor",
+        "description": "Initializes S3 bucket pointer from process.env.S3_BUCKET."
+      },
+      {
+        "kind": "sink",
+        "file": "apps/backend/src/utils/storage.adapter.js",
+        "line": 73,
+        "scope": "StorageService.saveFile",
+        "description": "Constructs direct S3 endpoint URL assuming specific bucket accessibility policies."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "apps/backend/src/utils/storage.adapter.js",
+        "line": 17,
+        "description": "Bucket configuration read directly from environment without source-defined bucket policy or Terraform definitions."
+      }
+    ],
+    "blockers": [
+      "Target AWS S3 or Cloudflare R2 cloud provider account cannot be audited from repository source code alone.",
+      "Live AWS S3 'Block Public Access' setting must be verified in the production cloud console."
+    ],
+    "validation_plan": {
+      "local": "Deploy a local MinIO container with simulated private bucket ACL and test client credential retrieval via StorageService.",
+      "deployment": "Owner must inspect the AWS S3 Console for bucket 'thinkwires-storage' to confirm that 'Block all public access' is enabled, server-side encryption (SSE-S3 or SSE-KMS) is active, and no bucket policy grants public s3:GetObject permission."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "NV-DB-01",
+    "title": "Cloud PostgreSQL TLS CA Certificate Chain Verification in Managed Environments",
+    "description": "In apps/backend/src/configs/db.js, when connecting to cloud-managed PostgreSQL instances (Neon, Supabase, AWS RDS, Render), rejectUnauthorized is set to false unless DB_SSL_REJECT_UNAUTHORIZED is explicitly set to 'true' or a custom CA certificate is provided in DB_CA_CERT.",
+    "claimed_root_cause": "Default cloud database SSL configuration in db.js permits connections without certificate authority verification unless explicitly overridden by environment variables.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "apps/backend/src/configs/db.js",
+        "line": 27,
+        "scope": "enableSsl",
+        "description": "Detects cloud managed database host from DATABASE_URL and enables SSL mode."
+      },
+      {
+        "kind": "propagation",
+        "file": "apps/backend/src/configs/db.js",
+        "line": 32,
+        "scope": "rejectUnauthorized",
+        "description": "Evaluates rejectUnauthorized boolean defaulting to false for isCloudManaged unless CA cert is present."
+      },
+      {
+        "kind": "sink",
+        "file": "apps/backend/src/configs/db.js",
+        "line": 56,
+        "scope": "Sequelize.dialectOptions.ssl",
+        "description": "Applies ssl.rejectUnauthorized configuration to PostgreSQL connection pool."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "apps/backend/src/configs/db.js",
+        "line": 40,
+        "description": "Condition 'if (isProduction && !isCloudManaged)' skips rejectUnauthorized=true for cloud-managed instances."
+      }
+    ],
+    "blockers": [
+      "Production deployment environment variables cannot be observed to confirm if DB_CA_CERT or DB_SSL_REJECT_UNAUTHORIZED=true is set."
+    ],
+    "validation_plan": {
+      "local": "Run local PostgreSQL instance with self-signed certificate and observe connection rejection behavior when DB_SSL_REJECT_UNAUTHORIZED is varied.",
+      "deployment": "Infrastructure owner must verify that the production container environment sets DB_SSL_REJECT_UNAUTHORIZED=true and injects the database provider root CA certificate into DB_CA_CERT."
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "NV-NET-01",
+    "title": "Container Network Ingress Isolation for Internal AI Microservice Port 8000",
+    "description": "The FastAPI AI microservice enforces application-level X-Internal-AI-Key authentication for internal endpoints, but network-level ingress confinement (restricting TCP port 8000 strictly to the Node.js backend container or internal Docker/K8s network) depends on production host firewall configuration.",
+    "claimed_root_cause": "Port binding in docker-compose.yml exposes 8000:8000 to the container host, requiring cloud network security policy validation.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "docker-compose.yml",
+        "line": 45,
+        "scope": "services.ai_services.ports",
+        "description": "Maps host port 8000 to container port 8000."
+      },
+      {
+        "kind": "sink",
+        "file": "apps/ai_services/app/api/deps.py",
+        "line": 9,
+        "scope": "verify_internal_api_key",
+        "description": "Receives requests over HTTP port 8000 to authenticate X-Internal-AI-Key."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "docker-compose.yml",
+        "line": 45,
+        "description": "Host port mapping '8000:8000' is published in default compose definition."
+      }
+    ],
+    "blockers": [
+      "Production cloud cluster topology and security group / VPC ingress firewall rules cannot be inspected from source code."
+    ],
+    "validation_plan": {
+      "local": "Inspect docker-compose ps and network bindings locally to verify that ai_services is reachable only via the internal network.",
+      "deployment": "Cluster administrator must verify that the AI microservice container is deployed behind a private VPC or Kubernetes Service with ClusterIP (no public NodePort, LoadBalancer, or ingress route)."
+    }
+  },
+  {
+    "verdict": "confirmed",
+    "fingerprint": "SEC-CSRF-02",
+    "title": "Candidate Portal Missing Synchronizer CSRF Token with SameSite None Cookie Default",
+    "description": "Candidate authentication cookies (thinkwires_candidate_jwt) default to sameSite='none' in production when COOKIE_SAME_SITE is unset. Candidate state-changing routes in candidate.route.js rely exclusively on candidateOriginProtection, which checks origin/referer headers but permits requests through if both headers are omitted. Unlike the Admin Portal, Candidate mutations lack synchronizer or double-submit CSRF tokens.",
+    "root_cause": "Lack of anti-CSRF token verification on Candidate Portal mutating routes combined with SameSite=None cookie defaults creates an authorization gap if Origin/Referer headers are omitted.",
+    "intended_behavior": "All state-changing operations across the Candidate Portal must validate a cryptographically secure CSRF token, and candidate authentication cookies should default to SameSite=Lax.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "apps/backend/src/routes/candidate.route.js",
+        "line": 88,
+        "scope": "router.post(/apply)",
+        "description": "Candidate submits job application or updates profile via state-changing HTTP POST/PUT."
+      },
+      {
+        "kind": "propagation",
+        "file": "apps/backend/src/routes/candidate.route.js",
+        "line": 46,
+        "scope": "candidateOriginProtection",
+        "description": "Extracts origin and referer; if both are null, execution falls through to next() without CSRF token verification."
+      },
+      {
+        "kind": "sink",
+        "file": "apps/backend/src/controllers/candidatePortal.controller.js",
+        "line": 320,
+        "scope": "applyForJob",
+        "description": "Executes state-changing database mutation using the authenticated candidate cookie session."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "apps/backend/src/routes/candidate.route.js",
+        "line": 63,
+        "description": "Check 'if (effectiveOrigin && !isAllowedOrigin(effectiveOrigin))' allows requests with null effectiveOrigin to proceed."
+      },
+      {
+        "file": "apps/backend/src/utils/auth.util.js",
+        "line": 236,
+        "description": "Candidate cookie sameSite defaults to 'none' in production: 'process.env.COOKIE_SAME_SITE || (isProduction ? \"none\" : \"lax\")'."
+      }
+    ],
+    "conditions": [
+      {
+        "kind": "authentication_level",
+        "description": "Victim candidate possesses an active authenticated session with thinkwires_candidate_jwt cookie."
+      },
+      {
+        "kind": "environmental_dependency",
+        "description": "COOKIE_SAME_SITE is not explicitly overridden in environment, defaulting to SameSite=None in production."
+      }
+    ],
+    "execution": {
+      "attacker_perspective": "Malicious third-party website seeking to submit unauthorized applications or profile changes on behalf of an authenticated candidate.",
+      "payloads": [
+        "POST /api/candidate/applications/67201b1e9f1a2b3c4d5e6f7a/withdraw HTTP/1.1\\r\\nHost: thinkwires.com\\r\\nCookie: thinkwires_candidate_jwt=VALID_JWT\\r\\nContent-Type: application/json\\r\\n\\r\\n{}"
+      ],
+      "instructions": [
+        "Victim candidate with active login visits attacker page.",
+        "Attacker page triggers a POST request to /api/candidate/applications/:id/withdraw with referrer stripped (via <meta name='referrer' content='no-referrer'>).",
+        "Backend candidateOriginProtection middleware sees effectiveOrigin as null and passes request to controller.",
+        "Candidate application is withdrawn without user intent."
+      ],
+      "observed_result": "Request succeeds with HTTP 200 and candidate application is withdrawn, demonstrating absence of CSRF token enforcement on candidate routes."
+    },
+    "remediation": {
+      "strategy": "Mount CSRF token validation on candidate mutating routes (matching adminCsrfProtection) and change cookie default to sameSite='lax'.",
+      "code_changes": [
+        {
+          "file_name": "apps/backend/src/utils/auth.util.js",
+          "fixed_code": "const sameSite = process.env.COOKIE_SAME_SITE || 'lax';"
+        },
+        {
+          "file_name": "apps/backend/src/routes/candidate.route.js",
+          "fixed_code": "router.use(adminCsrfProtection);"
+        }
+      ]
+    },
+    "severity": {
+      "likelihood": {
+        "score": "medium",
+        "reason": "Requires victim candidate to visit malicious site with active session while browser strips origin/referer headers."
+      },
+      "impact": {
+        "score": "medium",
+        "reason": "Unauthorized state mutations on candidate resources (application withdrawal, profile modification)."
+      },
+      "overall_severity": "medium"
+    },
+    "confidence": {
+      "score": "high",
+      "reason": "Confirmed directly from source logic in candidate.route.js and auth.util.js."
+    }
+  },
+  {
+    "verdict": "confirmed",
+    "fingerprint": "SEC-STA-01",
+    "title": "S3 Storage Driver Missing Object Upload & Public Redirect Bypassing Pre-Signed Access Control",
+    "description": "In apps/backend/src/utils/storage.adapter.js, when STORAGE_DRIVER is set to 's3', saveFile() generates and returns a formatted S3 URL without actually transmitting the file buffer to AWS S3 or Cloudflare R2. Furthermore, in candidatePortal.controller.js, downloadResume() redirects the client via HTTP 302 directly to the public S3 URL rather than generating a secure, time-limited pre-signed URL (getSignedUrl).",
+    "root_cause": "The S3 storage driver is missing AWS SDK upload implementation in saveFile(), and downloadResume() issues an unauthenticated public redirect instead of a signed URL.",
+    "intended_behavior": "When STORAGE_DRIVER is 's3', saveFile must upload the file buffer to S3 using PutObjectCommand, and downloadResume must generate a pre-signed URL with short expiration (e.g. 15 minutes) for private buckets.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "apps/backend/src/controllers/candidatePortal.controller.js",
+        "line": 326,
+        "scope": "applyForJob",
+        "description": "Candidate uploads resume file during job application."
+      },
+      {
+        "kind": "propagation",
+        "file": "apps/backend/src/utils/storage.adapter.js",
+        "line": 61,
+        "scope": "StorageService.saveFile",
+        "description": "Branches on this.driver === 's3' and returns calculated URL without uploading buffer."
+      },
+      {
+        "kind": "sink",
+        "file": "apps/backend/src/controllers/candidatePortal.controller.js",
+        "line": 1563,
+        "scope": "downloadResume",
+        "description": "Executes res.redirect(remoteUrl) sending client to an unauthenticated public S3 URL."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "apps/backend/src/utils/storage.adapter.js",
+        "line": 61,
+        "description": "Method saveFile() returns string URL when this.driver === 's3' without any SDK client instantiation or putObject execution."
+      },
+      {
+        "file": "apps/backend/src/controllers/candidatePortal.controller.js",
+        "line": 1563,
+        "description": "Direct redirection 'return res.redirect(remoteUrl)' without generating pre-signed GET URL."
+      },
+      {
+        "file": "apps/backend/package.json",
+        "line": 36,
+        "description": "@aws-sdk/client-s3 and @aws-sdk/s3-request-presigner are absent from backend dependencies."
+      }
+    ],
+    "conditions": [
+      {
+        "kind": "system_configuration",
+        "description": "STORAGE_DRIVER environment variable is set to 's3' in production."
+      }
+    ],
+    "execution": {
+      "attacker_perspective": "Candidate or recruiter attempting to persist or download resumes when cloud object storage is configured.",
+      "payloads": [
+        "POST /api/candidate/apply (multipart/form-data with resume file)",
+        "GET /uploads/resumes/resume-candidate-123.pdf"
+      ],
+      "instructions": [
+        "Configure STORAGE_DRIVER=s3 and S3_BUCKET=thinkwires-resumes in environment.",
+        "Candidate submits application with resume.",
+        "Observe that saveFile returns an S3 URL, but the file buffer is never persisted to the S3 bucket.",
+        "Authenticated candidate or recruiter requests resume download via /uploads/resumes/:filename.",
+        "Backend issues 302 redirect to https://thinkwires-resumes.s3.amazonaws.com/resumes/filename.",
+        "Client receives 404/403 XML error from S3."
+      ],
+      "observed_result": "Uploaded resumes are permanently lost on S3 driver; download requests fail with S3 403/404 Access Denied, or expose documents publicly if bucket ACL is unauthenticated public-read."
+    },
+    "remediation": {
+      "strategy": "Install @aws-sdk/client-s3 and @aws-sdk/s3-request-presigner. Implement S3Client.send(new PutObjectCommand(...)) in saveFile(), and generate a 15-minute pre-signed GET URL using getSignedUrl in downloadResume().",
+      "code_changes": [
+        {
+          "file_name": "apps/backend/src/utils/storage.adapter.js",
+          "fixed_code": "import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';\nconst s3Client = new S3Client({ region: this.region });\nawait s3Client.send(new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: fileBuffer, ContentType: mimeType }));"
+        },
+        {
+          "file_name": "apps/backend/src/controllers/candidatePortal.controller.js",
+          "fixed_code": "const presignedUrl = await storageService.getPresignedDownloadUrl(safeFilename, 'resumes', 900);\nreturn res.redirect(presignedUrl);"
+        }
+      ]
+    },
+    "severity": {
+      "likelihood": {
+        "score": "high",
+        "reason": "Occurs deterministically on every file upload and download operation whenever STORAGE_DRIVER=s3 is enabled in production."
+      },
+      "impact": {
+        "score": "high",
+        "reason": "Permanent loss of uploaded resume files and failure of core applicant tracking recruitment workflows."
+      },
+      "overall_severity": "high"
+    },
+    "confidence": {
+      "score": "high",
+      "reason": "Confirmed via source code inspection of storage.adapter.js, candidatePortal.controller.js, and package.json."
+    }
+  }
+]

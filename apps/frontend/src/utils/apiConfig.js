@@ -64,16 +64,40 @@ export const clearCandidateToken = () => {
   }
 };
 
+export const getCsrfTokenFromCookie = () => {
+  try {
+    if (typeof document !== 'undefined' && document.cookie) {
+      const match = document.cookie.match(
+        /(?:^|;\s*)thinkwires_csrf_token=([^;]+)/
+      );
+      if (match) {
+        return decodeURIComponent(match[1]);
+      }
+    }
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem('tw_csrf_token');
+      if (stored) return stored;
+    }
+  } catch {
+    // Ignore in private/restricted storage modes
+  }
+  return null;
+};
+
 /**
  * Returns authorization headers including Bearer token if available.
  * Transmits credentials in dual-mode (HttpOnly cookie + Authorization header)
- * for maximum resilience across cross-domain deployments.
+ * and attaches anti-CSRF token on candidate mutations (SEC-CSRF-02).
  */
 export const getCandidateAuthHeaders = (additionalHeaders = {}) => {
   const headers = { ...additionalHeaders };
   const token = getCandidateToken();
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  }
+  const csrf = getCsrfTokenFromCookie();
+  if (csrf) {
+    headers['X-CSRF-Token'] = csrf;
   }
   return headers;
 };

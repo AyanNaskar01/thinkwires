@@ -36,7 +36,7 @@ services:
     container_name: thinkwires-mongo
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       - mongodb_data:/data/db
     healthcheck:
@@ -51,7 +51,7 @@ services:
     container_name: thinkwires-postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       - POSTGRES_USER=thinkwires
       - POSTGRES_PASSWORD=thinkwires_secret
@@ -70,7 +70,7 @@ services:
     container_name: thinkwires-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
 

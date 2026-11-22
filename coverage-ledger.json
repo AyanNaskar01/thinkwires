@@ -1,0 +1,551 @@
+[
+  {
+    "canonical_refs": {
+      "surface": "AI Processing / Resume Parser",
+      "boundary": "Untrusted Candidate Document vs LLM Context",
+      "subsystem": "apps/ai_services/app/services/resume_parser.py",
+      "attack_class": "AI-AND-LLM.md#Indirect injection through retrieved or ingested content"
+    },
+    "surface": "AI Processing / Resume Parser",
+    "boundary": "Untrusted Candidate Document vs LLM Context",
+    "subsystem": "apps/ai_services/app/services/resume_parser.py",
+    "attack_class": "Indirect injection through retrieved or ingested content",
+    "starting_paths": [
+      "apps/ai_services/app/services/resume_parser.py"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Injection",
+    "selected_companion_blocks": [
+      "AI-AND-LLM.md#Indirect injection through retrieved or ingested content"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "covered",
+    "agent_id": "auditor-core",
+    "reviewed_paths": [
+      "apps/ai_services/app/services/resume_parser.py"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "auditor-core",
+        "reviewed_paths": [
+          "apps/ai_services/app/services/resume_parser.py"
+        ],
+        "invariant": "Resume parser must isolate untrusted text and neutralize adversarial prompt injection directives.",
+        "method": "source",
+        "result": "Verified XML delimiter isolation, regex filtering of adversarial prompt tokens, and strict JSON parsing.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [],
+    "unresolved": [],
+    "coverage_id": "AI%20Processing%20%2F%20Resume%20Parser::Untrusted%20Candidate%20Document%20vs%20LLM%20Context::apps%2Fai_services%2Fapp%2Fservices%2Fresume_parser.py::AI-AND-LLM.md%23Indirect%20injection%20through%20retrieved%20or%20ingested%20content"
+  },
+  {
+    "canonical_refs": {
+      "surface": "Browser Client / React 19 Frontend",
+      "boundary": "External Data vs Browser DOM Execution",
+      "subsystem": "apps/frontend/src/App.jsx",
+      "attack_class": "CLIENT-SIDE.md#DOM and client-side injection"
+    },
+    "surface": "Browser Client / React 19 Frontend",
+    "boundary": "External Data vs Browser DOM Execution",
+    "subsystem": "apps/frontend/src/App.jsx",
+    "attack_class": "DOM and client-side injection",
+    "starting_paths": [
+      "apps/frontend/src/App.jsx",
+      "apps/frontend/src/admin/adminService.js"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Injection",
+    "selected_companion_blocks": [
+      "CLIENT-SIDE.md#DOM and client-side injection"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "covered",
+    "agent_id": "auditor-core",
+    "reviewed_paths": [
+      "apps/frontend/src/App.jsx",
+      "apps/frontend/src/admin/adminService.js"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "auditor-core",
+        "reviewed_paths": [
+          "apps/frontend/src/App.jsx",
+          "apps/frontend/src/admin/adminService.js"
+        ],
+        "invariant": "Client-side rendering must prevent DOM XSS and avoid insecure localStorage token storage.",
+        "method": "source",
+        "result": "Verified zero dangerouslySetInnerHTML/eval calls, HttpOnly cookies for admin, and in-memory tokens for candidates.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [],
+    "unresolved": [],
+    "coverage_id": "Browser%20Client%20%2F%20React%2019%20Frontend::External%20Data%20vs%20Browser%20DOM%20Execution::apps%2Ffrontend%2Fsrc%2FApp.jsx::CLIENT-SIDE.md%23DOM%20and%20client-side%20injection"
+  },
+  {
+    "canonical_refs": {
+      "surface": "Cloud Storage / S3 Bucket Infrastructure",
+      "boundary": "Public Internet vs Private Resume Bucket",
+      "subsystem": "apps/backend/src/utils/storage.adapter.js",
+      "attack_class": "CLOUD-AND-DEPLOYMENT.md#Storage and object-store access policies"
+    },
+    "surface": "Cloud Storage / S3 Bucket Infrastructure",
+    "boundary": "Public Internet vs Private Resume Bucket",
+    "subsystem": "apps/backend/src/utils/storage.adapter.js",
+    "attack_class": "Storage and object-store access policies",
+    "starting_paths": [
+      "apps/backend/src/utils/storage.adapter.js"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Resource and file handling",
+    "selected_companion_blocks": [
+      "CLOUD-AND-DEPLOYMENT.md#Storage and object-store access policies"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "candidate",
+    "agent_id": "auditor-core",
+    "reviewed_paths": [
+      "apps/backend/src/utils/storage.adapter.js"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "auditor-core",
+        "reviewed_paths": [
+          "apps/backend/src/utils/storage.adapter.js"
+        ],
+        "invariant": "Cloud object storage bucket must block public read access and enforce least-privilege IAM policies.",
+        "method": "source",
+        "result": "Live S3 bucket policies and public access blocks cannot be observed from repository source code alone.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [
+      "NV-CLD-01"
+    ],
+    "unresolved": [
+      "Requires cloud console inspection of AWS S3 Block Public Access and bucket ACL settings."
+    ],
+    "coverage_id": "Cloud%20Storage%20%2F%20S3%20Bucket%20Infrastructure::Public%20Internet%20vs%20Private%20Resume%20Bucket::apps%2Fbackend%2Fsrc%2Futils%2Fstorage.adapter.js::CLOUD-AND-DEPLOYMENT.md%23Storage%20and%20object-store%20access%20policies"
+  },
+  {
+    "canonical_refs": {
+      "surface": "Database Layer / Sequelize & Mongoose",
+      "boundary": "Untrusted Input vs Database Engine",
+      "subsystem": "apps/backend/src/configs/db.js",
+      "attack_class": "ATTACK-CLASSES.md#Injection"
+    },
+    "surface": "Database Layer / Sequelize & Mongoose",
+    "boundary": "Untrusted Input vs Database Engine",
+    "subsystem": "apps/backend/src/configs/db.js",
+    "attack_class": "Injection",
+    "starting_paths": [
+      "apps/backend/src/configs/db.js",
+      "apps/backend/src/configs/mongodb.js"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Injection",
+    "selected_companion_blocks": [
+      "DATA-ISOLATION-AND-LIFECYCLE.md#Core discipline"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "candidate",
+    "agent_id": "auditor-core",
+    "reviewed_paths": [
+      "apps/backend/src/configs/db.js",
+      "apps/backend/src/configs/mongodb.js"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "auditor-core",
+        "reviewed_paths": [
+          "apps/backend/src/configs/db.js",
+          "apps/backend/src/configs/mongodb.js"
+        ],
+        "invariant": "Database connections must enforce strict TLS certificate validation without MITM bypass.",
+        "method": "source",
+        "result": "PostgreSQL configuration disables certificate chain validation (rejectUnauthorized: false) for cloud databases unless DB_CA_CERT is provided.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [
+      "NV-DB-01"
+    ],
+    "unresolved": [
+      "Requires deployment observation to verify whether cloud provider supplies trusted CA bundle."
+    ],
+    "coverage_id": "Database%20Layer%20%2F%20Sequelize%20%26%20Mongoose::Untrusted%20Input%20vs%20Database%20Engine::apps%2Fbackend%2Fsrc%2Fconfigs%2Fdb.js::ATTACK-CLASSES.md%23Injection"
+  },
+  {
+    "canonical_refs": {
+      "surface": "File Ingestion / Resume Storage",
+      "boundary": "Uploaded File vs Server Disk & Object Store",
+      "subsystem": "apps/backend/src/utils/storage.adapter.js",
+      "attack_class": "ATTACK-CLASSES.md#Resource and file handling"
+    },
+    "surface": "File Ingestion / Resume Storage",
+    "boundary": "Uploaded File vs Server Disk & Object Store",
+    "subsystem": "apps/backend/src/utils/storage.adapter.js",
+    "attack_class": "Resource and file handling",
+    "starting_paths": [
+      "apps/backend/src/utils/storage.adapter.js",
+      "apps/backend/src/controllers/candidatePortal.controller.js"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Resource and file handling",
+    "selected_companion_blocks": [
+      "CLOUD-AND-DEPLOYMENT.md#Core discipline"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "candidate",
+    "agent_id": "auditor-core",
+    "reviewed_paths": [
+      "apps/backend/src/utils/storage.adapter.js",
+      "apps/backend/src/controllers/candidatePortal.controller.js"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "auditor-core",
+        "reviewed_paths": [
+          "apps/backend/src/utils/storage.adapter.js",
+          "apps/backend/src/controllers/candidatePortal.controller.js"
+        ],
+        "invariant": "Object storage driver must reliably persist uploaded files and serve them via authorized pre-signed URLs.",
+        "method": "source",
+        "result": "Discovered S3 storage driver omits actual file buffer upload to AWS/R2 and redirects to public unauthenticated URL.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [
+      "SEC-STA-01"
+    ],
+    "unresolved": [],
+    "coverage_id": "File%20Ingestion%20%2F%20Resume%20Storage::Uploaded%20File%20vs%20Server%20Disk%20%26%20Object%20Store::apps%2Fbackend%2Fsrc%2Futils%2Fstorage.adapter.js::ATTACK-CLASSES.md%23Resource%20and%20file%20handling"
+  },
+  {
+    "canonical_refs": {
+      "surface": "HTTP API / Admin Portal",
+      "boundary": "CMS Admin vs Recruiter ATS Data Access",
+      "subsystem": "apps/backend/src/middlewares/auth.middleware.js",
+      "attack_class": "ATTACK-CLASSES.md#Access control"
+    },
+    "surface": "HTTP API / Admin Portal",
+    "boundary": "CMS Admin vs Recruiter ATS Data Access",
+    "subsystem": "apps/backend/src/middlewares/auth.middleware.js",
+    "attack_class": "Access control",
+    "starting_paths": [
+      "apps/backend/src/middlewares/auth.middleware.js",
+      "apps/backend/src/routes/admin.route.js"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+    "selected_companion_blocks": [
+      "WEB-PROTOCOL-AND-AUTH.md#Core discipline"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "covered",
+    "agent_id": "auditor-core",
+    "reviewed_paths": [
+      "apps/backend/src/middlewares/auth.middleware.js",
+      "apps/backend/src/routes/admin.route.js"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "auditor-core",
+        "reviewed_paths": [
+          "apps/backend/src/middlewares/auth.middleware.js",
+          "apps/backend/src/routes/admin.route.js"
+        ],
+        "invariant": "CMS Admin accounts must not access manpower or candidate recruitment records.",
+        "method": "source",
+        "result": "Verified manpowerGuard blocks CMS admin with 403 Forbidden across all candidate and placement routes.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [],
+    "unresolved": [],
+    "coverage_id": "HTTP%20API%20%2F%20Admin%20Portal::CMS%20Admin%20vs%20Recruiter%20ATS%20Data%20Access::apps%2Fbackend%2Fsrc%2Fmiddlewares%2Fauth.middleware.js::ATTACK-CLASSES.md%23Access%20control"
+  },
+  {
+    "canonical_refs": {
+      "surface": "HTTP API / Admin Portal",
+      "boundary": "Cross-Site Browser vs Admin Session",
+      "subsystem": "apps/backend/src/middlewares/csrf.middleware.js",
+      "attack_class": "WEB-PROTOCOL-AND-AUTH.md#CSRF and cross-origin state changes"
+    },
+    "surface": "HTTP API / Admin Portal",
+    "boundary": "Cross-Site Browser vs Admin Session",
+    "subsystem": "apps/backend/src/middlewares/csrf.middleware.js",
+    "attack_class": "CSRF and cross-origin state changes",
+    "starting_paths": [
+      "apps/backend/src/middlewares/csrf.middleware.js"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+    "selected_companion_blocks": [
+      "WEB-PROTOCOL-AND-AUTH.md#CSRF and cross-origin state changes"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "covered",
+    "agent_id": "auditor-core",
+    "reviewed_paths": [
+      "apps/backend/src/middlewares/csrf.middleware.js"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "auditor-core",
+        "reviewed_paths": [
+          "apps/backend/src/middlewares/csrf.middleware.js"
+        ],
+        "invariant": "Admin state mutations must require valid double-submit CSRF token matching cookie.",
+        "method": "source",
+        "result": "Verified adminCsrfProtection enforces constant-time crypto.timingSafeEqual and strict owner Vercel regex.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [],
+    "unresolved": [],
+    "coverage_id": "HTTP%20API%20%2F%20Admin%20Portal::Cross-Site%20Browser%20vs%20Admin%20Session::apps%2Fbackend%2Fsrc%2Fmiddlewares%2Fcsrf.middleware.js::WEB-PROTOCOL-AND-AUTH.md%23CSRF%20and%20cross-origin%20state%20changes"
+  },
+  {
+    "canonical_refs": {
+      "surface": "HTTP API / Auth Controller",
+      "boundary": "Candidate Token vs Admin Token Domain Separation",
+      "subsystem": "apps/backend/src/utils/auth.util.js",
+      "attack_class": "WEB-PROTOCOL-AND-AUTH.md#JWT, session, and credential boundaries"
+    },
+    "surface": "HTTP API / Auth Controller",
+    "boundary": "Candidate Token vs Admin Token Domain Separation",
+    "subsystem": "apps/backend/src/utils/auth.util.js",
+    "attack_class": "JWT, session, and credential boundaries",
+    "starting_paths": [
+      "apps/backend/src/utils/auth.util.js"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+    "selected_companion_blocks": [
+      "WEB-PROTOCOL-AND-AUTH.md#JWT, session, and credential boundaries"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "covered",
+    "agent_id": "auditor-core",
+    "reviewed_paths": [
+      "apps/backend/src/utils/auth.util.js"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "auditor-core",
+        "reviewed_paths": [
+          "apps/backend/src/utils/auth.util.js"
+        ],
+        "invariant": "Admin and Candidate JWTs must use cryptographically distinct secrets and tokens.",
+        "method": "source",
+        "result": "Verified getAdminJwtSecret enforces 256-bit entropy and distinct secret from JWT_SECRET in production.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [],
+    "unresolved": [],
+    "coverage_id": "HTTP%20API%20%2F%20Auth%20Controller::Candidate%20Token%20vs%20Admin%20Token%20Domain%20Separation::apps%2Fbackend%2Fsrc%2Futils%2Fauth.util.js::WEB-PROTOCOL-AND-AUTH.md%23JWT%2C%20session%2C%20and%20credential%20boundaries"
+  },
+  {
+    "canonical_refs": {
+      "surface": "HTTP API / Candidate Portal",
+      "boundary": "Candidate vs Candidate Tenant Isolation",
+      "subsystem": "apps/backend/src/controllers/candidatePortal.controller.js",
+      "attack_class": "ATTACK-CLASSES.md#Access control"
+    },
+    "surface": "HTTP API / Candidate Portal",
+    "boundary": "Candidate vs Candidate Tenant Isolation",
+    "subsystem": "apps/backend/src/controllers/candidatePortal.controller.js",
+    "attack_class": "Access control",
+    "starting_paths": [
+      "apps/backend/src/controllers/candidatePortal.controller.js"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+    "selected_companion_blocks": [
+      "WEB-PROTOCOL-AND-AUTH.md#Core discipline"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "covered",
+    "agent_id": "auditor-core",
+    "reviewed_paths": [
+      "apps/backend/src/controllers/candidatePortal.controller.js"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "auditor-core",
+        "reviewed_paths": [
+          "apps/backend/src/controllers/candidatePortal.controller.js"
+        ],
+        "invariant": "Candidate queries must be strictly scoped to the authenticated candidate ID.",
+        "method": "source",
+        "result": "Verified candidateId query scoping on timesheets, dossiers, and applications.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [],
+    "unresolved": [],
+    "coverage_id": "HTTP%20API%20%2F%20Candidate%20Portal::Candidate%20vs%20Candidate%20Tenant%20Isolation::apps%2Fbackend%2Fsrc%2Fcontrollers%2FcandidatePortal.controller.js::ATTACK-CLASSES.md%23Access%20control"
+  },
+  {
+    "canonical_refs": {
+      "surface": "HTTP API / Candidate Portal",
+      "boundary": "Cross-Site Browser vs Candidate Session",
+      "subsystem": "apps/backend/src/routes/candidate.route.js",
+      "attack_class": "WEB-PROTOCOL-AND-AUTH.md#CSRF and cross-origin state changes"
+    },
+    "surface": "HTTP API / Candidate Portal",
+    "boundary": "Cross-Site Browser vs Candidate Session",
+    "subsystem": "apps/backend/src/routes/candidate.route.js",
+    "attack_class": "CSRF and cross-origin state changes",
+    "starting_paths": [
+      "apps/backend/src/routes/candidate.route.js"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+    "selected_companion_blocks": [
+      "WEB-PROTOCOL-AND-AUTH.md#CSRF and cross-origin state changes"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "candidate",
+    "agent_id": "auditor-core",
+    "reviewed_paths": [
+      "apps/backend/src/routes/candidate.route.js",
+      "apps/backend/src/utils/auth.util.js"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "auditor-core",
+        "reviewed_paths": [
+          "apps/backend/src/routes/candidate.route.js",
+          "apps/backend/src/utils/auth.util.js"
+        ],
+        "invariant": "State-changing candidate operations must be protected against cross-site request forgery.",
+        "method": "source",
+        "result": "Candidate routes lack CSRF synchronizer tokens and rely on origin checks that pass when headers are absent; cookie defaults to SameSite None.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [
+      "SEC-CSRF-02"
+    ],
+    "unresolved": [],
+    "coverage_id": "HTTP%20API%20%2F%20Candidate%20Portal::Cross-Site%20Browser%20vs%20Candidate%20Session::apps%2Fbackend%2Fsrc%2Froutes%2Fcandidate.route.js::WEB-PROTOCOL-AND-AUTH.md%23CSRF%20and%20cross-origin%20state%20changes"
+  },
+  {
+    "canonical_refs": {
+      "surface": "HTTP Ingress / Rate Limiting Middleware",
+      "boundary": "Untrusted Traffic vs Shared Gateway Resources",
+      "subsystem": "apps/backend/src/middlewares/rateLimiter.middleware.js",
+      "attack_class": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Rate, quota, and concurrency limits"
+    },
+    "surface": "HTTP Ingress / Rate Limiting Middleware",
+    "boundary": "Untrusted Traffic vs Shared Gateway Resources",
+    "subsystem": "apps/backend/src/middlewares/rateLimiter.middleware.js",
+    "attack_class": "Rate, quota, and concurrency limits",
+    "starting_paths": [
+      "apps/backend/src/middlewares/rateLimiter.middleware.js"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Resource and file handling",
+    "selected_companion_blocks": [
+      "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Rate, quota, and concurrency limits"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "covered",
+    "agent_id": "auditor-core",
+    "reviewed_paths": [
+      "apps/backend/src/middlewares/rateLimiter.middleware.js"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "auditor-core",
+        "reviewed_paths": [
+          "apps/backend/src/middlewares/rateLimiter.middleware.js"
+        ],
+        "invariant": "Authentication endpoints must throttle abusive requests atomically and fail closed for admin auth in production.",
+        "method": "source",
+        "result": "Verified Redis Lua script atomic increment, compound IP + account throttling, and fail-closed admin auth.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [],
+    "unresolved": [],
+    "coverage_id": "HTTP%20Ingress%20%2F%20Rate%20Limiting%20Middleware::Untrusted%20Traffic%20vs%20Shared%20Gateway%20Resources::apps%2Fbackend%2Fsrc%2Fmiddlewares%2FrateLimiter.middleware.js::RESOURCE-EXHAUSTION-AND-AVAILABILITY.md%23Rate%2C%20quota%2C%20and%20concurrency%20limits"
+  },
+  {
+    "canonical_refs": {
+      "surface": "Internal Microservice / FastAPI HTTP",
+      "boundary": "Public Network vs Internal AI Engine",
+      "subsystem": "apps/ai_services/app/api/deps.py",
+      "attack_class": "ATTACK-CLASSES.md#Access control"
+    },
+    "surface": "Internal Microservice / FastAPI HTTP",
+    "boundary": "Public Network vs Internal AI Engine",
+    "subsystem": "apps/ai_services/app/api/deps.py",
+    "attack_class": "Access control",
+    "starting_paths": [
+      "apps/ai_services/app/api/deps.py",
+      "apps/backend/src/services/ai.service.js"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+    "selected_companion_blocks": [
+      "AI-AND-LLM.md#Core discipline"
+    ],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "candidate",
+    "agent_id": "auditor-core",
+    "reviewed_paths": [
+      "apps/ai_services/app/api/deps.py",
+      "apps/backend/src/services/ai.service.js"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "auditor-core",
+        "reviewed_paths": [
+          "apps/ai_services/app/api/deps.py",
+          "apps/backend/src/services/ai.service.js"
+        ],
+        "invariant": "Internal AI microservice must reject unauthenticated requests and be confined to internal network.",
+        "method": "source",
+        "result": "Verified X-Internal-AI-Key authentication enforced; network ingress isolation requires infrastructure policy verification.",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [
+      "NV-NET-01"
+    ],
+    "unresolved": [
+      "Requires deployment observation of Kubernetes NetworkPolicy or VPC ingress security rules."
+    ],
+    "coverage_id": "Internal%20Microservice%20%2F%20FastAPI%20HTTP::Public%20Network%20vs%20Internal%20AI%20Engine::apps%2Fai_services%2Fapp%2Fapi%2Fdeps.py::ATTACK-CLASSES.md%23Access%20control"
+  }
+]

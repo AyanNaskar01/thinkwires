@@ -10,6 +10,11 @@ import {
   clearAuthCookie,
   revokeToken,
 } from '../utils/auth.util.js';
+import {
+  generateCsrfToken,
+  setCsrfCookie,
+  clearCsrfCookie,
+} from '../middlewares/csrf.middleware.js';
 
 // In-memory fallback if MongoDB is offline during local development
 const localDevCandidates = new Map();
@@ -104,6 +109,8 @@ export const registerCandidate = async (req, res) => {
 
     const token = generateCandidateToken(candidate);
     setAuthCookie(res, token);
+    const csrfToken = generateCsrfToken();
+    setCsrfCookie(res, csrfToken);
 
     return res.status(201).json({
       success: true,
@@ -171,6 +178,8 @@ export const loginCandidate = async (req, res) => {
 
     const token = generateCandidateToken(candidate);
     setAuthCookie(res, token);
+    const csrfToken = generateCsrfToken();
+    setCsrfCookie(res, csrfToken);
 
     return res.status(200).json({
       success: true,
@@ -247,6 +256,7 @@ export const logoutCandidate = async (req, res) => {
     }
 
     clearAuthCookie(res);
+    clearCsrfCookie(res);
     return res.status(200).json({
       success: true,
       message: 'Logged out successfully.',
