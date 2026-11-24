@@ -3,8 +3,13 @@ import {
   candidateCsrfProtection,
   CSRF_COOKIE_NAME,
   generateCsrfToken,
+  setCsrfCookie,
 } from '../../middlewares/csrf.middleware.js';
-import { generateCandidateToken, setAuthCookie } from '../../utils/auth.util.js';
+import {
+  generateCandidateToken,
+  setAuthCookie,
+  getCookieConfig,
+} from '../../utils/auth.util.js';
 
 describe('Candidate Portal Anti-CSRF & Cookie Protection (SEC-CSRF-02)', () => {
   const origEnv = { ...process.env };
@@ -164,7 +169,7 @@ describe('Candidate Portal Anti-CSRF & Cookie Protection (SEC-CSRF-02)', () => {
     expect(called).toBe(true);
   });
 
-  it('setAuthCookie defaults sameSite to lax in production', () => {
+  it('setAuthCookie defaults sameSite to none and secure to true in production for cross-site Vercel <-> Render deployment', () => {
     process.env.NODE_ENV = 'production';
     delete process.env.COOKIE_SAME_SITE;
 
@@ -177,8 +182,71 @@ describe('Candidate Portal Anti-CSRF & Cookie Protection (SEC-CSRF-02)', () => {
 
     setAuthCookie(mockRes, 'dummy-token');
 
-    expect(cookieOptions.sameSite).toBe('lax');
+    expect(cookieOptions.sameSite).toBe('none');
     expect(cookieOptions.httpOnly).toBe(true);
     expect(cookieOptions.secure).toBe(true);
+    expect(cookieOptions.path).toBe('/');
+  });
+
+  it('setAuthCookie respects COOKIE_SAME_SITE override (e.g. lax for shared custom domain)', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.COOKIE_SAME_SITE = 'lax';
+
+    let cookieOptions = null;
+    const mockRes = {
+      cookie: (name, val, opts) => {
+        cookieOptions = opts;
+      },
+    };
+
+    setAuthCookie(mockRes, 'dummy-token');
+
+    expect(cookieOptions.sameSite).toBe('lax');
+    expect(cookieOptions.secure).toBe(true);
+  });
+
+  it('setAuthCookie respects COOKIE_DOMAIN for shared apex domain deployments', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.COOKIE_SAME_SITE = 'lax';
+    process.env.COOKIE_DOMAIN = '.thinkwires.com';
+
+    let cookieOptions = null;
+    const mockRes = {
+      cookie: (name, val, opts) => {
+        cookieOptions = opts;
+      },
+    };
+
+    setAuthCookie(mockRes, 'dummy-token');
+
+    expect(cookieOptions.domain).toBe('.thinkwires.com');
+    expect(cookieOptions.sameSite).toBe('lax');
+  });
+
+  it('setCsrfCookie aligns with auth cookie SameSite=None and Secure attributes in production', () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.COOKIE_SAME_SITE;
+
+    let cookieOptions = null;
+    const mockRes = {
+      cookie: (name, val, opts) => {
+        cookieOptions = opts;
+      },
+    };
+
+    setCsrfCookie(mockRes, 'dummy-csrf-token');
+
+    expect(cookieOptions.sameSite).toBe('none');
+    expect(cookieOptions.secure).toBe(true);
+    expect(cookieOptions.httpOnly).toBe(false);
+  });
+
+  it('defaults sameSite to lax in development mode for HTTP compatibility', () => {
+    process.env.NODE_ENV = 'development';
+    delete process.env.COOKIE_SAME_SITE;
+
+    const config = getCookieConfig(true);
+    expect(config.sameSite).toBe('lax');
+    expect(config.secure).toBe(false);
   });
 });

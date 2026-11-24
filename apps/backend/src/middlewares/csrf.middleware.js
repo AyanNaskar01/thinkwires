@@ -1,5 +1,9 @@
 import crypto from 'crypto';
-import { verifyAdminToken, verifyCandidateToken } from '../utils/auth.util.js';
+import {
+  verifyAdminToken,
+  verifyCandidateToken,
+  getCookieConfig,
+} from '../utils/auth.util.js';
 
 export const CSRF_COOKIE_NAME = 'thinkwires_csrf_token';
 
@@ -8,30 +12,23 @@ export const generateCsrfToken = () => {
 };
 
 export const setCsrfCookie = (res, token) => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const sameSite =
-    process.env.COOKIE_SAME_SITE || (isProduction ? 'none' : 'lax');
-  const secure = isProduction || sameSite.toLowerCase() === 'none';
-  res.cookie(CSRF_COOKIE_NAME, token, {
-    httpOnly: false, // Must be readable by client JS for double-submit header
-    secure,
-    sameSite,
-    path: '/',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  res.cookie(
+    CSRF_COOKIE_NAME,
+    token,
+    getCookieConfig(false, {
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+    })
+  );
 };
 
 export const clearCsrfCookie = (res) => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const sameSite =
-    process.env.COOKIE_SAME_SITE || (isProduction ? 'none' : 'lax');
-  const secure = isProduction || sameSite.toLowerCase() === 'none';
-  res.cookie(CSRF_COOKIE_NAME, '', {
-    httpOnly: false,
-    secure,
-    sameSite,
+  const opts = getCookieConfig(false, {
     expires: new Date(0),
-    path: '/',
+  });
+  res.cookie(CSRF_COOKIE_NAME, '', { ...opts, path: '/' });
+  ['/api/candidate', '/api/admin', '/api/auth', '/api', '/'].forEach((p) => {
+    res.clearCookie(CSRF_COOKIE_NAME, { ...opts, path: p });
   });
 };
 

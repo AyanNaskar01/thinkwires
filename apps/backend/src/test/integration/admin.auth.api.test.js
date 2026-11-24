@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import jwt from 'jsonwebtoken';
 import { api, getAdminAuthCookie } from '../test-helper.js';
+import { inMemoryData } from '../../controllers/admin.controller.js';
 import {
   getJwtSecret,
   getAdminJwtSecret,
@@ -28,6 +29,19 @@ describe('Admin Authentication & Cookie Security (Integration Tests)', () => {
 
   beforeEach(async () => {
     await clearRevocationStore();
+    inMemoryData.users = inMemoryData.users || [];
+    if (!inMemoryData.users.some((u) => u.email === adminCredentials.email)) {
+      inMemoryData.users.push({
+        id: 'test-admin-001',
+        _id: 'test-admin-001',
+        name: 'Admin Test',
+        email: adminCredentials.email,
+        password: adminCredentials.password,
+        role: 'admin',
+        designation: 'System Administrator',
+        isActive: true,
+      });
+    }
   });
 
   describe('POST /api/admin/auth/login', () => {
@@ -111,7 +125,7 @@ describe('Admin Authentication & Cookie Security (Integration Tests)', () => {
       }
     });
 
-    it('sets Secure and SameSite=Strict attributes in production environment', () => {
+    it('sets Secure and SameSite=None attributes in production environment for cross-site deployment', () => {
       process.env.NODE_ENV = 'production';
 
       const mockRes = {
@@ -127,9 +141,27 @@ describe('Admin Authentication & Cookie Security (Integration Tests)', () => {
       expect(cookieEntry).toBeDefined();
       expect(cookieEntry.opts.httpOnly).toBe(true);
       expect(cookieEntry.opts.secure).toBe(true);
-      expect(cookieEntry.opts.sameSite).toBe('strict');
+      expect(cookieEntry.opts.sameSite).toBe('none');
       expect(cookieEntry.opts.path).toBe('/api/admin');
       expect(cookieEntry.opts.maxAge).toBe(7 * 24 * 60 * 60 * 1000);
+    });
+
+    it('respects COOKIE_SAME_SITE=strict when configured in production', () => {
+      process.env.NODE_ENV = 'production';
+      process.env.COOKIE_SAME_SITE = 'strict';
+
+      const mockRes = {
+        cookies: {},
+        cookie(name, val, opts) {
+          this.cookies[name] = { val, opts };
+        },
+      };
+
+      setAdminAuthCookie(mockRes, 'dummy-test-token');
+
+      const cookieEntry = mockRes.cookies[ADMIN_COOKIE_NAME];
+      expect(cookieEntry.opts.sameSite).toBe('strict');
+      expect(cookieEntry.opts.secure).toBe(true);
     });
   });
 

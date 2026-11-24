@@ -230,31 +230,60 @@ export const hashResetToken = (rawToken) => {
   return crypto.createHash('sha256').update(rawToken).digest('hex');
 };
 
-export const setAuthCookie = (res, token) => {
+/**
+ * Resolves standard cookie configuration options across authentication and CSRF cookies.
+ *
+ * Architecture & Deployment note:
+ * - Thinkwires defaults to a decoupled deployment: Frontend on Vercel (*.vercel.app),
+ *   Backend on Render (*.onrender.com). Because these are distinct registrable domains
+ *   (eTLD+1), browser cross-site cookie transmission requires SameSite=None; Secure.
+ * - If a shared custom domain is deployed (e.g. app.thinkwires.com & api.thinkwires.com),
+ *   operators can set COOKIE_SAME_SITE=lax and COOKIE_DOMAIN=.thinkwires.com.
+ * - In non-production (e.g. localhost development), defaults to SameSite=lax for HTTP compatibility.
+ */
+export const getCookieConfig = (isHttpOnly = true, options = {}) => {
   const isProduction = process.env.NODE_ENV === 'production';
-  const sameSite = process.env.COOKIE_SAME_SITE || 'lax';
-  const secure = isProduction || sameSite.toLowerCase() === 'none';
-  res.cookie('thinkwires_candidate_jwt', token, {
-    httpOnly: true,
+  const sameSite = (
+    process.env.COOKIE_SAME_SITE || (isProduction ? 'none' : 'lax')
+  ).toLowerCase();
+
+  const secure = isProduction || sameSite === 'none';
+  const domain = process.env.COOKIE_DOMAIN || undefined;
+
+  const config = {
+    httpOnly: isHttpOnly,
     secure,
     sameSite,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    path: '/',
-  });
+    path: options.path || '/',
+    ...options,
+  };
+
+  if (domain) {
+    config.domain = domain;
+  }
+
+  return config;
+};
+
+export const CANDIDATE_COOKIE_NAME = 'thinkwires_candidate_jwt';
+
+export const setAuthCookie = (res, token) => {
+  res.cookie(
+    CANDIDATE_COOKIE_NAME,
+    token,
+    getCookieConfig(true, {
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+    })
+  );
 };
 
 export const clearAuthCookie = (res) => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const sameSite = process.env.COOKIE_SAME_SITE || 'lax';
-  const secure = isProduction || sameSite.toLowerCase() === 'none';
-  const opts = {
-    httpOnly: true,
-    secure,
-    sameSite,
+  const opts = getCookieConfig(true, {
     expires: new Date(0),
-  };
+  });
   ['/api/candidate', '/api/auth', '/api', '/'].forEach((p) => {
-    res.clearCookie('thinkwires_candidate_jwt', { ...opts, path: p });
+    res.clearCookie(CANDIDATE_COOKIE_NAME, { ...opts, path: p });
   });
 };
 
@@ -355,48 +384,20 @@ export const ADMIN_COOKIE_PATH = '/api/admin';
 export const ADMIN_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
 export const setAdminAuthCookie = (res, token) => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const req = res?.req;
-  const origin = req?.headers?.origin;
-  const isCrossOrigin =
-    origin &&
-    !origin.includes('localhost') &&
-    !origin.includes('127.0.0.1') &&
-    (origin.includes('vercel.app') || origin.includes('thinkwires.com'));
-
-  const sameSite =
-    process.env.COOKIE_SAME_SITE ||
-    (isCrossOrigin ? 'none' : isProduction ? 'strict' : 'lax');
-  const secure = isProduction || sameSite.toLowerCase() === 'none';
-  res.cookie(ADMIN_COOKIE_NAME, token, {
-    httpOnly: true,
-    secure,
-    sameSite,
-    maxAge: ADMIN_COOKIE_MAX_AGE,
-    path: ADMIN_COOKIE_PATH,
-  });
+  res.cookie(
+    ADMIN_COOKIE_NAME,
+    token,
+    getCookieConfig(true, {
+      maxAge: ADMIN_COOKIE_MAX_AGE,
+      path: ADMIN_COOKIE_PATH,
+    })
+  );
 };
 
 export const clearAdminAuthCookie = (res) => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const req = res?.req;
-  const origin = req?.headers?.origin;
-  const isCrossOrigin =
-    origin &&
-    !origin.includes('localhost') &&
-    !origin.includes('127.0.0.1') &&
-    (origin.includes('vercel.app') || origin.includes('thinkwires.com'));
-
-  const sameSite =
-    process.env.COOKIE_SAME_SITE ||
-    (isCrossOrigin ? 'none' : isProduction ? 'strict' : 'lax');
-  const secure = isProduction || sameSite.toLowerCase() === 'none';
-  const opts = {
-    httpOnly: true,
-    secure,
-    sameSite,
+  const opts = getCookieConfig(true, {
     expires: new Date(0),
-  };
+  });
   ['/api/admin', '/api', '/'].forEach((p) => {
     res.clearCookie(ADMIN_COOKIE_NAME, { ...opts, path: p });
   });

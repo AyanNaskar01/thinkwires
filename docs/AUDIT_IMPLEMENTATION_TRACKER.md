@@ -188,10 +188,29 @@ flowchart LR
 
 ---
 
-## 11. Verification & Definition of Done
+## 11. Milestone 10: CSRF & Cross-Site Cookie Architecture Unification (4 Issues)
+
+*Verification Suites:*
+- Candidate Anti-CSRF Tests: [`apps/backend/src/test/unit/candidate.csrf.test.js`](../apps/backend/src/test/unit/candidate.csrf.test.js) (12 tests passing)
+- Admin CSRF & Origin Tests: [`apps/backend/src/test/unit/csrf.middleware.test.js`](../apps/backend/src/test/unit/csrf.middleware.test.js) (13 tests passing)
+- Admin Auth & Cookie Integration Tests: [`apps/backend/src/test/integration/admin.auth.api.test.js`](../apps/backend/src/test/integration/admin.auth.api.test.js) (20 tests passing)
+- Full Backend Unit Suite: 301/301 tests passing (27 test files)
+- Full Frontend Suite: 325/325 tests passing (63 test files)
+
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
+| :--- | :---: | :--- | :--- | :--- |
+| **SEC-CSRF-03** | **HIGH** | `apps/backend/src/utils/auth.util.js`<br>`apps/backend/src/middlewares/csrf.middleware.js` | Inconsistent cookie policies across authentication and CSRF cookies broke cross-site cookie transmission (Vercel frontend <-> Render backend) | **Resolved**: Created centralized `getCookieConfig(isHttpOnly, options)` helper. Configures `SameSite=None; Secure: true` consistently across candidate auth (`thinkwires_candidate_jwt`), admin auth (`thinkwires_admin_jwt`), and CSRF (`thinkwires_csrf_token`) cookies in production. |
+| **SEC-CSRF-04** | **MEDIUM** | `apps/backend/src/utils/auth.util.js` | Inability to configure shared custom domain cookie policies (`.thinkwires.com`) | **Resolved**: Added `COOKIE_SAME_SITE` (e.g. `lax`, `strict`, `none`) and `COOKIE_DOMAIN` (e.g. `.thinkwires.com`) environment overrides across all cookie generators and clearing handlers, enabling seamless migration to shared apex domains. |
+| **SEC-CSRF-05** | **HIGH** | `apps/backend/src/middlewares/csrf.middleware.js` | Double-submit CSRF cookie protection retained under cross-site cookie architecture | **Resolved**: Maintained strict double-submit anti-CSRF token verification (`crypto.timingSafeEqual`) on state mutations (`POST`, `PUT`, `DELETE`, `PATCH`), alongside trusted origin/referer verification and OWASP custom header exemptions. |
+| **SEC-CSRF-06** | **MEDIUM** | `apps/backend/src/utils/auth.util.js`<br>`apps/backend/src/controllers/auth.controller.js`<br>`apps/backend/src/controllers/admin.controller.js` | Incomplete cookie cleardown on logout leaving lingering sessions or CSRF cookies | **Resolved**: Synchronized multi-path (`/api/candidate`, `/api/admin`, `/api/auth`, `/api`, `/`) cookie clearing with matching SameSite and Domain attributes across candidate and admin logout flows. |
+
+---
+
+## 12. Verification & Definition of Done
 
 Each milestone requires the following verification steps prior to closure:
 1. **Automated Unit & Integration Tests**: New test cases written under `apps/backend/src/test/` or `apps/frontend/src/test/` validating the security control.
 2. **Regression Verification**: Running `npm test` across the monorepo passes with zero failures.
 3. **Security Probe Verification**: Non-functional tests in `apps/backend/src/test/non-functional/` verify rejection of malicious payloads (NoSQL injection, path traversal, BOLA cross-tenant access).
+
 
