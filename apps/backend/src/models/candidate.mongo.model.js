@@ -255,11 +255,12 @@ candidateSchema.plugin(fieldEncryptionPlugin, {
 });
 
 // Partial unique index for active candidates to avoid collisions with soft-deleted profiles (Issue #210)
+// Uses equality expression { isDeleted: false } as MongoDB partialFilterExpression does not support $ne / $not
 candidateSchema.index(
   { email: 1 },
   {
     unique: true,
-    partialFilterExpression: { isDeleted: { $ne: true } },
+    partialFilterExpression: { isDeleted: false },
   }
 );
 candidateSchema.index({ resetPasswordToken: 1 }, { sparse: true });

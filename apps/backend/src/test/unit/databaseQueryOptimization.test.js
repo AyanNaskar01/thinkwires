@@ -317,7 +317,7 @@ describe('Database Query Optimization & Performance Suite', () => {
 
       expect(emailIndex).toBeDefined();
       expect(emailIndex[1].partialFilterExpression).toEqual({
-        isDeleted: { $ne: true },
+        isDeleted: false,
       });
     });
 
