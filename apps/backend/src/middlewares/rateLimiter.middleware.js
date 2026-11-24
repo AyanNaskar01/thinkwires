@@ -1,5 +1,15 @@
-import { getRedisClient, isRedisConnected } from '../configs/redis.js';
+import {
+  getRedisClient,
+  isRedisConnected,
+  alertRedisDegraded,
+} from '../configs/redis.js';
 import config from '../configs/dotenv.js';
+
+export const DEGRADED_POLICY = {
+  FAIL_CLOSED: 'FAIL_CLOSED',
+  TIGHTEN_LOCAL: 'TIGHTEN_LOCAL',
+  TIGHTEN_LOCAL_WITH_ACCOUNT: 'TIGHTEN_LOCAL_WITH_ACCOUNT',
+};
 
 /**
  * Atomic Lua script for Redis rate-limiting:
@@ -127,10 +137,12 @@ export const checkAtomicLimit = async (key, windowMs, maxHits, failClosed = fals
             isAllowed: count <= maxHits,
             isDegraded: false,
             store: 'redis',
+            scope: 'cluster',
           };
         }
       }
     } catch (redisErr) {
+      alertRedisDegraded('rateLimitCommand', redisErr.message);
       console.warn(
         `[RateLimit] Redis command failed on key ${key}: ${redisErr.message}`
       );
@@ -139,21 +151,30 @@ export const checkAtomicLimit = async (key, windowMs, maxHits, failClosed = fals
 
   // --- REDIS OUTAGE / DISCONNECTED FALLBACK LOGIC ---
   if (isProduction && failClosed) {
-    // Production Administrative Security: Fail closed when Redis is offline
+    alertRedisDegraded('failClosedCheck', `Fail-closed route triggered on key: ${key}`);
     console.error(
-      `🚨 [Security Alert] Redis cluster unavailable during fail-closed check on key: ${key}. Denying access to prevent distributed brute-force.`
+      `🚨 [Security Alert: SEC-04] Redis cluster unavailable during fail-closed check on key: ${key}. Denying access to prevent distributed brute-force.`
     );
     return {
       failClosed: true,
       store: 'fail-closed',
+      scope: 'cluster-enforced',
     };
   }
 
-  // Degraded In-Memory Policy for Public Routes
-  const effectiveMax = isProduction ? Math.max(1, Math.floor(maxHits * 0.5)) : maxHits;
+  // Degraded In-Memory Policy for Public and Semi-Privileged Endpoints
+  // In production with expected multi-instance deployment (e.g. 3 instances behind load balancer),
+  // each instance independently enforces a 50% tightened local threshold so aggregate does not breach safety.
+  const effectiveMax = isProduction
+    ? Math.max(1, Math.floor(maxHits * 0.5))
+    : maxHits;
+
   if (isProduction) {
+    alertRedisDegraded('degradedRateLimit', `Local in-memory fallback active for key: ${key}`);
     console.warn(
-      `⚠️ [Security Audit] DEGRADED_RATE_LIMIT_ACTIVE: Redis unavailable for key: ${key}. Operating under 50% tightened local memory policy (effectiveMax=${effectiveMax}).`
+      `⚠️ [Security Audit: SEC-04] DEGRADED_RATE_LIMIT_ACTIVE: Redis unavailable for key: ${key}. ` +
+        `Operating under 50% tightened local memory policy (effectiveMax=${effectiveMax}, nominal=${maxHits}). ` +
+        `Single-instance memory does not synchronize across distributed backend instances.`
     );
   }
 
@@ -164,6 +185,8 @@ export const checkAtomicLimit = async (key, windowMs, maxHits, failClosed = fals
     isAllowed: count <= effectiveMax,
     isDegraded: isProduction,
     store: 'memory',
+    scope: 'local-instance',
+    effectiveMax,
   };
 };
 
@@ -229,6 +252,16 @@ export const createRateLimiter = (options = {}) => {
     res.setHeader('RateLimit-Limit', String(max));
     res.setHeader('RateLimit-Remaining', String(remaining));
     res.setHeader('RateLimit-Reset', String(resetTimeSec));
+
+    // Explicit distributed cluster vs local instance scope headers (SEC-04)
+    res.setHeader(
+      'X-RateLimit-Scope',
+      ipCheck.store === 'redis' ? 'cluster' : 'local-instance'
+    );
+    res.setHeader(
+      'X-RateLimit-Store',
+      ipCheck.store === 'redis' ? 'redis' : 'memory-local'
+    );
 
     if (isDegraded) {
       res.setHeader('X-RateLimit-Degraded', 'true');

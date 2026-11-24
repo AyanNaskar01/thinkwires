@@ -25,6 +25,9 @@ flowchart LR
 | **Milestone 7: Cloud Storage & Candidate CSRF Hardening** | S3 SDK Integration & Pre-Signed URLs, Candidate CSRF Double-Submit Token, DB TLS & Port Confinement | SEC-STA-01, SEC-CSRF-02, NV-DB-01, NV-NET-01 | Sprint 8 | **Completed** |
 | **Milestone 8: Low-Bandwidth & Network Resilience Engine** | HTTP Gzip Compression, ETag 304 Caching, Exponential-Backoff Fetch Retry, Adaptive 3D Throttling, Form Auto-Save | NET-RES-01–05 | Sprint 9 | **Completed** |
 | **Milestone 9: Resume Upload & Object Storage Integration** | Direct S3 persistence via saveFile, MongoDB object key isolation, pre-signed downloads, temp file cleanup, upload failure atomicity | RES-STA-01–05 | Sprint 10 | **Completed** |
+| **Milestone 10: CSRF & Cross-Site Cookie Architecture Unification** | SameSite=None; Secure cookie sync, shared custom domain support, timingSafeEqual double-submit, multi-path logout clearance | SEC-CSRF-03–06 | Sprint 10 | **Completed** |
+| **Milestone 11: File Upload Validation & Malware Defense Engine** | Magic-byte checking, malware/web shell signature scanning, DOCX zip bomb & Zip Slip defense, PDF structure/action bounds, quarantine isolation | SEC-03-A–E | Sprint 10 | **Completed** |
+| **Milestone 12: Redis Fallback Behavior & Distributed Resilience** | Security-critical fail-closed revocation, structured degradation alerting, explicit rate-limit scope headers, 50% tightened local memory policy | SEC-04-A–E | Sprint 10 | **Completed** |
 
 ---
 
@@ -224,7 +227,26 @@ flowchart LR
 
 ---
 
-## 13. Verification & Definition of Done
+## 13. Milestone 12: Redis Fallback Behavior & Distributed Resilience Engine (5 Issues)
+
+*Verification Suites:*
+- Redis Rate Limiter & Fail-Closed Outage Tests: [`apps/backend/src/test/unit/sprint7.redis-ai-security.test.js`](../apps/backend/src/test/unit/sprint7.redis-ai-security.test.js) (17 tests passing)
+- Auth Middleware Degradation & Fail-Closed Tests: [`apps/backend/src/test/unit/auth.middleware.test.js`](../apps/backend/src/test/unit/auth.middleware.test.js) (21 tests passing)
+- Auth Utilities Revocation & Store Failover Tests: [`apps/backend/src/test/unit/auth.util.test.js`](../apps/backend/src/test/unit/auth.util.test.js) (22 tests passing)
+- Full Backend Unit Suite: 330/330 tests passing (27 test files)
+- Full Backend Integration Suite: 70/70 tests passing (8 test files)
+
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
+| :--- | :---: | :--- | :--- | :--- |
+| **SEC-04-A** | **HIGH** | `apps/backend/src/middlewares/auth.middleware.js`<br>`apps/backend/src/utils/auth.util.js` | Local in-memory fallback for token revocation allowed revoked administrative sessions to persist if Redis failed in multi-instance deployments | **Resolved**: Implemented fail-closed policy (`failClosed: true`) for administrative routes in production. When Redis is degraded or offline, `requireAuth` immediately rejects requests with HTTP 503 (`code: 'REVOCATION_SERVICE_UNAVAILABLE'`, `Retry-After: 5`, `X-Backend-Degraded: redis-revocation-unavailable`), preventing unauthorized access by compromised admin tokens. |
+| **SEC-04-B** | **HIGH** | `apps/backend/src/configs/redis.js` | Silent degradation allowed Redis connection losses to pass unnoticed without operational alerting | **Resolved**: Added structured degradation monitor (`redisDegradedState`, `alertRedisDegraded`, `markRedisHealthy`, `getRedisHealth`). Automatically logs structured security alerts with 30-second throttling across client error, disconnection, end, and reconnect events. |
+| **SEC-04-C** | **HIGH** | `apps/backend/src/middlewares/rateLimiter.middleware.js` | Single-instance local memory rate limiting was silently treated as equivalent to distributed Redis storage | **Resolved**: Added explicit HTTP response headers distinguishing distributed vs degraded storage: `X-RateLimit-Scope: cluster` (Redis) vs `local-instance` (fallback), `X-RateLimit-Store: redis` vs `memory-local`, and `X-RateLimit-Degraded: true`. |
+| **SEC-04-D** | **HIGH** | `apps/backend/src/middlewares/rateLimiter.middleware.js` | Multi-instance deployments could multiply effective rate limits (e.g. 3x on 3 instances) during Redis outages | **Resolved**: Defined explicit degraded-mode policies (`DEGRADED_POLICY = { FAIL_CLOSED, TIGHTEN_LOCAL, TIGHTEN_LOCAL_WITH_ACCOUNT }`). In production degraded mode, public and candidate rate limits are automatically tightened by 50% (`effectiveMax = Math.max(1, Math.floor(max / 2))`) with audit logging. |
+| **SEC-04-E** | **MEDIUM** | `apps/backend/src/middlewares/auth.middleware.js` | Public and candidate workflows risked service disruption if candidate authentication failed closed during Redis outages | **Resolved**: Adopted hybrid resilient architecture for candidate portal. Candidate revocation checks operate in degraded mode (`failClosed: false`) setting `X-Session-Degraded: true`, while distributed invalidation is authoritatively guaranteed via MongoDB `tokenVersion` checks, ensuring 100% applicant uptime. |
+
+---
+
+## 14. Verification & Definition of Done
 
 Each milestone requires the following verification steps prior to closure:
 1. **Automated Unit & Integration Tests**: New test cases written under `apps/backend/src/test/` or `apps/frontend/src/test/` validating the security control.

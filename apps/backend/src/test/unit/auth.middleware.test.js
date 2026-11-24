@@ -1,13 +1,17 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   requireCandidateAuth,
+  requireAuth,
   requireRole,
 } from '../../middlewares/auth.middleware.js';
 import {
   generateCandidateToken,
+  generateAdminToken,
   revokeToken,
   clearRevocationStore,
+  checkTokenRevocation,
 } from '../../utils/auth.util.js';
+import { setMockRedisClient, isRedisConnected, getRedisHealth } from '../../configs/redis.js';
 
 describe('Auth Middleware (Unit Tests)', () => {
   const createMockReqRes = (options = {}) => {
@@ -287,6 +291,112 @@ describe('Auth Middleware (Unit Tests)', () => {
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.jsonData.error).toMatch(/access denied|cms admins have access restricted/i);
       expect(next).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('SEC-04: Redis Fallback & Revocation Fail-Closed Behavior', () => {
+    const origEnv = { ...process.env };
+
+    beforeEach(() => {
+      process.env = { ...origEnv };
+    });
+
+    afterEach(() => {
+      process.env = { ...origEnv };
+      setMockRedisClient(null);
+    });
+
+    it('fails closed with HTTP 503 for administrative endpoints in production when Redis is offline', async () => {
+      process.env.NODE_ENV = 'production';
+      delete process.env.VITEST;
+      setMockRedisClient(null);
+
+      const adminUser = {
+        _id: 'admin_test_001',
+        email: 'admin.failclosed@thinkwires.com',
+        role: 'admin',
+      };
+      const token = generateAdminToken(adminUser);
+
+      const req = {
+        cookies: { thinkwires_admin_jwt: token },
+        headers: {},
+      };
+      let statusCalled = null;
+      let jsonBody = null;
+      const headersSet = {};
+      const res = {
+        status: (code) => {
+          statusCalled = code;
+          return res;
+        },
+        json: (data) => {
+          jsonBody = data;
+          return res;
+        },
+        setHeader: (name, val) => {
+          headersSet[name] = val;
+        },
+      };
+
+      let nextCalled = false;
+      const middleware = requireAuth(['admin']);
+      await middleware(req, res, () => {
+        nextCalled = true;
+      });
+
+      expect(nextCalled).toBe(false);
+      expect(statusCalled).toBe(503);
+      expect(jsonBody.code).toBe('REVOCATION_SERVICE_UNAVAILABLE');
+      expect(headersSet['Retry-After']).toBe('5');
+      expect(headersSet['X-Backend-Degraded']).toBe('redis-revocation-unavailable');
+    });
+
+    it('allows verified admin token when Redis is healthy and online', async () => {
+      process.env.NODE_ENV = 'production';
+      delete process.env.VITEST;
+
+      const mockRedis = {
+        get: vi.fn().mockResolvedValue(null), // Token is not revoked
+      };
+      setMockRedisClient(mockRedis);
+
+      const adminUser = {
+        _id: 'admin_test_online',
+        email: 'admin.online@thinkwires.com',
+        role: 'admin',
+      };
+      const token = generateAdminToken(adminUser);
+
+      const req = {
+        cookies: { thinkwires_admin_jwt: token },
+        headers: {},
+      };
+      const headersSet = {};
+      const res = {
+        setHeader: (name, val) => {
+          headersSet[name] = val;
+        },
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn(),
+      };
+
+      let nextCalled = false;
+      const middleware = requireAuth(['admin']);
+      await middleware(req, res, () => {
+        nextCalled = true;
+      });
+
+      expect(nextCalled).toBe(true);
+      expect(req.user).toBeDefined();
+      expect(req.user.email).toBe(adminUser.email);
+    });
+
+    it('correctly tracks and exposes Redis degradation health state', () => {
+      setMockRedisClient(null);
+      const health = getRedisHealth();
+      expect(health.isConnected).toBe(false);
+      expect(health.isDegraded).toBe(true);
     });
   });
 });

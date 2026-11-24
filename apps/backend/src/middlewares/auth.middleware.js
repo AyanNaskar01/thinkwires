@@ -2,7 +2,9 @@ import {
   verifyCandidateToken,
   verifyAdminToken,
   isTokenRevoked,
+  checkTokenRevocation,
 } from '../utils/auth.util.js';
+import config from '../configs/dotenv.js';
 import Candidate from '../models/candidate.mongo.model.js';
 import UserMongo from '../models/user.mongo.model.js';
 import User from '../models/user.model.js';
@@ -37,11 +39,33 @@ export const requireAuth = (
         });
       }
 
-      if (await isTokenRevoked(token)) {
+      const isProduction =
+        (process.env.NODE_ENV === 'production' || config.NODE_ENV === 'production') &&
+        !process.env.VITEST;
+
+      const revocationStatus = await checkTokenRevocation(token, {
+        failClosed: isProduction,
+        portal: 'admin',
+      });
+
+      if (revocationStatus.isRevoked) {
         return res.status(401).json({
           success: false,
           authenticated: false,
           error: 'Admin session has been revoked. Please log in again.',
+        });
+      }
+
+      if (revocationStatus.failClosed) {
+        res.setHeader('Retry-After', '5');
+        res.setHeader('X-Backend-Degraded', 'redis-revocation-unavailable');
+        return res.status(503).json({
+          success: false,
+          authenticated: false,
+          error:
+            'Administrative session verification temporarily unavailable. Security controls require active distributed cache.',
+          retryAfter: 5,
+          code: 'REVOCATION_SERVICE_UNAVAILABLE',
         });
       }
 
@@ -344,12 +368,21 @@ export const requireCandidateAuth = async (req, res, next) => {
       });
     }
 
-    if (await isTokenRevoked(token)) {
+    const revocationStatus = await checkTokenRevocation(token, {
+      failClosed: false,
+      portal: 'candidate',
+    });
+
+    if (revocationStatus.isRevoked) {
       return res.status(401).json({
         success: false,
         authenticated: false,
         error: 'Candidate session has been revoked. Please log in again.',
       });
+    }
+
+    if (revocationStatus.isDegraded) {
+      res.setHeader('X-Session-Degraded', 'true');
     }
 
     const decoded = verifyCandidateToken(token);

@@ -262,6 +262,8 @@ describe('Sprint 7: AI Microservice Auth & Redis Distributed Rate Limiting', () 
       assert.strictEqual(nextCalled, 1);
       assert.strictEqual(headers['RateLimit-Limit'], '2');
       assert.strictEqual(headers['RateLimit-Remaining'], '1');
+      assert.strictEqual(headers['X-RateLimit-Scope'], 'local-instance');
+      assert.strictEqual(headers['X-RateLimit-Store'], 'memory-local');
 
       // Hit 2
       await limiter(req, res, next);

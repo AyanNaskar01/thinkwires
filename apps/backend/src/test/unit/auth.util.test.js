@@ -13,6 +13,7 @@ import {
   hashResetToken,
   revokeToken,
   isTokenRevoked,
+  checkTokenRevocation,
   clearRevocationStore,
   setAdminAuthCookie,
   clearAdminAuthCookie,
@@ -318,6 +319,24 @@ describe('Auth Utilities (Unit Tests)', () => {
       await expect(isTokenRevoked('token-fail-test')).resolves.toBe(true);
       await expect(isTokenRevoked('unknown-token')).resolves.toBe(false);
       await expect(clearRevocationStore()).resolves.not.toThrow();
+    });
+
+    it('fails closed for security-critical checks when Redis is offline (SEC-04)', async () => {
+      const failingRedis = {
+        get: vi.fn(async () => {
+          throw new Error('Redis connection refused');
+        }),
+      };
+      setMockRedisClient(failingRedis);
+
+      const check = await checkTokenRevocation('critical-token', { failClosed: true });
+      expect(check.failClosed).toBe(true);
+      expect(check.store).toBe('fail-closed');
+      expect(check.isRevoked).toBe(false);
+
+      // isTokenRevoked with failClosed option treats failure as revoked/untrusted
+      const isBlocked = await isTokenRevoked('critical-token', { failClosed: true });
+      expect(isBlocked).toBe(true);
     });
   });
 

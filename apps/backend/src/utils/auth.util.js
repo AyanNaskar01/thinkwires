@@ -12,7 +12,11 @@ try {
   jwt = null;
 }
 import config from '../configs/dotenv.js';
-import { getRedisClient } from '../configs/redis.js';
+import {
+  getRedisClient,
+  isRedisConnected,
+  alertRedisDegraded,
+} from '../configs/redis.js';
 
 const INSECURE_DEFAULT_SECRETS = new Set([
   'your_jwt_secret_here',
@@ -312,31 +316,94 @@ export const revokeToken = async (token) => {
     revokedTokens.add(token);
     try {
       const redis = await getRedisClient();
-      if (redis) {
+      if (redis && isRedisConnected()) {
         await redis.set(`revoked:${token}`, '1', { EX: 7 * 24 * 60 * 60 });
+        return { success: true, store: 'redis' };
+      } else {
+        alertRedisDegraded(
+          'revokeToken',
+          'Distributed cache unavailable. Revocation stored only in single-instance memory.'
+        );
+        return { success: true, store: 'memory-local', degraded: true };
       }
     } catch (err) {
-      console.error('[Redis] Failed to persist revoked token:', err.message);
+      alertRedisDegraded('revokeToken', err.message);
+      return { success: false, store: 'failed', error: err.message, degraded: true };
     }
   }
+  return { success: false, store: 'none' };
 };
 
-export const isTokenRevoked = async (token) => {
-  if (!token || typeof token !== 'string') return false;
-  if (revokedTokens.has(token)) return true;
+/**
+ * Checks whether a given JWT has been revoked, supporting explicit fail-closed policies.
+ *
+ * SEC-04 Architecture & Multi-instance Safety:
+ * - Local in-memory Set (revokedTokens) does not synchronize across multi-instance clusters.
+ * - For security-critical operations (admin auth, privileged routes), if Redis is unavailable
+ *   in production, verification fails closed (failClosed: true) to prevent revoked tokens
+ *   from slipping through on un-synchronized sibling instances.
+ */
+export const checkTokenRevocation = async (token, options = {}) => {
+  if (!token || typeof token !== 'string') {
+    return { isRevoked: false, store: 'none' };
+  }
+
+  // 1. Check local instance memory cache
+  if (revokedTokens.has(token)) {
+    return { isRevoked: true, store: 'local-memory' };
+  }
+
+  const failClosed = Boolean(options.failClosed);
+
+  // 2. Query distributed Redis cache
   try {
     const redis = await getRedisClient();
-    if (redis) {
+    if (redis && isRedisConnected()) {
       const isRevoked = Boolean(await redis.get(`revoked:${token}`));
       if (isRevoked) {
         revokedTokens.add(token);
-        return true;
+        return { isRevoked: true, store: 'redis' };
       }
+      return { isRevoked: false, store: 'redis' };
     }
   } catch (err) {
-    console.error('[Redis] Failed to query revoked token from Redis:', err.message);
+    alertRedisDegraded('checkTokenRevocation', err.message);
   }
-  return false;
+
+  // 3. Redis is unavailable or threw an error
+  alertRedisDegraded(
+    'checkTokenRevocation',
+    'Distributed Redis cache is offline; falling back to local memory.'
+  );
+
+  if (failClosed) {
+    console.error(
+      `🚨 [Security Alert: SEC-04] Security-critical token revocation verification failed closed: Redis cluster unavailable.`
+    );
+    return {
+      isRevoked: false,
+      failClosed: true,
+      isDegraded: true,
+      store: 'fail-closed',
+      reason:
+        'Distributed cache unavailable for security-critical revocation check.',
+    };
+  }
+
+  return {
+    isRevoked: false,
+    isDegraded: true,
+    failClosed: false,
+    store: 'memory-local',
+  };
+};
+
+export const isTokenRevoked = async (token, options = {}) => {
+  const result = await checkTokenRevocation(token, options);
+  if (result.failClosed) {
+    return true; // Fails closed by treating as revoked/untrusted
+  }
+  return result.isRevoked;
 };
 
 // Non-blocking cursor iteration using redis.scan (Issue #198)
