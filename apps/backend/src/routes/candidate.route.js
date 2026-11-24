@@ -80,5 +80,9 @@ router.post('/avatar/upload', avatarUpload.single('avatar'), uploadAvatar);
 router.put('/avatar/preset', setAvatarPreset);
 router.delete('/avatar', removeAvatar);
 router.get('/resume/:filename', downloadResume);
+router.get('/resume-url/:filename', (req, res, next) => {
+  req.query.json = 'true';
+  return downloadResume(req, res, next);
+});
 
 export default router;

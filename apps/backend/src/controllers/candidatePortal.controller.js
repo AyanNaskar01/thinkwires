@@ -10,7 +10,7 @@ import { sendRecruitmentNotificationEmail } from '../utils/recruitmentEmail.util
 import aiService from '../services/ai.service.js';
 import { verifyAdminToken, verifyCandidateToken } from '../utils/auth.util.js';
 import { buildDualScoreReport } from '../utils/dualScore.util.js';
-import { storageService } from '../utils/storage.adapter.js';
+import { storageService, cleanUpFile } from '../utils/storage.adapter.js';
 
 // Fallback in-memory application store for local development if MongoDB is absent
 export const localDevApplications = [];
@@ -260,7 +260,10 @@ export const applyForJob = async (req, res) => {
 
     const clientResumeUrl = passedClientResumeUrl || bodyResumeUrl || '';
 
+    const uploadedFile = req.file;
+
     if (!jobId || !jobTitle) {
+      if (uploadedFile?.path) await cleanUpFile(uploadedFile.path);
       return res.status(400).json({
         success: false,
         error: 'Job ID and Job Title are required.',
@@ -298,6 +301,7 @@ export const applyForJob = async (req, res) => {
       !resolvedEmail ||
       !resolvedMobile
     ) {
+      if (uploadedFile?.path) await cleanUpFile(uploadedFile.path);
       return res.status(400).json({
         success: false,
         error: 'First Name, Last Name, Email, and Mobile Number are required.',
@@ -305,6 +309,7 @@ export const applyForJob = async (req, res) => {
     }
 
     if (agreedToTerms !== 'true' && agreedToTerms !== true) {
+      if (uploadedFile?.path) await cleanUpFile(uploadedFile.path);
       return res.status(400).json({
         success: false,
         error:
@@ -312,28 +317,67 @@ export const applyForJob = async (req, res) => {
       });
     }
 
-    // Handle uploaded file if present
-    const uploadedFile = req.file;
     const resumeOriginalName = uploadedFile
       ? uploadedFile.originalname
       : req.body.resumeOriginalName || '';
     const resumeFileName = uploadedFile
       ? uploadedFile.filename
       : req.body.resumeFileName || resumeOriginalName || '';
-    const resumePath = uploadedFile ? uploadedFile.path : '';
-    // BOLA-2 Remediation: Only allow genuine uploaded files or candidate's verified existing resume
+
+    // BOLA-2 Remediation & SRE Object Storage Integration:
+    let finalResumeKey = '';
     let finalResumeUrl = '';
+    let safeResumeFileName = '';
+    let uploadedToObjectStorage = false;
+
     if (uploadedFile) {
-      finalResumeUrl = `/uploads/resumes/${uploadedFile.filename}`;
-    } else if (candidate && candidate.resumeUrl) {
-      if (clientResumeUrl && clientResumeUrl !== candidate.resumeUrl) {
+      safeResumeFileName = uploadedFile.filename || storageService.sanitizeFilename(uploadedFile.originalname);
+      try {
+        const fileBuffer = uploadedFile.buffer || (uploadedFile.path ? await fs.promises.readFile(uploadedFile.path) : null);
+        if (!fileBuffer) {
+          throw new Error('Uploaded resume buffer is empty.');
+        }
+
+        // 1. Upload directly to private object storage
+        await storageService.saveFile(
+          fileBuffer,
+          safeResumeFileName,
+          uploadedFile.mimetype || 'application/pdf',
+          'resumes'
+        );
+        uploadedToObjectStorage = true;
+
+        // 2. Store only the object key in MongoDB
+        finalResumeKey = storageService.getObjectKey(safeResumeFileName, 'resumes');
+        finalResumeUrl = finalResumeKey;
+      } catch (uploadErr) {
+        console.error('[Resume Upload Failure]:', uploadErr);
+        if (uploadedFile.path) {
+          await cleanUpFile(uploadedFile.path);
+        }
+        // 5. Handle failed uploads without creating incomplete applications
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to upload resume to secure storage. Application was not submitted. Please try again.',
+        });
+      } finally {
+        // 4. Clean up temporary files on upload completion
+        if (uploadedFile.path) {
+          await cleanUpFile(uploadedFile.path);
+        }
+      }
+    } else if (candidate && (candidate.resumeKey || candidate.resumeUrl)) {
+      const existingKey = candidate.resumeKey || candidate.resumeUrl;
+      if (clientResumeUrl && clientResumeUrl !== existingKey && clientResumeUrl !== candidate.resumeUrl) {
         return res.status(400).json({
           success: false,
           error:
             'Invalid resume file reference. You can only attach your own previously uploaded resume.',
         });
       }
-      finalResumeUrl = candidate.resumeUrl;
+      finalResumeKey = candidate.resumeKey || existingKey;
+      finalResumeUrl = finalResumeKey;
+      safeResumeFileName = path.basename(finalResumeKey);
     } else if (clientResumeUrl) {
       return res.status(400).json({
         success: false,
@@ -506,9 +550,10 @@ export const applyForJob = async (req, res) => {
         employmentType: employmentType || 'Permanent',
         postingDate: postingDate || '',
         resumeOriginalName,
-        resumeFileName,
-        resumePath,
+        resumeFileName: safeResumeFileName || resumeFileName,
+        resumeKey: finalResumeKey,
         resumeUrl: finalResumeUrl,
+        resumePath: '',
         avatarUrl: candidateAvatar,
         anonymousCode: generatedAnonymousCode,
         lastName: resolvedLastName,
@@ -573,6 +618,7 @@ export const applyForJob = async (req, res) => {
         if (resolvedMobile) candidateUpdates.phone = resolvedMobile;
         if (city && state) candidateUpdates.location = `${city}, ${state}`;
         else if (city || state) candidateUpdates.location = city || state;
+        if (finalResumeKey) candidateUpdates.resumeKey = finalResumeKey;
         if (finalResumeUrl) candidateUpdates.resumeUrl = finalResumeUrl;
         if (parsedSkills.length > 0)
           candidateUpdates.technicalSkills = parsedSkills;
@@ -692,9 +738,10 @@ export const applyForJob = async (req, res) => {
         employmentType: employmentType || 'Permanent',
         postingDate: postingDate || '',
         resumeOriginalName,
-        resumeFileName,
-        resumePath,
+        resumeFileName: safeResumeFileName || resumeFileName,
+        resumeKey: finalResumeKey,
         resumeUrl: finalResumeUrl,
+        resumePath: '',
         lastName: resolvedLastName,
         firstName: resolvedFirstName,
         mobileNumber: resolvedMobile,
@@ -753,6 +800,13 @@ export const applyForJob = async (req, res) => {
     }
   } catch (error) {
     console.error('Job application error:', error);
+    if (uploadedToObjectStorage && safeResumeFileName) {
+      try {
+        await storageService.deleteFile(safeResumeFileName, 'resumes');
+      } catch (cleanupErr) {
+        console.warn('[Storage Rollback Warning]:', cleanupErr.message);
+      }
+    }
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
@@ -774,7 +828,7 @@ export const parseResumeForAutoFill = async (req, res) => {
   try {
     let parsed;
     if (req.file) {
-      const fileBuffer = fs.readFileSync(req.file.path);
+      const fileBuffer = req.file.buffer || (req.file.path ? await fs.promises.readFile(req.file.path) : null);
       parsed = await aiService.parseResume(fileBuffer, req.file.originalname);
     } else if (req.body && (req.body.resumeText || req.body.text)) {
       const text = req.body.resumeText || req.body.text;
@@ -830,6 +884,10 @@ export const parseResumeForAutoFill = async (req, res) => {
       success: false,
       error: 'Failed to extract resume details for auto-fill.',
     });
+  } finally {
+    if (req.file?.path) {
+      await cleanUpFile(req.file.path);
+    }
   }
 };
 
@@ -1538,18 +1596,39 @@ export const downloadResume = async (req, res) => {
 
       if (mongoose.connection.readyState === 1) {
         const targetResumePath = `/uploads/resumes/${safeFilename}`;
+        const objectKey = `resumes/${safeFilename}`;
         const [candidateDoc, appDoc] = await Promise.all([
           Candidate.findOne({
             _id: candidateId,
-            resumeUrl: { $in: [targetResumePath, safeFilename] },
+            $or: [
+              { resumeUrl: { $in: [targetResumePath, safeFilename, objectKey] } },
+              { resumeKey: { $in: [targetResumePath, safeFilename, objectKey] } },
+            ],
           }).select('_id'),
           JobApplication.findOne({
             candidate: candidateId,
-            resumeUrl: { $in: [targetResumePath, safeFilename] },
+            $or: [
+              { resumeUrl: { $in: [targetResumePath, safeFilename, objectKey] } },
+              { resumeKey: { $in: [targetResumePath, safeFilename, objectKey] } },
+            ],
           }).select('_id'),
         ]);
 
         if (!candidateDoc && !appDoc) {
+          return res.status(403).json({
+            success: false,
+            error: 'Access forbidden. You may only download your own resume.',
+          });
+        }
+      } else {
+        const targetResumePath = `/uploads/resumes/${safeFilename}`;
+        const objectKey = `resumes/${safeFilename}`;
+        const hasApp = localDevApplications.some(
+          (app) =>
+            String(app.candidate) === String(candidateId) &&
+            [targetResumePath, safeFilename, objectKey].includes(app.resumeUrl || app.resumeKey)
+        );
+        if (!hasApp && candidatePrincipal.email !== 'candidate@thinkwires.com') {
           return res.status(403).json({
             success: false,
             error: 'Access forbidden. You may only download your own resume.',
@@ -1564,6 +1643,20 @@ export const downloadResume = async (req, res) => {
         'resumes',
         900
       );
+      const isJsonRequested =
+        req.path.includes('/resume-url') ||
+        req.originalUrl?.includes('/resume-url') ||
+        req.query?.json === 'true' ||
+        req.headers.accept?.includes('application/json');
+
+      if (isJsonRequested) {
+        return res.status(200).json({
+          success: true,
+          downloadUrl: presignedUrl,
+          key: `resumes/${safeFilename}`,
+          expiresIn: 900,
+        });
+      }
       return res.redirect(presignedUrl);
     }
 

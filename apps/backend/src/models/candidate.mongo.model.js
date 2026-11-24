@@ -106,6 +106,10 @@ const candidateSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    resumeKey: {
+      type: String,
+      default: '',
+    },
     avatarUrl: {
       type: String,
       default: '',
@@ -221,6 +225,7 @@ candidateSchema.index({ status: 1, createdAt: -1 });
 candidateSchema.index({ jobId: 1, createdAt: -1 });
 candidateSchema.index({ createdAt: -1 });
 candidateSchema.index({ resumeUrl: 1 });
+candidateSchema.index({ resumeKey: 1 });
 candidateSchema.index(
   {
     name: 'text',

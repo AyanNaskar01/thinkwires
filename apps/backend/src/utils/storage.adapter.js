@@ -51,6 +51,14 @@ export class StorageService {
   }
 
   /**
+   * Returns canonical storage object key for a file.
+   */
+  getObjectKey(filename, folder = 'resumes') {
+    const safeName = this.sanitizeFilename(filename);
+    return `${folder}/${safeName}`;
+  }
+
+  /**
    * Sanitizes filename against directory traversal attacks.
    */
   sanitizeFilename(filename) {
@@ -82,6 +90,11 @@ export class StorageService {
    */
   async saveFile(fileBuffer, filename, mimeType = 'application/octet-stream', folder = 'resumes') {
     const safeName = this.sanitizeFilename(filename);
+    const buffer = Buffer.isBuffer(fileBuffer)
+      ? fileBuffer
+      : typeof fileBuffer === 'string'
+      ? await fs.promises.readFile(fileBuffer)
+      : Buffer.from(fileBuffer);
 
     if (this.driver === 's3' && this.s3Client) {
       const key = `${folder}/${safeName}`;
@@ -90,7 +103,7 @@ export class StorageService {
           new PutObjectCommand({
             Bucket: this.bucket,
             Key: key,
-            Body: fileBuffer,
+            Body: buffer,
             ContentType: mimeType,
             ServerSideEncryption: 'AES256',
           })
@@ -204,6 +217,19 @@ export class StorageService {
     return `/uploads/${folder}/${safeName}`;
   }
 }
+
+export const cleanUpFile = async (filePath) => {
+  if (filePath && fs.existsSync(filePath)) {
+    try {
+      await fs.promises.unlink(filePath);
+      return true;
+    } catch (err) {
+      console.warn(`[Storage] Failed to cleanup temporary file ${filePath}:`, err.message);
+      return false;
+    }
+  }
+  return false;
+};
 
 export const storageService = new StorageService();
 export default storageService;

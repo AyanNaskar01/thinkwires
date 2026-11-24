@@ -2,22 +2,22 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-// Vercel serverless runtime has a read-only filesystem; only /tmp is writable
-const uploadDir = process.env.VERCEL
-  ? path.resolve('/tmp', 'uploads', 'resumes')
-  : path.resolve(process.cwd(), 'uploads/resumes');
+// Temporary staging directory for incoming multipart uploads before object storage persistence
+const tempUploadDir = process.env.VERCEL
+  ? path.resolve('/tmp', 'uploads', 'temp_resumes')
+  : path.resolve(process.cwd(), 'uploads/temp_resumes');
 
-if (!fs.existsSync(uploadDir)) {
+if (!fs.existsSync(tempUploadDir)) {
   try {
-    fs.mkdirSync(uploadDir, { recursive: true });
+    fs.mkdirSync(tempUploadDir, { recursive: true });
   } catch (err) {
-    console.warn('[Upload] Directory init notice:', err.message);
+    console.warn('[Upload] Temp directory init notice:', err.message);
   }
 }
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, tempUploadDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);

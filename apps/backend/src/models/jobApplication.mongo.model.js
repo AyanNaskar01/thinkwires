@@ -51,6 +51,11 @@ const jobApplicationSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    resumeKey: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     resumePath: {
       type: String,
       default: '',
@@ -370,6 +375,7 @@ jobApplicationSchema.index({ candidate: 1, createdAt: -1 });
 jobApplicationSchema.index({ jobId: 1, status: 1, createdAt: -1 });
 jobApplicationSchema.index({ status: 1, createdAt: -1 });
 jobApplicationSchema.index({ resumeUrl: 1 });
+jobApplicationSchema.index({ resumeKey: 1 });
 
 const JobApplication =
   mongoose.models.JobApplication ||

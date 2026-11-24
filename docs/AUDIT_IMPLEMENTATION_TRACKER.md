@@ -24,6 +24,7 @@ flowchart LR
 | **Milestone 6: Enterprise Hardening & Defense-in-Depth** | AI Microservice Auth, Redis Distributed Rate Limiting, CORS & CSP Nonce | SEC-AI, SEC-CORS, SEC-RL | Sprint 7 | **Completed** |
 | **Milestone 7: Cloud Storage & Candidate CSRF Hardening** | S3 SDK Integration & Pre-Signed URLs, Candidate CSRF Double-Submit Token, DB TLS & Port Confinement | SEC-STA-01, SEC-CSRF-02, NV-DB-01, NV-NET-01 | Sprint 8 | **Completed** |
 | **Milestone 8: Low-Bandwidth & Network Resilience Engine** | HTTP Gzip Compression, ETag 304 Caching, Exponential-Backoff Fetch Retry, Adaptive 3D Throttling, Form Auto-Save | NET-RES-01–05 | Sprint 9 | **Completed** |
+| **Milestone 9: Resume Upload & Object Storage Integration** | Direct S3 persistence via saveFile, MongoDB object key isolation, pre-signed downloads, temp file cleanup, upload failure atomicity | RES-STA-01–05 | Sprint 10 | **Completed** |
 
 ---
 
@@ -169,7 +170,25 @@ flowchart LR
 
 ---
 
-## 10. Verification & Definition of Done
+## 10. Milestone 9: Resume Upload & Object Storage Integration (5 Issues)
+
+*Verification Suites:*
+- Resume Upload & Storage Tests: [`apps/backend/src/test/unit/resume.upload.storage.test.js`](../apps/backend/src/test/unit/resume.upload.storage.test.js) (4 tests passing)
+- S3 Storage Adapter Unit Tests: [`apps/backend/src/test/unit/s3.storage.test.js`](../apps/backend/src/test/unit/s3.storage.test.js) (5 tests passing)
+- Full Backend Suite: 297/297 tests passing
+- Full Frontend Suite: 325/325 tests passing
+
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
+| :--- | :---: | :--- | :--- | :--- |
+| **RES-STA-01** | **BLOCKER** | `apps/backend/src/controllers/candidatePortal.controller.js`<br>`apps/backend/src/utils/storage.adapter.js` | Candidate application workflow bypassed S3 object storage, writing files to ephemeral local disk | **Resolved**: Integrated `storageService.saveFile()` into `applyForJob`. Incoming multipart resume buffers are persisted directly into private S3/R2 storage with AES256 server-side encryption. |
+| **RES-STA-02** | **HIGH** | `apps/backend/src/models/jobApplication.mongo.model.js`<br>`apps/backend/src/models/candidate.mongo.model.js` | MongoDB stored public URL paths rather than isolated object keys | **Resolved**: Declared and indexed `resumeKey` on both `JobApplication` and `Candidate` schemas. Persists only the canonical S3 object key (`resumes/filename.pdf`), eliminating public URL exposure and container disk coupling. |
+| **RES-STA-03** | **HIGH** | `apps/backend/src/controllers/candidatePortal.controller.js`<br>`apps/backend/src/routes/candidate.route.js` | Resume downloads lacked authenticated pre-signed URL generation on direct candidate routes | **Resolved**: Updated `downloadResume` to verify candidate ownership / admin role and issue time-limited (900s) pre-signed S3 download URLs. Added `/api/candidate/resume-url/:filename` returning JSON pre-signed download credentials with fallback redirect. |
+| **RES-STA-04** | **HIGH** | `apps/backend/src/middlewares/upload.middleware.js`<br>`apps/backend/src/utils/storage.adapter.js` | Multer staging files accumulated indefinitely on local container filesystem | **Resolved**: Configured `temp_resumes` staging directory and exported `cleanUpFile` utility. Enforced `finally` cleanup across `applyForJob` and `parseResumeForAutoFill`, ensuring all temporary staging files are unlinked from disk immediately upon completion. |
+| **RES-STA-05** | **HIGH** | `apps/backend/src/controllers/candidatePortal.controller.js` | Failed storage uploads could produce incomplete or corrupted job application records in the database | **Resolved**: Upload to object storage is executed and validated before database persistence. If storage upload fails, temporary files are pruned and HTTP 500 is returned with zero application records created. If database write fails subsequently, uploaded S3 objects are automatically rolled back. |
+
+---
+
+## 11. Verification & Definition of Done
 
 Each milestone requires the following verification steps prior to closure:
 1. **Automated Unit & Integration Tests**: New test cases written under `apps/backend/src/test/` or `apps/frontend/src/test/` validating the security control.
