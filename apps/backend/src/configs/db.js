@@ -1,4 +1,5 @@
 import { Sequelize } from 'sequelize';
+import fs from 'fs';
 import config from './dotenv.js';
 
 const isProduction = config.NODE_ENV === 'production';
@@ -6,58 +7,130 @@ const isServerless = Boolean(
   process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
 );
 
-// Auto-detect cloud providers (Neon, Supabase, RDS) to configure SSL defaults
-// while leaving local dev/docker connections unencrypted unless DB_SSL is explicitly set.
-const isLocalhost =
-  !config.DATABASE_URL ||
-  config.DATABASE_URL.includes('localhost') ||
-  config.DATABASE_URL.includes('127.0.0.1') ||
-  config.DATABASE_URL.includes('::1');
-
-const isCloudManaged =
-  typeof config.DATABASE_URL === 'string' &&
-  (config.DATABASE_URL.includes('neon.tech') ||
-    config.DATABASE_URL.includes('supabase.co') ||
-    config.DATABASE_URL.includes('rds.amazonaws.com') ||
-    config.DATABASE_URL.includes('render.com') ||
-    config.DATABASE_URL.includes('azure.com') ||
-    config.DATABASE_URL.includes('sslmode=require') ||
-    config.DATABASE_URL.includes('ssl=true'));
-
-const enableSsl =
-  process.env.DB_SSL === 'true' ||
-  (process.env.DB_SSL !== 'false' && (isCloudManaged || (isProduction && !isLocalhost)));
-
-// SEC-EXP-07 & NV-DB-01: PostgreSQL TLS verification hardening
-const rejectUnauthorized = (() => {
-  if (process.env.DB_SSL_REJECT_UNAUTHORIZED !== undefined) {
-    return process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true';
+/**
+ * Resolves PostgreSQL CA certificate from environment variables or file paths.
+ * Supports inline PEM strings, file paths via DB_CA_CERT, and DB_CA_CERT_PATH.
+ *
+ * @param {string} [caCertEnv]
+ * @param {string} [caPathEnv]
+ * @returns {string|null} PEM certificate content or null
+ */
+export const resolveCaCertificate = (
+  caCertEnv = process.env.DB_CA_CERT,
+  caPathEnv = process.env.DB_CA_CERT_PATH
+) => {
+  // 1. Explicit CA path
+  if (caPathEnv) {
+    if (fs.existsSync(caPathEnv)) {
+      try {
+        return fs.readFileSync(caPathEnv, 'utf8');
+      } catch (err) {
+        console.warn(
+          `[PostgreSQL TLS] Warning: Failed to read DB_CA_CERT_PATH (${caPathEnv}):`,
+          err.message
+        );
+      }
+    }
   }
-  if (process.env.DB_CA_CERT || process.env.NODE_EXTRA_CA_CERTS) {
-    return true;
+
+  // 2. DB_CA_CERT (inline PEM string or file path)
+  if (caCertEnv) {
+    if (caCertEnv.includes('-----BEGIN CERTIFICATE-----')) {
+      return caCertEnv;
+    }
+    if (fs.existsSync(caCertEnv)) {
+      try {
+        return fs.readFileSync(caCertEnv, 'utf8');
+      } catch (err) {
+        console.warn(
+          `[PostgreSQL TLS] Warning: Failed to read DB_CA_CERT file (${caCertEnv}):`,
+          err.message
+        );
+      }
+    }
+    return caCertEnv;
   }
-  // Enforce strict TLS certificate verification by default in production
-  if (isProduction) {
-    return true;
-  }
-  return false;
-})();
+
+  return null;
+};
+
+/**
+ * Resolves comprehensive PostgreSQL TLS and SSL connection parameters.
+ *
+ * In production, strict certificate verification (rejectUnauthorized: true)
+ * is enforced by default to prevent Man-in-the-Middle (MITM) attacks.
+ *
+ * @param {object} [env=process.env] Environment dictionary
+ * @param {string} [databaseUrl=config.DATABASE_URL] Connection string
+ * @returns {object} Resolved TLS options
+ */
+export const resolvePostgresTlsConfig = (
+  env = process.env,
+  databaseUrl = config.DATABASE_URL
+) => {
+  const isProd = env.NODE_ENV === 'production';
+  const isLocalhost =
+    !databaseUrl ||
+    databaseUrl.includes('localhost') ||
+    databaseUrl.includes('127.0.0.1') ||
+    databaseUrl.includes('::1');
+
+  const isCloudManaged =
+    typeof databaseUrl === 'string' &&
+    (databaseUrl.includes('neon.tech') ||
+      databaseUrl.includes('supabase.co') ||
+      databaseUrl.includes('rds.amazonaws.com') ||
+      databaseUrl.includes('render.com') ||
+      databaseUrl.includes('azure.com') ||
+      databaseUrl.includes('sslmode=require') ||
+      databaseUrl.includes('ssl=true'));
+
+  const enableSsl =
+    env.DB_SSL === 'true' ||
+    (env.DB_SSL !== 'false' && (isCloudManaged || (isProd && !isLocalhost)));
+
+  // Strict TLS certificate verification
+  const rejectUnauthorized = (() => {
+    if (env.DB_SSL_REJECT_UNAUTHORIZED !== undefined) {
+      return env.DB_SSL_REJECT_UNAUTHORIZED === 'true';
+    }
+    if (env.DB_CA_CERT || env.DB_CA_CERT_PATH || env.NODE_EXTRA_CA_CERTS) {
+      return true;
+    }
+    // Enforce strict TLS certificate verification by default in production
+    if (isProd) {
+      return true;
+    }
+    return false;
+  })();
+
+  const ca = resolveCaCertificate(env.DB_CA_CERT, env.DB_CA_CERT_PATH);
+
+  return {
+    enableSsl,
+    isCloudManaged,
+    isLocalhost,
+    rejectUnauthorized,
+    ca,
+    sslOptions: enableSsl
+      ? {
+          require: true,
+          rejectUnauthorized,
+          ...(ca ? { ca } : {}),
+        }
+      : null,
+  };
+};
+
+const tlsConfig = resolvePostgresTlsConfig();
 
 export const sequelize = new Sequelize(config.DATABASE_URL, {
   dialect: 'postgres',
   protocol: 'postgres',
   logging: process.env.DB_LOGGING === 'true' ? console.log : false,
   dialectOptions: {
-    connectTimeout: isServerless ? 3000 : (isCloudManaged ? 10000 : 5000),
-    ...(enableSsl
-      ? {
-          ssl: {
-            require: true,
-            rejectUnauthorized,
-            ...(process.env.DB_CA_CERT ? { ca: process.env.DB_CA_CERT } : {}),
-          },
-        }
-      : {}),
+    connectTimeout: isServerless ? 3000 : (tlsConfig.isCloudManaged ? 10000 : 5000),
+    ...(tlsConfig.sslOptions ? { ssl: tlsConfig.sslOptions } : {}),
   },
   pool: {
     max: isProduction ? 10 : 5,

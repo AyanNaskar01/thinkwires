@@ -32,6 +32,7 @@ flowchart LR
 | **Milestone 14: Production Security Headers & Frontend CDN Hardening** | Backend Helmet style-src unsafe-inline removal, obsolete X-XSS-Protection replacement, Cloudflare Pages _headers, Vercel CSP/HSTS sync | SEC-06-A–D | Sprint 10 | **Completed** |
 | **Milestone 15: Dual Database Consistency & Transactional Outbox** | Transactional outbox pattern, background synchronization worker, idempotent processing, exponential backoff with jitter, dead-letter queue, reconciliation jobs | SEC-DB-SYNC-01–06 | Sprint 10 | **Completed** |
 | **Milestone 16: Production Index Synchronization & Safety Architecture** | Non-destructive createIndexes, startup sync suppression in production, pre-deployment review tool (index:review), duration tracking & load alerts, explicit outbox migrations | SEC-IDX-01–05 | Sprint 10 | **Completed** |
+| **Milestone 17: PostgreSQL TLS & CA Chain Verification Architecture** | Strict production verification (rejectUnauthorized: true), inline & file CA loading, TLS probe verifier CLI (db:verify-tls), cryptographic verification test suite | SEC-TLS-01–04 | Sprint 10 | **Completed** |
 
 ---
 
@@ -73,7 +74,7 @@ flowchart LR
 | **SEC-EXP-04** | **HIGH** | `apps/backend/src/app.js:168-177` | Stack trace and error message leakage in production | **Resolved**: Masked 5xx internal error details with generic user-friendly message when `NODE_ENV === 'production'`. |
 | **SEC-EXP-05** | **HIGH** | `apps/backend/src/server.js:68-96` | Missing `unhandledRejection` and `uncaughtException` monitors | **Resolved**: Registered top-level process monitors with structured logging and controlled graceful shutdown. |
 | **SEC-EXP-06** | **HIGH** | `apps/backend/src/routes/api.route.js:455-474` | Privilege escalation in `POST /api/openings` | **Resolved**: Enforced `manpowerGuard` (`superadmin`, `admin`) restricting `cms_admin` from publishing/upserting openings. |
-| **SEC-EXP-07** | **HIGH** | `apps/backend/src/configs/db.js:42` | PostgreSQL TLS verification bypass (`rejectUnauthorized: false`) | **Resolved**: Added CA certificate support, configurable `DB_SSL_REJECT_UNAUTHORIZED`, and strict TLS verification in non-cloud production environments. |
+| **SEC-EXP-07** | **HIGH** | `apps/backend/src/configs/db.js`<br>`apps/backend/src/utils/postgresTlsVerifier.js` | PostgreSQL TLS verification bypass (`rejectUnauthorized: false`) allowed MITM interception on cloud networks | **Resolved**: Enforced strict TLS verification (`rejectUnauthorized: true`) by default in production. Enhanced CA resolution (`resolveCaCertificate`) supporting inline PEM and disk files (`DB_CA_CERT`, `DB_CA_CERT_PATH`). Added automated TLS diagnostic verifier (`npm run db:verify-tls`) and comprehensive test coverage asserting rejection of untrusted/forged certificates. |
 | **SEC-EXP-08** | **HIGH** | `apps/backend/src/models/job.mongo.model.js`<br>`apps/backend/src/models/article.mongo.model.js` | `strict: false` schema bypass | **Resolved**: Set `strict: true` and defined complete attribute schemas for JobRequirement and Article models. |
 | **SEC-EXP-09** | **HIGH** | `apps/backend/src/configs/mongodb.js`<br>`apps/backend/src/server.js` | Production index synchronization executed `model.syncIndexes()` on startup, destructively dropping non-schema database indexes and risking cluster lockups | **Resolved**: Hardened index lifecycle. Startup synchronization is disabled in production to protect database stability. Routine defaults to non-destructive `createIndexes()` (never dropping database indexes), with destructive `syncIndexes()` requiring dual explicit authorization. Added pre-deployment review CLI (`npm run index:review`), index duration telemetry, and explicit migrations. |
 
@@ -324,7 +325,24 @@ flowchart LR
 
 ---
 
-## 18. Verification & Definition of Done
+## 18. Milestone 17: PostgreSQL TLS & CA Chain Verification Architecture (4 Capabilities)
+
+*Reference Document:* PostgreSQL TLS Verification Audit (Medium Priority)
+*Verification Suites:*
+- PostgreSQL TLS & Verification Test Suite: [`apps/backend/src/test/unit/postgresTls.test.js`](../apps/backend/src/test/unit/postgresTls.test.js) (14 tests passing)
+- Full Backend Unit Suite: 375/375 tests passing (30 test files)
+- Full Backend Integration Suite: 70/70 tests passing (8 test files)
+
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
+| :--- | :---: | :--- | :--- | :--- |
+| **SEC-TLS-01** | **HIGH** | `apps/backend/src/configs/db.js` | Unverified cloud database connections risked Man-in-the-Middle (MITM) credential and query interception | **Resolved**: Enforced strict TLS verification (`rejectUnauthorized: true`) by default in production. Automatically detects cloud database providers (Neon, Supabase, RDS, Render, Azure) and enables secure transport with connection timeouts. |
+| **SEC-TLS-02** | **MEDIUM** | `apps/backend/src/configs/db.js` | Custom managed provider CA certificates (e.g. AWS RDS global bundle, enterprise private CAs) could not be loaded from mounted file paths | **Resolved**: Implemented `resolveCaCertificate` supporting both inline PEM strings and mounted file paths (`DB_CA_CERT`, `DB_CA_CERT_PATH`). Validates certificate boundaries and graceful file error handling. |
+| **SEC-TLS-03** | **MEDIUM** | `apps/backend/src/utils/postgresTlsVerifier.js`<br>`apps/backend/package.json` | Operators lacked an automated pre-flight tool to verify provider CA chain trust and certificate validity before deploying | **Resolved**: Built diagnostic TLS verification CLI (`npm run db:verify-tls`). Performs non-blocking TLS probe, extracts peer certificate details (CN, issuer, validity period), and validates negotiated protocol (TLSv1.2/TLSv1.3) and cipher. |
+| **SEC-TLS-04** | **HIGH** | `apps/backend/src/test/unit/postgresTls.test.js`<br>`apps/backend/src/test/fixtures/tls/` | Lack of cryptographic integration test coverage proving rejection of forged or untrusted certificates | **Resolved**: Built comprehensive cryptographic test suite using real X.509 fixtures. Conclusively proves that trusted certificates establish authorized connections (`authorized: true`), while rogue CAs (`UNABLE_TO_VERIFY_LEAF_SIGNATURE`) and hostname mismatches (`ERR_TLS_CERT_ALTNAME_INVALID`) are strictly rejected. |
+
+---
+
+## 19. Verification & Definition of Done
 
 Each milestone requires the following verification steps prior to closure:
 1. **Automated Unit & Integration Tests**: New test cases written under `apps/backend/src/test/` or `apps/frontend/src/test/` validating the security control.
