@@ -62,6 +62,7 @@ export const getAllowedOrigins = () => {
 
   const defaultProductionOrigins = [
     'https://thinkwires.vercel.app',
+    'https://thinkwires.pages.dev',
     ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
   ];
 
@@ -84,14 +85,15 @@ export const isAllowedOrigin = (origin) => {
     return true;
   }
 
-  // Allow official Thinkwires Vercel preview and deployment URLs strictly scoped to the owner account
+  // Allow official Thinkwires Vercel & Cloudflare Pages preview and deployment URLs
   if (
     /^https:\/\/thinkwires(-[a-z0-9-]+)*-tanjil-alams-projects\.vercel\.app$/i.test(
       normalizedOrigin
     ) ||
     /^https:\/\/thinkwires-git-[a-z0-9-]+-tanjil-alams-projects\.vercel\.app$/i.test(
       normalizedOrigin
-    )
+    ) ||
+    /^https:\/\/([a-z0-9-]+\.)?thinkwires\.pages\.dev$/i.test(normalizedOrigin)
   ) {
     return true;
   }
