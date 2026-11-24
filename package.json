@@ -11,6 +11,7 @@
     "build": "npm run build:frontend && node -e \"const fs=require('fs'); fs.cpSync('apps/frontend/dist', 'dist', { recursive: true });\"",
     "build:frontend": "npm --prefix apps/frontend run build",
     "build:backend": "npm --prefix apps/backend run build",
+    "deploy": "wrangler pages deploy dist",
     "vercel-build": "npm run build:frontend",
     "dev": "concurrently -n backend,frontend -c blue,green \"npm --prefix apps/backend run dev\" \"npm --prefix apps/frontend run dev\"",
     "dev:all": "concurrently -n backend,frontend,ai -c blue,green,magenta \"npm --prefix apps/backend run dev\" \"npm --prefix apps/frontend run dev\" \"npm --prefix apps/ai_services run dev\"",
