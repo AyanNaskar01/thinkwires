@@ -9,6 +9,7 @@ import config from './configs/dotenv.js';
 import { getRedisClient, closeRedis } from './configs/redis.js';
 import { getJwtSecret } from './utils/auth.util.js';
 import { validateBootEnvironment } from './configs/env.validator.js';
+import { startOutboxWorker, stopOutboxWorker } from './services/outboxWorker.service.js';
 
 const PORT = config.PORT || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -84,10 +85,14 @@ const startServer = async () => {
       );
     });
 
+  // Start Transactional Outbox Background Worker for asynchronous PostgreSQL sync
+  startOutboxWorker({ intervalMs: 5000, batchSize: 20 });
+
   // Graceful shutdown handling for container orchestrators (Docker, Kubernetes, Render) with active connection draining (DEP-06)
   const gracefulShutdown = (signal, exitCode = 0) => {
     console.log(`[Server] Received ${signal}. Starting graceful shutdown...`);
     setShuttingDown(true);
+    stopOutboxWorker();
 
     if (typeof server.closeIdleConnections === 'function') {
       server.closeIdleConnections();

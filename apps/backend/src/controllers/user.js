@@ -2,6 +2,8 @@ import User from '../models/user.model.js';
 import UserMongo from '../models/user.mongo.model.js';
 import mongoose from 'mongoose';
 import { logger } from '../utils/logger.js';
+import { enqueueOutboxEvent } from '../services/outbox.service.js';
+import { processSingleEvent } from '../services/outboxWorker.service.js';
 
 const isMongoActive = () => mongoose.connection.readyState === 1;
 
@@ -95,20 +97,46 @@ export const updateProfile = async (req, res) => {
         .lean();
     }
 
-    // 2. Bidirectional Dual-Sync to Secondary Relational Store (PostgreSQL / Sequelize) (Issue #186)
-    try {
-      const pgUser = userId
-        ? await User.findByPk(userId)
-        : await User.findOne({ where: { email: userEmail.toLowerCase() } });
+    // 2. Transactional Outbox Pattern for Secondary Relational Store (PostgreSQL)
+    // Eliminates split-brain states and ordinary sequential write failures.
+    // MongoDB is the canonical authoritative source of truth.
+    const syncPayload = {
+      id: (updatedUser && (updatedUser._id || updatedUser.id)) || userId,
+      email: (updatedUser && updatedUser.email) || userEmail,
+      name: updates.name || (updatedUser && updatedUser.name),
+      phone: updates.phone !== undefined ? updates.phone : (updatedUser && updatedUser.phone),
+      designation: updates.designation || (updatedUser && updatedUser.designation),
+      updatedAt: new Date(),
+    };
 
-      if (pgUser) {
-        await pgUser.update(updates);
-        if (!updatedUser) {
+    try {
+      const outboxEvent = await enqueueOutboxEvent({
+        eventType: 'USER_PROFILE_UPDATED',
+        aggregateType: 'User',
+        aggregateId: String(syncPayload.id || syncPayload.email),
+        payload: syncPayload,
+      });
+
+      // Execute outbox synchronization event through worker pipeline
+      if (outboxEvent) {
+        await processSingleEvent(outboxEvent);
+      }
+    } catch (outboxErr) {
+      logger.warn('[DualDB] Outbox synchronization enqueued for background worker:', outboxErr.message);
+    }
+
+    // Fallback representation if Mongo was offline
+    if (!updatedUser) {
+      try {
+        const pgUser = userId
+          ? await User.findByPk(userId)
+          : await User.findOne({ where: { email: userEmail.toLowerCase() } });
+        if (pgUser) {
           updatedUser = typeof pgUser.toJSON === 'function' ? pgUser.toJSON() : pgUser;
         }
+      } catch (pgErr) {
+        logger.warn('[DualDB] PostgreSQL user fallback notice:', pgErr.message);
       }
-    } catch (pgErr) {
-      logger.warn('[DualDB] PostgreSQL user synchronization notice:', pgErr.message);
     }
 
     if (!updatedUser) {

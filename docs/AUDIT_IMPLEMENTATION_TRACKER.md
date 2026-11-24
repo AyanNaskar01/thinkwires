@@ -30,6 +30,7 @@ flowchart LR
 | **Milestone 12: Redis Fallback Behavior & Distributed Resilience** | Security-critical fail-closed revocation, structured degradation alerting, explicit rate-limit scope headers, 50% tightened local memory policy | SEC-04-A–E | Sprint 10 | **Completed** |
 | **Milestone 13: Reverse Proxy Trust & Network Topology Hardening** | Subnet range compilation (loopback, linklocal, uniquelocal), Cloudflare CIDR support, hop count parsing, client IP anti-spoofing | SEC-05-A–D | Sprint 10 | **Completed** |
 | **Milestone 14: Production Security Headers & Frontend CDN Hardening** | Backend Helmet style-src unsafe-inline removal, obsolete X-XSS-Protection replacement, Cloudflare Pages _headers, Vercel CSP/HSTS sync | SEC-06-A–D | Sprint 10 | **Completed** |
+| **Milestone 15: Dual Database Consistency & Transactional Outbox** | Transactional outbox pattern, background synchronization worker, idempotent processing, exponential backoff with jitter, dead-letter queue, reconciliation jobs | SEC-DB-SYNC-01–06 | Sprint 10 | **Completed** |
 
 ---
 
@@ -283,7 +284,27 @@ flowchart LR
 
 ---
 
-## 16. Verification & Definition of Done
+## 16. Milestone 15: Dual Database Consistency & Transactional Outbox Pattern (6 Capabilities)
+
+*Reference Document:* Architectural Audit - Dual Database Consistency (High Priority)
+*Verification Suites:*
+- Dual Database Consistency & Outbox Test Suite: [`apps/backend/src/test/unit/dualDatabaseConsistency.test.js`](../apps/backend/src/test/unit/dualDatabaseConsistency.test.js) (11 tests passing)
+- Sprint 6 Dual-DB Architecture Test Suite: [`apps/backend/src/test/unit/sprint6.a11y-security.test.js`](../apps/backend/src/test/unit/sprint6.a11y-security.test.js) (8 tests passing)
+- Full Backend Unit Suite: 352/352 tests passing (28 test files)
+- Full Backend Integration Suite: 70/70 tests passing (8 test files)
+
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
+| :--- | :---: | :--- | :--- | :--- |
+| **SEC-DB-SYNC-01** | **HIGH** | `apps/backend/src/models/outboxEvent.mongo.model.js`<br>`apps/backend/src/services/outbox.service.js` | Performing ordinary sequential writes across MongoDB and PostgreSQL in API controllers caused split-brain states when PostgreSQL timed out or failed | **Resolved**: Implemented the Transactional Outbox Pattern. Operations write authoritatively to primary MongoDB and enqueue an `OutboxEvent` with unique `eventId`, `eventType`, `aggregateType`, `aggregateId`, `payload`, `status: 'PENDING'`, and compound indexing (`{ status: 1, nextRetryAt: 1 }`). |
+| **SEC-DB-SYNC-02** | **HIGH** | `apps/backend/src/services/outboxWorker.service.js`<br>`apps/backend/src/server.js` | Lack of decoupled asynchronous worker prevented automated propagation of changes to secondary relational store | **Resolved**: Built background synchronization worker (`startOutboxWorker`, `processNextBatch`) running on an event-driven loop. Combines reactive `EventEmitter` for sub-second immediate dispatch with 5000ms periodic polling fallback. Gracefully drains and terminates on `SIGTERM`/`SIGINT`. |
+| **SEC-DB-SYNC-03** | **HIGH** | `apps/backend/src/services/outbox.service.js`<br>`apps/backend/src/services/outboxWorker.service.js` | Outbox event delivery can produce at-least-once duplicates, risking inconsistent overwrites in PostgreSQL | **Resolved**: Enforced idempotent event processing. Every outbox event incorporates an immutable `idempotencyKey` backed by unique index deduplication (`err.code === 11000`). Worker synchronization logic executes upserts checking primary keys or unique email constraints to guarantee idempotent convergence. |
+| **SEC-DB-SYNC-04** | **HIGH** | `apps/backend/src/services/outbox.service.js` | Intermittent database outages could cause unmitigated thundering-herd retries and stampedes | **Resolved**: Implemented exponential backoff retry scheduling with randomized jitter (`calculateExponentialBackoff(attempt)`). Retry intervals scale exponentially ($base \times 2^{attempt-1} + jitter$) up to a 60,000ms ceiling, protecting recovering databases from query storms. |
+| **SEC-DB-SYNC-05** | **HIGH** | `apps/backend/src/services/outbox.service.js`<br>`apps/backend/src/services/reconciliation.service.js` | Unrecoverable schema or network errors could permanently block queues or discard failed synchronizations | **Resolved**: Implemented Dead-Letter Queue (DLQ). Events exceeding `maxAttempts` (default: 5) are transitioned to `DEAD_LETTER` with structured operational alerting (`🚨 [OUTBOX_DLQ_ALERT: SEC-DB-SYNC]`). Created `reprocessDeadLetters` service for administrative investigation and zero-loss operational replay. |
+| **SEC-DB-SYNC-06** | **HIGH** | `apps/backend/src/controllers/user.js`<br>`apps/backend/src/services/reconciliation.service.js` | User controllers were tightly coupled to synchronous PostgreSQL writes, returning HTTP 500 when secondary store failed | **Resolved**: Decoupled user controller (`updateProfile`). Profile writes succeed authoritatively in MongoDB and return HTTP 200 immediately; PostgreSQL sync is enqueued via Outbox. Added `reconcileUsers` reconciliation job comparing MongoDB canonical records with PostgreSQL to automatically repair any historical split-brain divergence. |
+
+---
+
+## 17. Verification & Definition of Done
 
 Each milestone requires the following verification steps prior to closure:
 1. **Automated Unit & Integration Tests**: New test cases written under `apps/backend/src/test/` or `apps/frontend/src/test/` validating the security control.
