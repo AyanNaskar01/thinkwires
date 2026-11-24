@@ -124,6 +124,8 @@ export const resolvePostgresTlsConfig = (
 
 const tlsConfig = resolvePostgresTlsConfig();
 
+export const hasReadReplicaConfigured = () => Boolean(config.DATABASE_READ_URL);
+
 export const sequelize = new Sequelize(config.DATABASE_URL, {
   dialect: 'postgres',
   protocol: 'postgres',
@@ -139,6 +141,27 @@ export const sequelize = new Sequelize(config.DATABASE_URL, {
     idle: 5000,
   },
 });
+
+// Dedicated read-only replica connection (if DATABASE_READ_URL is configured)
+export const sequelizeRead = config.DATABASE_READ_URL
+  ? new Sequelize(config.DATABASE_READ_URL, {
+      dialect: 'postgres',
+      protocol: 'postgres',
+      logging: process.env.DB_LOGGING === 'true' ? console.log : false,
+      dialectOptions: {
+        connectTimeout: isServerless ? 3000 : 5000,
+        ...(resolvePostgresTlsConfig(process.env, config.DATABASE_READ_URL).sslOptions
+          ? { ssl: resolvePostgresTlsConfig(process.env, config.DATABASE_READ_URL).sslOptions }
+          : {}),
+      },
+      pool: {
+        max: isProduction ? 10 : 5,
+        min: 0,
+        acquire: 15000,
+        idle: 5000,
+      },
+    })
+  : sequelize;
 
 export const connectDB = async () => {
   try {

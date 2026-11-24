@@ -350,4 +350,21 @@ export const DATABASE_ARCHITECTURE = {
   ROLE: 'Canonical Primary Document Store (ATS, Admin, CMS, Applications)',
 };
 
+/**
+ * Creates or retrieves a secondary read-replica MongoDB connection
+ * for analytical reporting and read-heavy workloads (Issue #211).
+ *
+ * @param {string} [readUri=config.MONGODB_READ_URI]
+ * @returns {mongoose.Connection|null}
+ */
+export const createReadReplicaConnection = (readUri = config.MONGODB_READ_URI) => {
+  if (!readUri) return null;
+  return mongoose.createConnection(readUri, {
+    ...MONGO_OPTIONS,
+    readPreference: 'secondaryPreferred',
+  });
+};
+
+export const hasMongoReadReplica = () => Boolean(config.MONGODB_READ_URI);
+
 export default mongoose;

@@ -1,4 +1,8 @@
 import mongoose from 'mongoose';
+import {
+  fieldEncryptionPlugin,
+  hashSearchableField,
+} from '../utils/fieldEncryption.util.js';
 
 const candidateSchema = new mongoose.Schema(
   {
@@ -204,6 +208,29 @@ const candidateSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Sensitive Restricted PII Fields (Field-Level Encrypted with AES-256-GCM)
+    governmentId: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    governmentIdHash: {
+      type: String,
+      default: null,
+      select: false,
+      index: true,
+      sparse: true,
+    },
+    bankDetails: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+      select: false,
+    },
+    sensitiveNotes: {
+      type: String,
+      default: null,
+      select: false,
+    },
   },
   {
     timestamps: true,
@@ -216,7 +243,15 @@ candidateSchema.pre('save', function (next) {
     this.tokenVersion = (this.tokenVersion || 0) + 1;
     this.passwordChangedAt = new Date();
   }
+  if (this.isModified('governmentId') && this.governmentId) {
+    this.governmentIdHash = hashSearchableField(this.governmentId);
+  }
   next();
+});
+
+// Sensitive field encryption plugin (AES-256-GCM)
+candidateSchema.plugin(fieldEncryptionPlugin, {
+  fields: ['governmentId', 'sensitiveNotes'],
 });
 
 // Partial unique index for active candidates to avoid collisions with soft-deleted profiles (Issue #210)

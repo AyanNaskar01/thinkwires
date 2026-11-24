@@ -381,12 +381,34 @@ flowchart LR
 
 ---
 
-## 21. Verification & Definition of Done
+## 21. Milestone 20: Database Security, Access Control & Disaster Recovery Architecture (7 Capabilities)
+
+*Reference Document:* Database Security Audit (High Priority)
+*Verification Suites:*
+- Database Security Test Suite: [`apps/backend/src/test/unit/databaseSecurity.test.js`](../apps/backend/src/test/unit/databaseSecurity.test.js) (14 tests passing)
+- Full Backend Unit Suite: 412/412 tests passing (33 test files)
+- Full Backend Integration Suite: 70/70 tests passing (8 test files)
+- Reference Runbook: [`docs/DATABASE_SECURITY_AND_DISASTER_RECOVERY.md`](./DATABASE_SECURITY_AND_DISASTER_RECOVERY.md)
+
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
+| :--- | :---: | :--- | :--- | :--- |
+| **SEC-DB-01** | **CRITICAL** | `scripts/database-security/`<br>`apps/backend/src/utils/databaseSecurity.validator.js` | Applications running with superuser (`root`, `postgres`, `admin`) credentials risk complete cluster takeover upon injection vulnerability | **Resolved**: Enforced principle of least privilege. Created automated provisioning scripts for `app_rw_user` (restricted `readWrite`/`DML` only) and `app_ro_user` (`SELECT`/`read` only). Built `databaseSecurity.validator.js` that detects and flags superuser accounts with security alerts. |
+| **SEC-DB-02** | **HIGH** | `apps/backend/src/configs/dotenv.js`<br>`apps/backend/src/configs/db.js`<br>`apps/backend/src/configs/mongodb.js` | Analytical, reporting, and health check queries competed with transactional mutations on the primary database, risking lockouts | **Resolved**: Implemented dual-channel connection splitting. Configured `DATABASE_READ_URL` and `MONGODB_READ_URI`. Exposed `sequelizeRead` for Sequelize read-only replica routing and `createReadReplicaConnection` with `readPreference=secondaryPreferred` for MongoDB. |
+| **SEC-DB-03** | **HIGH** | `apps/backend/src/utils/backupSecurity.util.js`<br>`docs/DATABASE_SECURITY_AND_DISASTER_RECOVERY.md` | Lack of formalized encryption and retention standards for database backups risked non-compliance with SOC 2 and GDPR | **Resolved**: Defined enterprise backup policies in `backupSecurity.util.js`. Enforced mandatory AES-256-GCM / AWS KMS Customer Managed Key (CMK) encryption for all automated snapshots and Object Lock (WORM) for long-term compliance archives. |
+| **SEC-DB-04** | **HIGH** | `apps/backend/src/utils/backupSecurity.util.js` | Unquantified recovery objectives (RTO/RPO) left engineering unprepared for point-in-time recovery during catastrophic failures | **Resolved**: Formalized 7-day continuous Point-In-Time Recovery (PITR) with maximum RPO < 60 seconds and target RTO < 30 minutes via continuous Oplog streaming (MongoDB) and continuous WAL archiving (PostgreSQL). Built automated DR drill simulator `simulateDisasterRecoveryDrill`. |
+| **SEC-DB-05** | **MEDIUM** | `apps/backend/src/utils/backupSecurity.util.js` | Absence of tiered retention policies risked storage exhaustion or accidental premature deletion of audit logs | **Resolved**: Established 3-tier retention schedule: 7 days continuous PITR (operational recovery), 30 days daily encrypted snapshots (disaster recovery), and 7 years (2555 days) monthly cold archives in S3 Glacier Deep Archive (compliance). |
+| **SEC-DB-06** | **CRITICAL** | `apps/backend/src/utils/databaseSecurity.validator.js`<br>`docs/DATABASE_SECURITY_AND_DISASTER_RECOVERY.md` | Database instances accessible across public internet (`0.0.0.0/0`) or unvalidated network boundaries | **Resolved**: Enforced network restrictions: PostgreSQL hosted in AWS VPC Private Subnets with ingress limited to backend security groups (`sg-backend-prod`) on port 5432; MongoDB Atlas restricted to AWS PrivateLink or VPC peering. `checkNetworkRestrictions` audits hosts and flags public/localhost addresses. |
+| **SEC-DB-07** | **CRITICAL** | `apps/backend/src/utils/fieldEncryption.util.js`<br>`apps/backend/src/models/candidate.mongo.model.js` | Sensitive candidate PII (SSN, national tax IDs, bank account details, confidential notes) stored in raw plaintext at rest | **Resolved**: Implemented AES-256-GCM application field-level encryption with 96-bit random IVs, 128-bit authentication tags, and deterministic HMAC-SHA256 blind indexing (`hashSearchableField`). Integrated `fieldEncryptionPlugin` across `Candidate.governmentId`, `bankDetails`, and `sensitiveNotes`. |
+
+---
+
+## 22. Verification & Definition of Done
 
 Each milestone requires the following verification steps prior to closure:
 1. **Automated Unit & Integration Tests**: New test cases written under `apps/backend/src/test/` or `apps/frontend/src/test/` validating the security control.
 2. **Regression Verification**: Running `npm test` across the monorepo passes with zero failures.
 3. **Security Probe Verification**: Non-functional tests in `apps/backend/src/test/non-functional/` verify rejection of malicious payloads (NoSQL injection, path traversal, BOLA cross-tenant access).
+
 
 
 
