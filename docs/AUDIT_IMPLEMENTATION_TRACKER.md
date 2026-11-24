@@ -206,7 +206,25 @@ flowchart LR
 
 ---
 
-## 12. Verification & Definition of Done
+## 12. Milestone 11: File Upload Validation & Malware Defense Engine (5 Issues)
+
+*Verification Suites:*
+- Upload Security & Validation Unit Tests: [`apps/backend/src/test/unit/upload.middleware.test.js`](../apps/backend/src/test/unit/upload.middleware.test.js) (33 tests passing)
+- Resume Upload & Storage Integration Tests: [`apps/backend/src/test/unit/resume.upload.storage.test.js`](../apps/backend/src/test/unit/resume.upload.storage.test.js) (4 tests passing)
+- Full Backend Unit Suite: 326/326 tests passing (27 test files)
+- Full Frontend Suite: 325/325 tests passing (63 test files)
+
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
+| :--- | :---: | :--- | :--- | :--- |
+| **SEC-03-A** | **HIGH** | `apps/backend/src/middlewares/upload.middleware.js` | MIME types supplied by client can be forged; file magic bytes were not verified | **Resolved**: Implemented `validateFileSignature` inspecting actual binary headers for PDF (`%PDF-`), DOCX (`PK\x03\x04`), legacy DOC (`D0 CF 11 E0`), and image formats (`JPEG`, `PNG`, `WebP`). Blocks forged client MIME headers. |
+| **SEC-03-B** | **HIGH** | `apps/backend/src/middlewares/upload.middleware.js` | DOCX archive decompression attacks (Zip bombs, Zip Slip directory traversal, malicious macros) | **Resolved**: Built `validateDocxArchive` checking Zip Slip directory traversal paths (`..`, `/`), uncompressed limits (max 25MB single entry, 50MB total), expansion ratio limits (max 50:1), entry count bounds (max 500), OpenXML schema validation, and rejection of embedded VBA macros (`vbaProject.bin`). |
+| **SEC-03-C** | **HIGH** | `apps/backend/src/middlewares/upload.middleware.js` | PDF parser resource exhaustion and malicious executable actions | **Resolved**: Implemented `validatePdfStructure` enforcing maximum page count (max 20 pages for resumes), object/stream count bounds (<1000 compressed streams), and strict rejection of active actions (`/Launch`, `/JavaScript`, `/JS`, `/SubmitForm`, `/ImportData`). |
+| **SEC-03-D** | **HIGH** | `apps/backend/src/middlewares/upload.middleware.js` | Lack of malware / web shell scanning and quarantine store | **Resolved**: Built `scanBufferForMalware` detecting Windows PE headers (`MZ`), Linux ELF binaries (`\x7fELF`), Mach-O binaries, shell script shebangs (`#!/bin/`), PHP tags/web shells (`<?php`, `eval(base64_decode`), and EICAR antivirus test strings. Malicious files are isolated into `uploads/quarantine` with zeroed permissions and audit metadata. |
+| **SEC-03-E** | **MEDIUM** | `apps/backend/src/routes/candidate.route.js` | Candidate upload endpoints lacked post-upload stream validation | **Resolved**: Mounted `validateUploadedResume` and `validateUploadedAvatar` across `/parse-resume`, `/apply`, and `/avatar/upload`, ensuring invalid files are intercepted and purged before touching downstream AI parsers or cloud storage. |
+
+---
+
+## 13. Verification & Definition of Done
 
 Each milestone requires the following verification steps prior to closure:
 1. **Automated Unit & Integration Tests**: New test cases written under `apps/backend/src/test/` or `apps/frontend/src/test/` validating the security control.

@@ -19,7 +19,12 @@ import {
   requireCandidateAuth,
   optionalCandidateAuth,
 } from '../middlewares/auth.middleware.js';
-import { resumeUpload, avatarUpload } from '../middlewares/upload.middleware.js';
+import {
+  resumeUpload,
+  avatarUpload,
+  validateUploadedResume,
+  validateUploadedAvatar,
+} from '../middlewares/upload.middleware.js';
 import { candidateCsrfProtection } from '../middlewares/csrf.middleware.js';
 import { aiEndpointRateLimiter } from '../middlewares/rateLimiter.middleware.js';
 import rateLimit from 'express-rate-limit';
@@ -48,6 +53,7 @@ router.post(
   aiEndpointRateLimiter,
   candidateCsrfProtection,
   resumeUpload.single('resume'),
+  validateUploadedResume,
   parseResumeForAutoFill
 );
 
@@ -61,6 +67,7 @@ router.post(
   '/apply',
   candidateApplyRateLimiter,
   resumeUpload.single('resume'),
+  validateUploadedResume,
   applyForJob
 );
 router.get('/applications', getMyApplications);
@@ -76,7 +83,12 @@ router.post(
 
 // Evaluation Dossier & Avatar Routes
 router.get('/applications/:applicationId/dossier', getApplicationDossier);
-router.post('/avatar/upload', avatarUpload.single('avatar'), uploadAvatar);
+router.post(
+  '/avatar/upload',
+  avatarUpload.single('avatar'),
+  validateUploadedAvatar,
+  uploadAvatar
+);
 router.put('/avatar/preset', setAvatarPreset);
 router.delete('/avatar', removeAvatar);
 router.get('/resume/:filename', downloadResume);
