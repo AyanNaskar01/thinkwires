@@ -104,8 +104,33 @@ export const getRedisClient = async () => {
 
   if (!redisClient && !isRedisConnecting) {
     isRedisConnecting = true;
-    const redisUrl =
+    const rawRedisUrl =
       process.env.REDIS_URL || config.REDIS_URL || 'redis://localhost:6379';
+
+    let redisUrl = rawRedisUrl;
+    // Auto-normalize if user provided an Upstash REST URL or http(s) URL
+    if (redisUrl.startsWith('https://') || redisUrl.startsWith('http://')) {
+      try {
+        const parsed = new URL(redisUrl);
+        const token =
+          process.env.UPSTASH_REDIS_REST_TOKEN ||
+          process.env.REDIS_TOKEN ||
+          parsed.password;
+        if (token) {
+          redisUrl = `rediss://default:${token}@${parsed.hostname}:6379`;
+          console.log(
+            `[Redis] Normalized Upstash HTTPS URL to native TLS connection: rediss://${parsed.hostname}:6379`
+          );
+        } else {
+          console.warn(
+            `[Redis] Notice: REDIS_URL has protocol '${parsed.protocol}'. Node-redis requires 'redis://' or 'rediss://'. ` +
+              `For Upstash, use the standard connection string: rediss://default:<password>@${parsed.hostname}:6379`
+          );
+        }
+      } catch {
+        // Fall through
+      }
+    }
 
     const isTls = redisUrl.startsWith('rediss://');
     const isUpstash = redisUrl.includes('upstash.io');

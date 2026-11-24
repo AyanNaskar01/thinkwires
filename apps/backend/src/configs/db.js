@@ -166,9 +166,9 @@ export const sequelizeRead = config.DATABASE_READ_URL
 export const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    const target = isLocalhost ? 'Local PostgreSQL' : 'Cloud PostgreSQL';
+    const target = tlsConfig.isLocalhost ? 'Local PostgreSQL' : 'Cloud PostgreSQL';
     console.log(
-      `[PostgreSQL] Connection established successfully (${target}, SSL: ${enableSsl}).`
+      `[PostgreSQL] Connection established successfully (${target}, SSL: ${tlsConfig.enableSsl}).`
     );
   } catch (error) {
     console.error('[PostgreSQL] Unable to connect to the database:', error);
