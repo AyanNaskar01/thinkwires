@@ -16,7 +16,16 @@ Neither the backend application nor administrative microservices connect to Mong
 | `app_ro_user` | Read Replica Connection | `SELECT` on schema `public` tables & sequences | All write/DDL mutations (`INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `ALTER`) | Read-only reporting, analytics, health probes |
 | `dba_migrator` | CI/CD Pipeline Only | `CREATE TABLE`, `ALTER TABLE`, `CREATE INDEX`, `DROP INDEX` | Superuser system-level execution | Automated schema migrations (`npm run migrate`) |
 
-> Provisioning Script: [`scripts/database-security/postgres-least-privilege.sql`](../../scripts/database-security/postgres-least-privilege.sql)
+```sql
+-- PostgreSQL Least-Privilege Provisioning
+CREATE ROLE app_rw_user WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD '...';
+GRANT USAGE, CREATE ON SCHEMA public TO app_rw_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_rw_user;
+
+CREATE ROLE app_ro_user WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD '...';
+GRANT USAGE ON SCHEMA public TO app_ro_user;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO app_ro_user;
+```
 
 ### MongoDB Role Matrix
 
@@ -25,7 +34,19 @@ Neither the backend application nor administrative microservices connect to Mong
 | `app_rw_user` | `thinkwire_db` | `readWrite@thinkwire_db` | `userAdmin`, `dbAdminAnyDatabase`, `root`, `clusterMonitor` | Primary backend document store |
 | `app_ro_user` | `thinkwire_db` | `read@thinkwire_db` | All mutating operations (`insert`, `update`, `delete`, `dropCollection`) | Read replica queries, ATS pipeline dashboards |
 
-> Provisioning Script: [`scripts/database-security/mongodb-least-privilege.js`](../../scripts/database-security/mongodb-least-privilege.js)
+```javascript
+// MongoDB Least-Privilege Provisioning
+db.getSiblingDB('thinkwire_db').createUser({
+  user: 'app_rw_user',
+  pwd: '...',
+  roles: [{ role: 'readWrite', db: 'thinkwire_db' }],
+});
+db.getSiblingDB('thinkwire_db').createUser({
+  user: 'app_ro_user',
+  pwd: '...',
+  roles: [{ role: 'read', db: 'thinkwire_db' }],
+});
+```
 
 ---
 
