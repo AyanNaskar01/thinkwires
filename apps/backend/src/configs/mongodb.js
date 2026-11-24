@@ -124,20 +124,119 @@ export const disconnectMongoDB = async () => {
 };
 
 /**
- * Synchronize compound ESR and partial unique indexes across all registered Mongoose models
+ * Safe Index Synchronization Routine
+ *
+ * In production deployments, executing automatic destructive index synchronization (model.syncIndexes())
+ * during application startup is dangerous because it drops any database indexes absent from the local
+ * Mongoose schema and can induce heavy collection lock contention or sudden query latency spikes.
+ *
+ * Safety Rules:
+ * 1. By default, automatic synchronization during application startup is SKIPPED in production (NODE_ENV === 'production').
+ * 2. In non-production or when explicitly invoked, non-destructive index creation (model.createIndexes())
+ *    is used by default. It creates missing schema indexes and NEVER drops existing database indexes.
+ * 3. Destructive index synchronization (syncIndexes with index drops) is strictly forbidden unless
+ *    BOTH options.allowDrop === true AND ALLOW_DESTRUCTIVE_INDEX_DROP === 'true' environment flag is set.
+ * 4. Measures and logs index build duration (durationMs) and per-model diagnostics.
+ *
+ * @param {object} [options]
+ * @param {boolean} [options.allowDrop=false] Whether to allow dropping extraneous indexes (requires ALLOW_DESTRUCTIVE_INDEX_DROP=true)
+ * @param {boolean} [options.force=false] Force execution even in production environment
+ * @param {Array<string>} [options.models] Specific model names to synchronize (all if omitted)
+ * @returns {Promise<object>} Results summary with per-model stats and timing
  */
-export const synchronizeIndexes = async () => {
-  if (mongoose.connection.readyState !== 1) return;
+export const synchronizeIndexes = async (options = {}) => {
+  if (mongoose.connection.readyState !== 1) {
+    return { skipped: true, reason: 'MongoDB is disconnected (readyState !== 1)' };
+  }
+
+  const isProduction = process.env.NODE_ENV === 'production';
+  const force = options.force === true || process.env.ALLOW_PRODUCTION_INDEX_SYNC === 'true';
+
+  if (isProduction && !force) {
+    console.log(
+      '🔒 [MongoDB] Production index sync protection: Automatic startup index synchronization is skipped.\n' +
+      '             Indexes must be managed via explicit deterministic migrations (npm run migrate) or reviewed via npm run index:review.'
+    );
+    return {
+      skipped: true,
+      reason: 'Automatic startup index synchronization disabled in production for database stability.',
+    };
+  }
+
+  const allowDrop =
+    options.allowDrop === true &&
+    process.env.ALLOW_DESTRUCTIVE_INDEX_DROP === 'true';
+
+  const startTime = Date.now();
+  const results = {
+    modelsChecked: 0,
+    indexesCreated: 0,
+    indexesDropped: 0,
+    errors: [],
+    details: [],
+    totalDurationMs: 0,
+  };
+
   try {
-    const models = Object.values(mongoose.models);
+    const models = Object.values(mongoose.models).filter(
+      (m) => !options.models || options.models.includes(m.modelName)
+    );
+
     for (const model of models) {
-      if (model && typeof model.syncIndexes === 'function') {
-        await model.syncIndexes();
+      if (!model) continue;
+      results.modelsChecked += 1;
+      const modelStart = Date.now();
+
+      try {
+        if (allowDrop && typeof model.syncIndexes === 'function') {
+          console.warn(
+            `⚠️ [MongoDB] DESTRUCTIVE SYNC: Syncing indexes on ${model.modelName} with allowDrop=true...`
+          );
+          const dropped = await model.syncIndexes();
+          const duration = Date.now() - modelStart;
+          const dropCount = Array.isArray(dropped) ? dropped.length : 0;
+          results.indexesDropped += dropCount;
+          results.details.push({
+            model: model.modelName,
+            action: 'syncIndexes',
+            droppedCount: dropCount,
+            durationMs: duration,
+          });
+          console.log(
+            `   ✔ [${model.modelName}] Synced in ${duration}ms (dropped ${dropCount} indexes)`
+          );
+        } else if (typeof model.createIndexes === 'function') {
+          // Safe non-destructive creation of missing indexes without dropping anything
+          await model.createIndexes();
+          const duration = Date.now() - modelStart;
+          results.details.push({
+            model: model.modelName,
+            action: 'createIndexes',
+            durationMs: duration,
+          });
+          console.log(`   ✔ [${model.modelName}] Indexes verified/created in ${duration}ms`);
+        }
+      } catch (modelErr) {
+        const duration = Date.now() - modelStart;
+        results.errors.push({
+          model: model.modelName,
+          error: modelErr.message,
+          durationMs: duration,
+        });
+        console.warn(`   ⚠️ [${model.modelName}] Index operation notice (${duration}ms):`, modelErr.message);
       }
     }
-    console.log('[MongoDB] Production compound indexes synchronized successfully.');
+
+    results.totalDurationMs = Date.now() - startTime;
+    console.log(
+      `[MongoDB] Safe index verification completed across ${results.modelsChecked} models in ${results.totalDurationMs}ms.`
+    );
+    return results;
   } catch (err) {
-    console.warn('[MongoDB] Index synchronization notice:', err.message);
+    results.totalDurationMs = Date.now() - startTime;
+    console.warn('[MongoDB] Index synchronization error:', err.message);
+    results.errors.push({ global: err.message });
+    return results;
   }
 };
 

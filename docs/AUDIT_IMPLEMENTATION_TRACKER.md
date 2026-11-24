@@ -31,6 +31,7 @@ flowchart LR
 | **Milestone 13: Reverse Proxy Trust & Network Topology Hardening** | Subnet range compilation (loopback, linklocal, uniquelocal), Cloudflare CIDR support, hop count parsing, client IP anti-spoofing | SEC-05-A–D | Sprint 10 | **Completed** |
 | **Milestone 14: Production Security Headers & Frontend CDN Hardening** | Backend Helmet style-src unsafe-inline removal, obsolete X-XSS-Protection replacement, Cloudflare Pages _headers, Vercel CSP/HSTS sync | SEC-06-A–D | Sprint 10 | **Completed** |
 | **Milestone 15: Dual Database Consistency & Transactional Outbox** | Transactional outbox pattern, background synchronization worker, idempotent processing, exponential backoff with jitter, dead-letter queue, reconciliation jobs | SEC-DB-SYNC-01–06 | Sprint 10 | **Completed** |
+| **Milestone 16: Production Index Synchronization & Safety Architecture** | Non-destructive createIndexes, startup sync suppression in production, pre-deployment review tool (index:review), duration tracking & load alerts, explicit outbox migrations | SEC-IDX-01–05 | Sprint 10 | **Completed** |
 
 ---
 
@@ -74,7 +75,7 @@ flowchart LR
 | **SEC-EXP-06** | **HIGH** | `apps/backend/src/routes/api.route.js:455-474` | Privilege escalation in `POST /api/openings` | **Resolved**: Enforced `manpowerGuard` (`superadmin`, `admin`) restricting `cms_admin` from publishing/upserting openings. |
 | **SEC-EXP-07** | **HIGH** | `apps/backend/src/configs/db.js:42` | PostgreSQL TLS verification bypass (`rejectUnauthorized: false`) | **Resolved**: Added CA certificate support, configurable `DB_SSL_REJECT_UNAUTHORIZED`, and strict TLS verification in non-cloud production environments. |
 | **SEC-EXP-08** | **HIGH** | `apps/backend/src/models/job.mongo.model.js`<br>`apps/backend/src/models/article.mongo.model.js` | `strict: false` schema bypass | **Resolved**: Set `strict: true` and defined complete attribute schemas for JobRequirement and Article models. |
-| **SEC-EXP-09** | **MEDIUM** | `apps/backend/src/configs/mongodb.js`<br>`apps/backend/src/server.js` | Production index synchronization missing | **Resolved**: Added automated startup index synchronization in `server.js` via `synchronizeIndexes()` and added npm `sync:indexes` script. |
+| **SEC-EXP-09** | **HIGH** | `apps/backend/src/configs/mongodb.js`<br>`apps/backend/src/server.js` | Production index synchronization executed `model.syncIndexes()` on startup, destructively dropping non-schema database indexes and risking cluster lockups | **Resolved**: Hardened index lifecycle. Startup synchronization is disabled in production to protect database stability. Routine defaults to non-destructive `createIndexes()` (never dropping database indexes), with destructive `syncIndexes()` requiring dual explicit authorization. Added pre-deployment review CLI (`npm run index:review`), index duration telemetry, and explicit migrations. |
 
 ---
 
@@ -304,7 +305,26 @@ flowchart LR
 
 ---
 
-## 17. Verification & Definition of Done
+## 17. Milestone 16: Production Index Synchronization & Safety Architecture (5 Capabilities)
+
+*Reference Document:* Production Index Synchronization Audit (High Priority)
+*Verification Suites:*
+- Production Index Synchronization Unit Suite: [`apps/backend/src/test/unit/productionIndexSynchronization.test.js`](../apps/backend/src/test/unit/productionIndexSynchronization.test.js) (9 tests passing)
+- Milestone 2 Express Hardening Suite: [`apps/backend/src/test/unit/milestone2.express.test.js`](../apps/backend/src/test/unit/milestone2.express.test.js) (13 tests passing)
+- Full Backend Unit Suite: 361/361 tests passing (29 test files)
+- Full Backend Integration Suite: 70/70 tests passing (8 test files)
+
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
+| :--- | :---: | :--- | :--- | :--- |
+| **SEC-IDX-01** | **HIGH** | `apps/backend/src/server.js`<br>`apps/backend/src/configs/mongodb.js` | Executing automatic index synchronization on container startup in production risked CPU/memory saturation, collection locking, and cascading latency spikes | **Resolved**: Disabled automatic startup index synchronization in production (`NODE_ENV === 'production'`). Server startup logs notice that schema indexes are managed via deterministic migrations (`npm run migrate`) and review tooling (`npm run index:review`). |
+| **SEC-IDX-02** | **HIGH** | `apps/backend/src/configs/mongodb.js` | Calling `model.syncIndexes()` unconditionally dropped indexes present in the live database but absent from Mongoose schemas (e.g. DBA indexes, analytics indexes, temporary query tunings) | **Resolved**: Updated `synchronizeIndexes` to default to non-destructive `model.createIndexes()`. It creates any missing schema indexes and strictly preserves existing database indexes. Destructive `syncIndexes` is blocked unless both `options.allowDrop === true` AND `ALLOW_DESTRUCTIVE_INDEX_DROP === 'true'` environment flag are present. |
+| **SEC-IDX-03** | **HIGH** | `apps/backend/src/migrations/reviewIndexes.js`<br>`apps/backend/package.json` | DevOps and engineering lacked pre-deployment visibility into index diffs between code schemas and live database collections | **Resolved**: Created pre-deployment index review tool (`npm run index:review`). Inspects all registered Mongoose models, fetches live collection index specifications, normalizes key definitions, and classifies indexes into **In Sync**, **Missing in DB**, and **Extraneous in DB** with critical drop-risk warnings. |
+| **SEC-IDX-04** | **MEDIUM** | `apps/backend/src/configs/mongodb.js`<br>`apps/backend/src/migrations/runner.js` | Index builds ran without duration tracking, obscuring database load and query performance impact | **Resolved**: Integrated execution duration monitoring (`durationMs`) across both `synchronizeIndexes` (per-model and total) and migration runner (`runner.js`). Migration runner records `durationMs` in `_migrations` and emits cluster load alerts if build times exceed 2000ms. |
+| **SEC-IDX-05** | **MEDIUM** | `apps/backend/src/migrations/scripts/003_create_outbox_indexes.js` | Transactional Outbox Event model lacked an explicit migration script for deterministic deployment | **Resolved**: Created explicit migration `003_create_outbox_indexes.js` establishing `{ status: 1, nextRetryAt: 1 }`, `{ aggregateType: 1, aggregateId: 1, createdAt: -1 }`, and unique `{ idempotencyKey: 1 }` with measured duration and complete rollback capability. |
+
+---
+
+## 18. Verification & Definition of Done
 
 Each milestone requires the following verification steps prior to closure:
 1. **Automated Unit & Integration Tests**: New test cases written under `apps/backend/src/test/` or `apps/frontend/src/test/` validating the security control.

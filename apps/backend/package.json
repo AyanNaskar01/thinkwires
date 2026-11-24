@@ -27,7 +27,10 @@
     "migrate:pg:down": "node src/migrations/postgresRunner.js down",
     "migrate:pg:status": "node src/migrations/postgresRunner.js status",
     "migrate:all": "npm run migrate && npm run migrate:pg",
-    "sync:indexes": "node -e \"import('./src/configs/mongodb.js').then(m => m.connectMongoDB().then(() => m.synchronizeIndexes().then(() => process.exit(0))))\""
+    "migrate:review": "node src/migrations/reviewIndexes.js",
+    "index:review": "node src/migrations/reviewIndexes.js",
+    "index:safe-sync": "node -e \"import('./src/configs/mongodb.js').then(m => m.connectMongoDB().then(() => m.synchronizeIndexes({ allowDrop: false, force: true }).then(() => process.exit(0))))\"",
+    "sync:indexes": "node -e \"import('./src/configs/mongodb.js').then(m => m.connectMongoDB().then(() => m.synchronizeIndexes({ allowDrop: false, force: true }).then(() => process.exit(0))))\""
   },
   "keywords": [],
   "author": "",

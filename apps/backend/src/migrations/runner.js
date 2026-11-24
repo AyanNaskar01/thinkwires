@@ -20,6 +20,7 @@ const migrationSchema = new mongoose.Schema(
     name: { type: String, required: true, unique: true },
     batch: { type: Number, required: true },
     appliedAt: { type: Date, default: Date.now },
+    durationMs: { type: Number, default: 0 },
   },
   { collection: '_migrations' }
 );
@@ -59,8 +60,9 @@ export const getStatus = async () => {
         .toISOString()
         .replace('T', ' ')
         .slice(0, 19);
+      const durationStr = record.durationMs ? ` [${record.durationMs}ms]` : '';
       console.log(
-        ` ✅ [APPLIED]  Batch #${record.batch} (${dateStr})  ${file}`
+        ` ✅ [APPLIED]  Batch #${record.batch} (${dateStr})${durationStr}  ${file}`
       );
     } else {
       console.log(` ⏳ [PENDING]  Not applied yet                   ${file}`);
@@ -108,15 +110,21 @@ export const runUp = async () => {
         throw new Error(`Migration ${file} must export an 'up' async function`);
       }
 
+      const fileStart = Date.now();
       await migrationModule.up({ db, mongoose });
+      const durationMs = Date.now() - fileStart;
 
       await MigrationRecord.create({
         name: file,
         batch: nextBatch,
         appliedAt: new Date(),
+        durationMs,
       });
 
-      console.log(`   ✔ Successfully applied ${file}`);
+      console.log(`   ✔ Successfully applied ${file} in ${durationMs}ms`);
+      if (durationMs > 2000) {
+        console.warn(`   ⚠️ High build duration notice: ${file} took ${durationMs}ms. Monitor database cluster metrics.`);
+      }
     } catch (err) {
       console.error(`\n❌ Migration failed on ${file}:`, err.message);
       console.error(
@@ -253,9 +261,12 @@ const main = async () => {
     } else if (command === 'create') {
       createMigration(process.argv[3]);
       process.exit(0);
+    } else if (command === 'review') {
+      const { reviewIndexes } = await import('./reviewIndexes.js');
+      await reviewIndexes();
     } else {
       console.log(
-        `Unknown command '${command}'. Available commands: up, down, status, create <name>`
+        `Unknown command '${command}'. Available commands: up, down, status, create <name>, review`
       );
     }
   } catch (err) {

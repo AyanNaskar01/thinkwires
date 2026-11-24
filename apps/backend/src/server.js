@@ -59,7 +59,15 @@ const startServer = async () => {
   connectMongoDB()
     .then(async () => {
       console.log('[MongoDB] Connected: dual-mode active persistence enabled.');
-      await synchronizeIndexes();
+      const isDevelopment = process.env.NODE_ENV !== 'production';
+      if (isDevelopment) {
+        await synchronizeIndexes({ allowDrop: false });
+      } else {
+        console.log(
+          '[MongoDB] Connected in production mode. Destructive startup index synchronization is disabled.\n' +
+          '          Schema indexes are managed via deterministic migrations (runner.js) and review tooling (npm run index:review).'
+        );
+      }
     })
     .catch((error) => {
       console.warn(
