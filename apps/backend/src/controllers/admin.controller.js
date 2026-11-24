@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { loadSeedJson } from '../utils/seedLoader.js';
-import { parsePagination } from '../utils/pagination.util.js';
+import { parsePagination, parseCursorPagination, buildCursorQuery, encodeCursor } from '../utils/pagination.util.js';
 import mongoose from 'mongoose';
 
 import Employee from '../models/employee.mongo.model.js';
@@ -772,7 +772,9 @@ export const deleteEmployee = async (req, res) => {
 // ============================================================================
 export const getCandidates = async (req, res) => {
   try {
-    const { page, limit, skip } = parsePagination(req.query, 50, 100);
+    const cursorPagination = parseCursorPagination(req.query, 50, 100);
+    const { page, skip } = parsePagination(req.query, 50, 100);
+    const { limit, cursor, isCursorMode } = cursorPagination;
     const search =
       typeof req.query.search === 'string' ? req.query.search.trim() : '';
     const status =
@@ -781,9 +783,11 @@ export const getCandidates = async (req, res) => {
 
     let items = [];
     let total = 0;
+    let hasNextPage = false;
+    let nextCursor = null;
 
     if (isMongoActive()) {
-      const appQuery = { isDeleted: { $ne: true } };
+      let appQuery = { isDeleted: { $ne: true } };
       if (status && status !== 'All') {
         appQuery.status = status;
       }
@@ -801,8 +805,14 @@ export const getCandidates = async (req, res) => {
 
       total = await JobApplication.countDocuments(appQuery);
 
+      if (isCursorMode && cursor) {
+        appQuery = buildCursorQuery(appQuery, cursor, 'createdAt', -1);
+      }
+
+      const fetchLimit = isCursorMode ? limit + 1 : limit;
+
       // 1. Fetch bounded job applications with lightweight projection (excluding heavy evaluation dossiers)
-      const applications = await JobApplication.find(appQuery)
+      let applications = await JobApplication.find(appQuery)
         .select(
           'candidate candidateName firstName lastName email mobileNumber currentEmployer ' +
           'totalExperienceYears relevantExperienceYears expectedCTC status assessmentStatus ' +
@@ -816,10 +826,15 @@ export const getCandidates = async (req, res) => {
             'name email phone currentRole status experience avatarUrl avatarType ' +
             'technicalSkills location benchAvatarCode',
         })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(isCursorMode ? 0 : skip)
+        .limit(fetchLimit)
         .lean();
+
+      if (isCursorMode && applications.length > limit) {
+        hasNextPage = true;
+        applications.pop();
+      }
 
       // Track candidate IDs that have applications
       const candidatesWithApps = new Set();
@@ -944,7 +959,14 @@ export const getCandidates = async (req, res) => {
         if (status && status !== 'All') candQuery.status = status;
 
         const registeredCandidates = await Candidate.find(candQuery)
-          .sort({ createdAt: -1 })
+          .select(
+            'name email phone currentRole jobId jobTitle client rateCard currentCTC ' +
+            'relevantExperience currentCompany preferredLocation applicationDate month ' +
+            'noticePeriod location technicalSkills experience expectedSalary status ' +
+            'assessmentStatus assessmentScore fitScore avatarUrl avatarType benchAvatarCode ' +
+            'resumeUrl notes bio createdAt updatedAt'
+          )
+          .sort({ createdAt: -1, _id: -1 })
           .limit(remainingLimit + candidatesWithApps.size)
           .lean();
 
@@ -1026,14 +1048,32 @@ export const getCandidates = async (req, res) => {
       items = filtered.slice(skip, skip + limit);
     }
 
+    if (isCursorMode) {
+      const lastItem = items[items.length - 1];
+      if (lastItem) {
+        nextCursor = hasNextPage
+          ? encodeCursor({ id: lastItem.id || lastItem._id, sortValue: lastItem.createdAt })
+          : null;
+      }
+    } else {
+      hasNextPage = (page * limit < total);
+      if (hasNextPage && items.length > 0) {
+        const lastItem = items[items.length - 1];
+        nextCursor = encodeCursor({ id: lastItem.id || lastItem._id, sortValue: lastItem.createdAt });
+      }
+    }
+
     res.json({
       success: true,
       candidates: items,
       pagination: {
         total,
-        page,
+        page: isCursorMode ? undefined : page,
         limit,
-        totalPages: Math.ceil(total / limit) || 1,
+        totalPages: isCursorMode ? undefined : (Math.ceil(total / limit) || 1),
+        cursor: req.query.cursor || null,
+        nextCursor,
+        hasNextPage,
       },
     });
   } catch (err) {

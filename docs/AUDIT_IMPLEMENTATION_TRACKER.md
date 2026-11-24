@@ -361,11 +361,32 @@ flowchart LR
 
 ---
 
-## 20. Verification & Definition of Done
+## 20. Milestone 19: Database Query Optimization & Performance Architecture (7 Capabilities)
+
+*Reference Document:* Database Query Optimization Audit (High Priority)
+*Verification Suites:*
+- Query Optimization Test Suite: [`apps/backend/src/test/unit/databaseQueryOptimization.test.js`](../apps/backend/src/test/unit/databaseQueryOptimization.test.js) (18 tests passing)
+- Full Backend Unit Suite: 398/398 tests passing (32 test files)
+- Full Backend Integration Suite: 70/70 tests passing (8 test files)
+
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
+| :--- | :---: | :--- | :--- | :--- |
+| **PERF-OPT-01** | **HIGH** | `apps/backend/src/utils/pagination.util.js`<br>`apps/backend/src/controllers/admin.controller.js`<br>`apps/backend/src/controllers/candidatePortal.controller.js` | Traditional offset pagination (`.skip(N)`) suffers from $O(N)$ scanning degradation on large candidate/application datasets, consuming excessive MongoDB CPU and memory | **Resolved**: Implemented high-performance cursor pagination (`encodeCursor`, `decodeCursor`, `parseCursorPagination`, `buildCursorQuery`). Uses URL-safe base64 tokens containing `{ id, sortValue }` for $O(1)$ index-seek pagination (`{ createdAt: { $lt: cursorDate }, _id: { $lt: cursorId } }`) while preserving full backward compatibility for `page`/`limit` requests. |
+| **PERF-OPT-02** | **MEDIUM** | `apps/backend/src/controllers/admin.controller.js`<br>`apps/backend/src/controllers/candidatePortal.controller.js` | Unprojected find operations hydrated heavy fields (e.g. `aiEvaluationDossier`, `dossierRawText`, `notes`) into memory during list queries, causing V8 heap bloat | **Resolved**: Added explicit lightweight projections (`.select(...)`) across `getCandidates`, registered candidates, and candidate portal `getMyApplications`. Oromotes heavy dossier objects from list payloads to dedicated single-entity endpoints (`getCandidateDossier`). |
+| **PERF-OPT-03** | **HIGH** | `apps/backend/src/utils/queryPlanAnalyzer.js` | Engineering lacked automated query-plan analysis tooling to verify index selectivity and guard against unindexed collection scans | **Resolved**: Created query plan analyzer (`analyzeQueryPlan`) executing `.explain('executionStats')`. Recursively inspects execution stages, detects collection scans (`COLLSCAN`), warns on in-memory sorts (`SORT`), calculates scan efficiency ratios (`nReturned / totalDocsExamined`), and provides `isQueryPlanEfficient` verification. |
+| **PERF-OPT-04** | **MEDIUM** | `apps/backend/src/utils/slowQueryLogger.js`<br>`apps/backend/src/configs/mongodb.js` | Slow or unindexed database queries went unrecorded in production, preventing proactive performance diagnostics | **Resolved**: Created slow query logger plugin and circular buffer tracker (`SlowQueryTracker`). Automatically hooks into all Mongoose query and aggregate operations, capturing queries exceeding `SLOW_QUERY_THRESHOLD_MS` (default: 100ms) with execution duration, model, operation, filter, and circular history buffer. |
+| **PERF-OPT-05** | **MEDIUM** | `apps/backend/src/configs/mongodb.js`<br>`apps/backend/src/routes/health.route.js` | MongoDB driver connection pool checkout and exhaustion states were invisible to monitoring | **Resolved**: Implemented Connection Pool Monitoring (`setupPoolMonitoring`) hooking into driver CMAP events (`connectionCreated`, `connectionReady`, `connectionClosed`, `connectionCheckOutStarted`, `connectionCheckedOut`, `connectionCheckedIn`). Exposes real-time pool metrics (`poolSize`, `activeConnections`, `idleConnections`, `totalCheckouts`) in authorized `/ready` health diagnostics. |
+| **PERF-OPT-06** | **HIGH** | `apps/backend/src/models/candidate.mongo.model.js`<br>`apps/backend/src/models/outboxEvent.mongo.model.js`<br>`apps/backend/src/models/jobApplication.mongo.model.js` | Index trees stored soft-deleted or completed records, wasting RAM; unique email index caused collisions for soft-deleted candidates | **Resolved**: Configured partial indexes: Candidate `{ email: 1 }` with `{ unique: true, partialFilterExpression: { isDeleted: { $ne: true } } }`; OutboxEvent `{ status: 1, nextRetryAt: 1 }` with `{ partialFilterExpression: { status: { $in: ['PENDING', 'FAILED', 'PROCESSING'] } } }`; JobApplication `{ candidate: 1, jobId: 1 }` with `{ unique: true, partialFilterExpression: { status: { $in: ['Applied', 'Screening', 'Interview', 'Offered'] } } }`. |
+| **PERF-OPT-07** | **HIGH** | `apps/backend/src/utils/pagination.util.js` | Unbounded queries (`limit` absent or arbitrarily large) risked node process out-of-memory crashes | **Resolved**: Enforced strict boundary ceilings (`enforceQueryBound`, `parsePagination`, `parseCursorPagination`) with default limit 50 (or 20) and absolute hard maximum cap of 100 across all candidate, application, and administrative list endpoints. |
+
+---
+
+## 21. Verification & Definition of Done
 
 Each milestone requires the following verification steps prior to closure:
 1. **Automated Unit & Integration Tests**: New test cases written under `apps/backend/src/test/` or `apps/frontend/src/test/` validating the security control.
 2. **Regression Verification**: Running `npm test` across the monorepo passes with zero failures.
 3. **Security Probe Verification**: Non-functional tests in `apps/backend/src/test/non-functional/` verify rejection of malicious payloads (NoSQL injection, path traversal, BOLA cross-tenant access).
+
 
 

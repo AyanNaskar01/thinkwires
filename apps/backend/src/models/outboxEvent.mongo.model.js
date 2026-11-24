@@ -100,8 +100,15 @@ const outboxEventSchema = new mongoose.Schema(
   }
 );
 
-// High-performance compound indexes for outbox worker polling & reconciliation
-outboxEventSchema.index({ status: 1, nextRetryAt: 1 });
+// High-performance partial compound index for outbox worker polling & reconciliation (Issue #210)
+outboxEventSchema.index(
+  { status: 1, nextRetryAt: 1 },
+  {
+    partialFilterExpression: {
+      status: { $in: ['PENDING', 'FAILED', 'PROCESSING'] },
+    },
+  }
+);
 outboxEventSchema.index({ aggregateType: 1, aggregateId: 1, createdAt: -1 });
 
 export const OutboxEvent = mongoose.models.OutboxEvent || mongoose.model('OutboxEvent', outboxEventSchema);

@@ -11,6 +11,11 @@ import aiService from '../services/ai.service.js';
 import { verifyAdminToken, verifyCandidateToken } from '../utils/auth.util.js';
 import { buildDualScoreReport } from '../utils/dualScore.util.js';
 import { storageService, cleanUpFile } from '../utils/storage.adapter.js';
+import {
+  parseCursorPagination,
+  buildCursorQuery,
+  encodeCursor,
+} from '../utils/pagination.util.js';
 
 // Fallback in-memory application store for local development if MongoDB is absent
 export const localDevApplications = [];
@@ -183,25 +188,58 @@ export const updateCandidateProfile = async (req, res) => {
 export const getMyApplications = async (req, res) => {
   try {
     const candidateId = req.candidate._id || req.candidate.id;
+    const { limit, cursor, isCursorMode } = parseCursorPagination(req.query, 20, 100);
 
     let applications = [];
+    let hasNextPage = false;
+    let nextCursor = null;
+
     if (mongoose.connection.readyState === 1) {
-      applications = await JobApplication.find({
+      let filter = {
         candidate: candidateId,
         isDeleted: { $ne: true },
-      })
-        .sort({ createdAt: -1 })
-        .limit(50)
+      };
+
+      if (cursor) {
+        filter = buildCursorQuery(filter, cursor, 'createdAt', -1);
+      }
+
+      const fetchLimit = limit + 1;
+      const rawApps = await JobApplication.find(filter)
+        .select(
+          'jobId jobTitle department location employmentType postingDate ' +
+          'resumeOriginalName resumeUrl avatarUrl status screeningPassed ' +
+          'assessmentScore fitScore fitBadge applicationDate notes createdAt updatedAt'
+        )
+        .sort({ createdAt: -1, _id: -1 })
+        .limit(fetchLimit)
         .lean();
+
+      if (rawApps.length > limit) {
+        hasNextPage = true;
+        rawApps.pop();
+      }
+
+      applications = rawApps;
+      if (applications.length > 0 && (hasNextPage || isCursorMode)) {
+        const last = applications[applications.length - 1];
+        nextCursor = encodeCursor({ id: last._id, sortValue: last.createdAt });
+      }
     } else {
-      applications = localDevApplications.filter(
-        (app) => String(app.candidate) === String(candidateId)
-      );
+      applications = localDevApplications
+        .filter((app) => String(app.candidate) === String(candidateId))
+        .slice(0, limit);
     }
 
     return res.status(200).json({
       success: true,
       applications,
+      pagination: {
+        limit,
+        cursor: req.query.cursor || null,
+        nextCursor,
+        hasNextPage,
+      },
     });
   } catch (error) {
     console.error('Get applications error:', error);

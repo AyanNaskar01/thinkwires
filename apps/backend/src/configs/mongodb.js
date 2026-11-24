@@ -1,11 +1,104 @@
 import mongoose from 'mongoose';
 import config from './dotenv.js';
+import {
+  attachSlowQueryLogger,
+  getSlowQueryMetrics,
+  clearSlowQueryMetrics,
+} from '../utils/slowQueryLogger.js';
+
+// Auto-wire slow query logging plugin into Mongoose instance
+attachSlowQueryLogger(mongoose);
 
 let isReconnecting = false;
 let reconnectTimer = null;
 let listenersAttached = false;
 let cachedConnectionPromise = null;
 let isExplicitDisconnect = false;
+
+// Connection pool metrics tracker (Issue #210)
+const poolMetrics = {
+  poolSize: 0,
+  activeConnections: 0,
+  idleConnections: 0,
+  totalCreated: 0,
+  totalClosed: 0,
+  totalCheckouts: 0,
+  checkoutFailures: 0,
+  lastCheckoutAt: null,
+};
+
+let poolListenersAttached = false;
+
+export const setupPoolMonitoring = (client) => {
+  if (poolListenersAttached || !client || typeof client.on !== 'function') return;
+  poolListenersAttached = true;
+
+  client.on('connectionCreated', () => {
+    poolMetrics.totalCreated += 1;
+    poolMetrics.poolSize += 1;
+  });
+
+  client.on('connectionReady', () => {
+    poolMetrics.idleConnections += 1;
+  });
+
+  client.on('connectionClosed', () => {
+    poolMetrics.totalClosed += 1;
+    poolMetrics.poolSize = Math.max(0, poolMetrics.poolSize - 1);
+    poolMetrics.idleConnections = Math.max(0, poolMetrics.idleConnections - 1);
+  });
+
+  client.on('connectionCheckOutStarted', () => {
+    poolMetrics.totalCheckouts += 1;
+  });
+
+  client.on('connectionCheckedOut', () => {
+    poolMetrics.activeConnections += 1;
+    poolMetrics.idleConnections = Math.max(0, poolMetrics.idleConnections - 1);
+    poolMetrics.lastCheckoutAt = new Date().toISOString();
+  });
+
+  client.on('connectionCheckOutFailed', () => {
+    poolMetrics.checkoutFailures += 1;
+  });
+
+  client.on('connectionCheckedIn', () => {
+    poolMetrics.activeConnections = Math.max(0, poolMetrics.activeConnections - 1);
+    poolMetrics.idleConnections += 1;
+  });
+
+  client.on('connectionPoolCleared', () => {
+    poolMetrics.activeConnections = 0;
+    poolMetrics.idleConnections = 0;
+  });
+};
+
+export const getConnectionPoolMetrics = () => ({
+  maxPoolSize: MONGO_OPTIONS.maxPoolSize,
+  minPoolSize: MONGO_OPTIONS.minPoolSize,
+  currentPoolSize: poolMetrics.poolSize,
+  activeConnections: poolMetrics.activeConnections,
+  idleConnections: poolMetrics.idleConnections,
+  totalCreated: poolMetrics.totalCreated,
+  totalClosed: poolMetrics.totalClosed,
+  totalCheckouts: poolMetrics.totalCheckouts,
+  checkoutFailures: poolMetrics.checkoutFailures,
+  lastCheckoutAt: poolMetrics.lastCheckoutAt,
+});
+
+export const resetConnectionPoolMetrics = () => {
+  poolMetrics.poolSize = 0;
+  poolMetrics.activeConnections = 0;
+  poolMetrics.idleConnections = 0;
+  poolMetrics.totalCreated = 0;
+  poolMetrics.totalClosed = 0;
+  poolMetrics.totalCheckouts = 0;
+  poolMetrics.checkoutFailures = 0;
+  poolMetrics.lastCheckoutAt = null;
+  poolListenersAttached = false;
+};
+
+export { getSlowQueryMetrics, clearSlowQueryMetrics };
 
 const isProduction = config.NODE_ENV === 'production';
 const isServerless = Boolean(
@@ -41,6 +134,13 @@ const setupConnectionListeners = () => {
     }
     const target = isLocalMongo ? 'Local MongoDB / Compass' : 'MongoDB Atlas / Cloud';
     console.log(`[MongoDB] Connected: ${mongoose.connection.host} (${target})`);
+
+    try {
+      const client = mongoose.connection.getClient?.();
+      if (client) setupPoolMonitoring(client);
+    } catch {
+      // Driver might not expose getClient in all mock environments
+    }
   });
 
   mongoose.connection.on('error', (err) => {

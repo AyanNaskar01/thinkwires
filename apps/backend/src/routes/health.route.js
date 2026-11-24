@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { sequelize } from '../configs/db.js';
 import { isRedisConnected } from '../configs/redis.js';
+import { getConnectionPoolMetrics, getSlowQueryMetrics } from '../configs/mongodb.js';
 import { isAuthorizedDiagnosticRequest } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
@@ -60,6 +61,8 @@ router.get('/ready', async (req, res) => {
       mongodb: isMongoReady ? 'connected' : 'disconnected',
       postgresql: isPostgresReady ? 'connected' : 'optional/disconnected',
       redis: isRedisConnected() ? 'connected' : 'in-memory-fallback',
+      connectionPool: getConnectionPoolMetrics(),
+      slowQueries: getSlowQueryMetrics().summary,
     };
   }
 

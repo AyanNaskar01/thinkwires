@@ -10,7 +10,6 @@ const candidateSchema = new mongoose.Schema(
     email: {
       type: String,
       required: [true, 'Candidate email is required'],
-      unique: true,
       lowercase: true,
       trim: true,
     },
@@ -220,6 +219,14 @@ candidateSchema.pre('save', function (next) {
   next();
 });
 
+// Partial unique index for active candidates to avoid collisions with soft-deleted profiles (Issue #210)
+candidateSchema.index(
+  { email: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { isDeleted: { $ne: true } },
+  }
+);
 candidateSchema.index({ resetPasswordToken: 1 }, { sparse: true });
 candidateSchema.index({ status: 1, createdAt: -1 });
 candidateSchema.index({ jobId: 1, createdAt: -1 });
