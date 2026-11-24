@@ -33,6 +33,7 @@ flowchart LR
 | **Milestone 15: Dual Database Consistency & Transactional Outbox** | Transactional outbox pattern, background synchronization worker, idempotent processing, exponential backoff with jitter, dead-letter queue, reconciliation jobs | SEC-DB-SYNC-01–06 | Sprint 10 | **Completed** |
 | **Milestone 16: Production Index Synchronization & Safety Architecture** | Non-destructive createIndexes, startup sync suppression in production, pre-deployment review tool (index:review), duration tracking & load alerts, explicit outbox migrations | SEC-IDX-01–05 | Sprint 10 | **Completed** |
 | **Milestone 17: PostgreSQL TLS & CA Chain Verification Architecture** | Strict production verification (rejectUnauthorized: true), inline & file CA loading, TLS probe verifier CLI (db:verify-tls), cryptographic verification test suite | SEC-TLS-01–04 | Sprint 10 | **Completed** |
+| **Milestone 18: Database Connection Startup & Lifecycle Discipline** | Mandatory primary MongoDB connection before HTTP listen, production fail-fast on primary DB failure, graceful secondary PostgreSQL outbox fallback, readiness probe synchronization | DEP-STARTUP-01–04 | Sprint 10 | **Completed** |
 
 ---
 
@@ -120,7 +121,7 @@ flowchart LR
 | Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
 | :--- | :---: | :--- | :--- | :--- |
 | **DEP-01** | **BLOCKER** | `apps/backend/src/middlewares/upload.middleware.js`<br>`apps/backend/src/utils/storage.adapter.js` | Resumes written to ephemeral container disk (`./uploads`) | **Resolved**: Implemented pluggable `StorageService` (`storage.adapter.js`) supporting AWS S3, Cloudflare R2, MinIO, and local driver fallback with directory traversal sanitization and streaming support. Integrated into `candidatePortal.controller.js` for resume downloads. |
-| **DEP-02** | **BLOCKER** | `apps/backend/src/server.js`<br>`apps/backend/src/configs/env.validator.js` | Silent in-memory fallback on database connection failure | **Resolved**: Implemented `validateBootEnvironment()` verifying `JWT_SECRET`, `JWT_ADMIN_SECRET`, `JWT_CANDIDATE_SECRET`, and `MONGODB_URI`. Server crashes fast (`process.exit(1)`) on missing secrets or localhost MongoDB URIs during production boot. |
+| **DEP-02** | **BLOCKER** | `apps/backend/src/server.js`<br>`apps/backend/src/configs/env.validator.js` | Silent in-memory fallback on database connection failure | **Resolved**: Implemented `validateBootEnvironment()`. Enforced database connection startup order: primary business database (MongoDB) MUST be established before the HTTP server begins listening. In production, MongoDB failure halts container boot (`process.exit(1)`), preventing broken containers from accepting traffic. Secondary store (PostgreSQL) connects gracefully and delegates transient failures to Transactional Outbox. |
 | **DEP-03** | **HIGH** | `apps/backend/src/server.js:23` | Missing explicit `0.0.0.0` host binding | **Resolved**: Configured `HOST = process.env.HOST || '0.0.0.0'` in `server.listen()`, ensuring ingress routing across ECS, Cloud Run, Kubernetes, and Docker containers. |
 | **DEP-04** | **HIGH** | `apps/backend/src/app.js`<br>`apps/backend/src/routes/health.route.js` | `/api/health` returns 200 even when database is down | **Resolved**: Updated `/api/health` and `/ready` to check active MongoDB `readyState === 1` and PostgreSQL connection, returning HTTP 503 Service Unavailable when the primary database is disconnected in production. |
 | **DEP-05** | **MEDIUM** | `apps/backend/src/routes/health.route.js` | Missing separated `/healthz` and `/ready` probes | **Resolved**: Created separate `/healthz` (liveness probe testing process responsiveness, uptime, and pid) and `/ready` (readiness probe validating backing datastores) mounted at root and under `/api`. |
@@ -342,7 +343,25 @@ flowchart LR
 
 ---
 
-## 19. Verification & Definition of Done
+## 19. Milestone 18: Database Connection Startup & Lifecycle Discipline (4 Capabilities)
+
+*Reference Document:* Database Connection Startup Audit (High Priority)
+*Verification Suites:*
+- Database Connection Startup Test Suite: [`apps/backend/src/test/unit/databaseStartup.test.js`](../apps/backend/src/test/unit/databaseStartup.test.js) (5 tests passing)
+- SRE Lifecycle & Readiness Suite: [`apps/backend/src/test/unit/milestone5.sre.test.js`](../apps/backend/src/test/unit/milestone5.sre.test.js) (15 tests passing)
+- Full Backend Unit Suite: 380/380 tests passing (31 test files)
+- Full Backend Integration Suite: 70/70 tests passing (8 test files)
+
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
+| :--- | :---: | :--- | :--- | :--- |
+| **DEP-STARTUP-01** | **HIGH** | `apps/backend/src/server.js` | HTTP server started listening on port 5000 before database connections finished, accepting client traffic into unready datastores | **Resolved**: Re-architected startup sequence. `connectMongoDB()` is strictly awaited BEFORE `app.listen()` is called. The HTTP port is opened to ingress traffic only when the primary business database is connected and ready. |
+| **DEP-STARTUP-02** | **CRITICAL** | `apps/backend/src/server.js` | MongoDB connection failure during production startup logged a warning and silently continued running on ephemeral in-memory arrays, risking catastrophic data loss across container replicas | **Resolved**: Enforced fail-fast boot discipline in production (`NODE_ENV === 'production'`). If MongoDB fails to connect on startup, the application logs a fatal alert (`🚨 [FATAL: DB-STARTUP]`) and halts container boot (`process.exit(1)`). Unready containers never accept traffic and trigger orchestrator health alarms. |
+| **DEP-STARTUP-03** | **HIGH** | `apps/backend/src/server.js`<br>`apps/backend/src/services/outboxWorker.service.js` | Secondary PostgreSQL failures were treated identically to primary store failures | **Resolved**: Established asymmetric fault tolerance. MongoDB is authoritative; if PostgreSQL fails on startup, the server logs a notice that it is operating with the Transactional Outbox queue. The HTTP server boots safely because all business writes succeed in MongoDB and queue for asynchronous PostgreSQL sync. |
+| **DEP-STARTUP-04** | **MEDIUM** | `apps/backend/src/server.js`<br>`apps/backend/src/routes/health.route.js` | Startup lifecycle state diverged from container readiness probes (`/ready`) | **Resolved**: Synchronized startup lifecycle with readiness probe. If MongoDB is disconnected, `/ready` returns HTTP 503 Service Unavailable, ensuring reverse proxies and load balancers never route traffic to unready instances. |
+
+---
+
+## 20. Verification & Definition of Done
 
 Each milestone requires the following verification steps prior to closure:
 1. **Automated Unit & Integration Tests**: New test cases written under `apps/backend/src/test/` or `apps/frontend/src/test/` validating the security control.
