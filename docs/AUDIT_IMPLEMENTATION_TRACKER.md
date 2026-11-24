@@ -29,6 +29,7 @@ flowchart LR
 | **Milestone 11: File Upload Validation & Malware Defense Engine** | Magic-byte checking, malware/web shell signature scanning, DOCX zip bomb & Zip Slip defense, PDF structure/action bounds, quarantine isolation | SEC-03-A–E | Sprint 10 | **Completed** |
 | **Milestone 12: Redis Fallback Behavior & Distributed Resilience** | Security-critical fail-closed revocation, structured degradation alerting, explicit rate-limit scope headers, 50% tightened local memory policy | SEC-04-A–E | Sprint 10 | **Completed** |
 | **Milestone 13: Reverse Proxy Trust & Network Topology Hardening** | Subnet range compilation (loopback, linklocal, uniquelocal), Cloudflare CIDR support, hop count parsing, client IP anti-spoofing | SEC-05-A–D | Sprint 10 | **Completed** |
+| **Milestone 14: Production Security Headers & Frontend CDN Hardening** | Backend Helmet style-src unsafe-inline removal, obsolete X-XSS-Protection replacement, Cloudflare Pages _headers, Vercel CSP/HSTS sync | SEC-06-A–D | Sprint 10 | **Completed** |
 
 ---
 
@@ -264,7 +265,25 @@ flowchart LR
 
 ---
 
-## 15. Verification & Definition of Done
+## 15. Milestone 14: Production Security Headers & Frontend Hosting/CDN Hardening (4 Issues)
+
+*Verification Suites:*
+- Frontend Hosting & Security Headers Unit Tests: [`apps/frontend/src/test/unit/VercelConfig.test.js`](../apps/frontend/src/test/unit/VercelConfig.test.js) (7 tests passing)
+- Backend Non-Functional Security & CSP Tests: [`apps/backend/src/test/non-functional/security-injection.test.js`](../apps/backend/src/test/non-functional/security-injection.test.js) (6 tests passing)
+- Full Backend Unit Suite: 341/341 tests passing (27 test files)
+- Full Backend Integration Suite: 70/70 tests passing (8 test files)
+- Full Frontend Suite: 328/328 tests passing (63 test files)
+
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
+| :--- | :---: | :--- | :--- | :--- |
+| **SEC-06-A** | **MEDIUM** | `apps/backend/src/app.js` | Backend Helmet `styleSrc` included `'unsafe-inline'` alongside CSP nonces, diluting defense-in-depth against CSS injection | **Resolved**: Purged `'unsafe-inline'` from backend `styleSrc`. Backend CSP now strictly restricts styles to `'self'`, per-request nonces (`'nonce-${cspNonce}'`), and Google Fonts stylesheets. |
+| **SEC-06-B** | **MEDIUM** | `apps/backend/src/app.js`<br>`apps/frontend/vercel.json`<br>`apps/frontend/public/_headers` | Deprecated `X-XSS-Protection: 1; mode=block` was enforced, introducing side-channel vulnerabilities in older browsers while ignored by modern engines | **Resolved**: Updated `X-XSS-Protection` to `0` across backend Express middleware, Vercel configuration, and Cloudflare Pages `_headers` files according to OWASP / MDN standards. |
+| **SEC-06-C** | **HIGH** | `apps/frontend/public/_headers`<br>`apps/frontend/wrangler.toml` | React SPA served statically lacked defense when migrating to Cloudflare CDN/Pages or Vercel edge without backend proxying | **Resolved**: Built native Cloudflare Pages `public/_headers` configuration (copied automatically to `dist/_headers` on Vite build) and `wrangler.toml`. Enforces CSP, HSTS (`max-age=31536000; includeSubDomains; preload`), `Permissions-Policy`, `X-Content-Type-Options: nosniff`, and `X-Frame-Options: SAMEORIGIN` at the edge document layer. |
+| **SEC-06-D** | **MEDIUM** | `apps/frontend/vercel.json`<br>`vercel.json` | Vercel configuration lacked HSTS, Permissions-Policy, and restricted CSP object-src | **Resolved**: Hardened both `apps/frontend/vercel.json` and root `vercel.json` with synchronized headers: added `Strict-Transport-Security`, `Permissions-Policy: camera=(), microphone=(), geolocation=(), browsing-topics=()`, `object-src 'none'`, and trusted Cloudflare/Vercel script/connect sources. |
+
+---
+
+## 16. Verification & Definition of Done
 
 Each milestone requires the following verification steps prior to closure:
 1. **Automated Unit & Integration Tests**: New test cases written under `apps/backend/src/test/` or `apps/frontend/src/test/` validating the security control.

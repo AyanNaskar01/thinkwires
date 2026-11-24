@@ -88,7 +88,6 @@ app.use(
         styleSrc: [
           "'self'",
           (req, res) => `'nonce-${res.locals.cspNonce}'`,
-          "'unsafe-inline'",
           'https://fonts.googleapis.com',
         ],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
@@ -102,7 +101,8 @@ app.use(
 );
 
 app.use((req, res, next) => {
-  res.setHeader('X-XSS-Protection', '1; mode=block');
+  // SEC-06: Explicitly disable obsolete legacy X-XSS-Protection in favor of modern CSP
+  res.setHeader('X-XSS-Protection', '0');
   next();
 });
 

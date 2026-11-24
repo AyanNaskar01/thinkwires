@@ -98,8 +98,14 @@ describe('Adversarial & Injection Defense (Non-Functional Tests)', () => {
       expect(res.headers['content-security-policy']).toContain(
         'https://fonts.gstatic.com'
       );
+      // SEC-06: Verification of unsafe-inline removal from backend styleSrc
+      expect(res.headers['content-security-policy']).not.toContain(
+        "'unsafe-inline'"
+      );
       expect(res.headers['x-content-type-options']).toBe('nosniff');
       expect(res.headers['x-frame-options']).toBe('SAMEORIGIN');
+      // SEC-06: Verification that obsolete X-XSS-Protection is disabled
+      expect(res.headers['x-xss-protection']).toBe('0');
     });
   });
 
