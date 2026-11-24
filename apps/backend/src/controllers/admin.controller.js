@@ -4060,6 +4060,19 @@ export const loginAdmin = async (req, res) => {
       user = await UserMongo.findOne({ email: cleanEmail }).select('+password');
     }
 
+    // Secondary relational store fallback (PostgreSQL) if not found in MongoDB
+    if (!user) {
+      try {
+        const { User: UserPg } = await import('../models/user.model.js');
+        const pgUser = await UserPg.findOne({ where: { email: cleanEmail } });
+        if (pgUser) {
+          user = pgUser.toJSON();
+        }
+      } catch {
+        // PostgreSQL optional fallback
+      }
+    }
+
     // Fallback to in-memory seeded users if MongoDB is unavailable or user was not in DB
     if (!user) {
       if (process.env.NODE_ENV === 'production') {

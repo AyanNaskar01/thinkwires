@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { createRequire } from 'module';
 import config from '../configs/dotenv.js';
 
@@ -137,22 +138,21 @@ class AIServiceClient {
    */
   getInternalHeaders(customHeaders = {}) {
     const headers = { ...customHeaders };
-    let secret = (
-      process.env.INTERNAL_AI_SECRET ||
-      config.INTERNAL_AI_SECRET ||
-      ''
-    ).trim();
+    let secret = (process.env.INTERNAL_AI_SECRET || '').trim();
 
-    if (!secret && process.env.JWT_SECRET) {
+    if (!secret && (process.env.JWT_SECRET || config.JWT_SECRET)) {
       try {
-        const crypto = require('crypto');
         secret = crypto
-          .createHmac('sha256', String(process.env.JWT_SECRET).trim())
+          .createHmac('sha256', String(process.env.JWT_SECRET || config.JWT_SECRET).trim())
           .update('thinkwires-internal-ai-service-key-v1')
           .digest('hex');
       } catch {
         // fallback
       }
+    }
+
+    if (!secret && config.INTERNAL_AI_SECRET) {
+      secret = String(config.INTERNAL_AI_SECRET).trim();
     }
 
     if (secret) {

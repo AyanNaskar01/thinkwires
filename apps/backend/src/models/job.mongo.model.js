@@ -25,6 +25,12 @@ const jobRequirementSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: null,
     },
+    legacyId: {
+      type: Number,
+      index: true,
+      sparse: true,
+      default: null,
+    },
     category: {
       type: String,
       default: 'Engineering',

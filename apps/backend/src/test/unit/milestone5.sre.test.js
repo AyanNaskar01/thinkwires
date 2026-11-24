@@ -47,6 +47,8 @@ describe('Milestone 5: 12-Factor Portability & SRE Readiness Verification', () =
       process.env.JWT_ADMIN_SECRET = 'a_very_secure_admin_jwt_secret_32_chars';
       process.env.JWT_CANDIDATE_SECRET = 'a_very_secure_cand_jwt_secret_32_chars';
       process.env.MONGODB_URI = 'mongodb+srv://user:pass@cluster0.thinkwires.mongodb.net/prod';
+      process.env.INITIAL_SUPERADMIN_PASSWORD = 'V3ry$ecureP@ssw0rd!2026_Prod';
+      process.env.INTERNAL_AI_SECRET = 'a'.repeat(64);
 
       expect(() => validateBootEnvironment()).not.toThrow();
     });

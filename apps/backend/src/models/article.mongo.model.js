@@ -18,6 +18,17 @@ const articleSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    legacyId: {
+      type: Number,
+      index: true,
+      sparse: true,
+      default: null,
+    },
+    legacyType: {
+      type: String,
+      enum: ['blog', 'career_blog', null],
+      default: null,
+    },
     summary: {
       type: String,
       default: '',

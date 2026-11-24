@@ -49,15 +49,23 @@ export const validateSuperadminPasswordStrength = (password) => {
   }
 
   const lowered = password.toLowerCase();
-  const INSECURE_PATTERNS = [
-    'thinkwires@admin2026',
-    'thinkwires@2026',
-    'thinkwires',
-    'admin123',
-    'password',
-    'changeme',
-    'superadmin',
-  ];
+  const isProduction = process.env.NODE_ENV === 'production';
+  const INSECURE_PATTERNS = isProduction
+    ? [
+        'thinkwires@admin2026',
+        'thinkwires@2026',
+        'thinkwires',
+        'admin123',
+        'password',
+        'changeme',
+        'superadmin',
+      ]
+    : [
+        'thinkwires@admin2026',
+        'admin123',
+        'password',
+        'changeme',
+      ];
   if (INSECURE_PATTERNS.some((p) => lowered.includes(p))) {
     return {
       isValid: false,

@@ -231,6 +231,12 @@ const candidateSchema = new mongoose.Schema(
       default: null,
       select: false,
     },
+    legacyId: {
+      type: Number,
+      index: true,
+      sparse: true,
+      default: null,
+    },
   },
   {
     timestamps: true,

@@ -14,6 +14,18 @@ const jobApplicationSchema = new mongoose.Schema(
       required: [true, 'Job identifier is required'],
       index: true,
     },
+    legacyId: {
+      type: Number,
+      index: true,
+      sparse: true,
+      default: null,
+    },
+    legacyCareerId: {
+      type: Number,
+      index: true,
+      sparse: true,
+      default: null,
+    },
     jobTitle: {
       type: String,
       required: [true, 'Job title is required'],
@@ -73,7 +85,7 @@ const jobApplicationSchema = new mongoose.Schema(
     },
     anonymousCode: {
       type: String,
-      default: '',
+      default: null,
       trim: true,
     },
 
