@@ -88,7 +88,8 @@ describe('Legacy Database Migration Suite', () => {
       expect(job.title).toBe('Staff Platform Architect');
       expect(job.client).toBe('Thinkwires Enterprise');
       expect(job.jobMode).toBe('Contract');
-      expect(job.status).toBe('active');
+      expect(job.status).toBe('Active');
+      expect(job.isRequisition).toBe(false);
       expect(job.requiredSkills).toEqual(['Kubernetes', 'AWS', 'Terraform']);
       expect(job.experienceRequired).toBe(7);
       expect(job.salary).toBe('35LPA');

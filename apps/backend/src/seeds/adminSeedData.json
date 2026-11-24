@@ -453,7 +453,7 @@
       "requirements": "1.helper\r\n1.helper\r\n1.helper1.helper1.helper\r\n1.helper\r\n1.helper\r\n1.helper\r\n1.helper",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -486,7 +486,7 @@
       "requirements": "Senior Frontend Developer",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -519,7 +519,7 @@
       "requirements": "SAP MM",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -552,7 +552,7 @@
       "requirements": "SAP S4 RISE",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -585,7 +585,7 @@
       "requirements": "Devops",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -618,7 +618,7 @@
       "requirements": "Playwright",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -651,7 +651,7 @@
       "requirements": "MERN & AWS",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -684,7 +684,7 @@
       "requirements": "Spring Boot + React/Angular",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -717,7 +717,7 @@
       "requirements": "SAS Cloud",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -750,7 +750,7 @@
       "requirements": "4",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -789,7 +789,7 @@
       "requirements": "1",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -822,7 +822,7 @@
       "requirements": "1",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -855,7 +855,7 @@
       "requirements": "2",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -890,7 +890,7 @@
       "requirements": "2",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -923,7 +923,7 @@
       "requirements": "1",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -962,7 +962,7 @@
       "requirements": "5",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1001,7 +1001,7 @@
       "requirements": "10",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1034,7 +1034,7 @@
       "requirements": "4",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1071,7 +1071,7 @@
       "requirements": "5",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1108,7 +1108,7 @@
       "requirements": "5",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1153,7 +1153,7 @@
       "requirements": "7",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1198,7 +1198,7 @@
       "requirements": "2",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1233,7 +1233,7 @@
       "requirements": "1",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1266,7 +1266,7 @@
       "requirements": "",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1303,7 +1303,7 @@
       "requirements": "2",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1342,7 +1342,7 @@
       "requirements": "",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1383,7 +1383,7 @@
       "requirements": "Lead and manage Salesforce AMS projects, including incidents, enhancements, and change requests\r\n\r\nCollaborate with clients to gather requirements and propose scalable technical solutions\r\n\r\nDesign, configure, and customize Salesforce components across multiple clouds\r\n\r\nMonitor system performance, integrations, and overall platform optimization",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1424,7 +1424,7 @@
       "requirements": "Roles & Responsibilities\r\n\r\nDesign, develop, and maintain solutions on SAP Commerce Cloud (CCv2)\r\n\r\nBuild and customize Java-based backend services\r\n\r\nDevelop and enhance Spartacus (Angular) storefronts\r\n\r\nConfigure Backoffice, manage HAC, and write Impex scripts\r\n\r\nCreate, schedule, and monitor CronJobs\r\n\r\nWork with CCv2 Cloud Portal for build and deployment activities\r\n\r\nImplement REST APIs and support system integrations\r\n\r\nCollaborate with cross-functional teams in an Agile environment\r\n\r\nContribute to CI/CD pipelines and code versioning using Git\r\n\r\n🔹 Required Skills & Experience\r\n\r\n4+ years of experience in SAP Commerce Cloud (Hybris)\r\n\r\nStrong proficiency in Java backend development\r\n\r\nHands-on experience with Spartacus Storefront (Angular)\r\n\r\nSolid understanding of CCv2 architecture and deployment\r\n\r\nExperience with Backoffice configuration, HAC, Impex\r\n\r\nKnowledge of headless commerce, REST APIs & integrations\r\n\r\nExperience with Git, CI/CD tools, Agile methodologies",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1473,7 +1473,7 @@
       "requirements": "🔹 Roles & Responsibilities\r\n\r\nDesign, develop, and maintain .NET-based applications\r\n\r\nBuild and consume RESTful Web APIs\r\n\r\nWork on backend and frontend components of applications\r\n\r\nDevelop and optimize database interactions using Entity Framework & SQL Server\r\n\r\nCollaborate with UI/UX, QA, and business teams for successful delivery\r\n\r\nPerform debugging, performance tuning, and code reviews\r\n\r\nFollow best practices for version control and documentation\r\n\r\n🔹 Skills & Qualifications\r\n\r\n5+ years of professional experience in .NET application development\r\n\r\nStrong hands-on experience with C#, ASP.NET MVC, .NET Core, Web API\r\n\r\nProficiency in Entity Framework and SQL Server (or other RDBMS)\r\n\r\nFrontend skills: HTML, CSS, JavaScript; experience with Angular or React\r\n\r\nStrong understanding of OOP concepts and design patterns\r\n\r\nFull-stack development experience\r\n\r\nFamiliarity with Git and Agile development practices\r\n\r\nExcellent debugging, analytical, and problem-solving skills",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1516,7 +1516,7 @@
       "requirements": "• Excellent verbal and written communication\r\n• Demonstrated experience working with computer software, specifically MS Word, Excel, and Outlook.\r\n• Prior experience in Annotation is an added advantage\r\n•\tNon Voice\r\n•\tRotational Shift",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1553,7 +1553,7 @@
       "requirements": "Experience in all phases of Software Testing Life Cycle (STLC) and Software development Life Cycle (SDLC), its methodologies like Agile/SCRUM.\r\nExperience in Smoke, Regression and Functional Testing.\r\nExperience in preparation of Test Plan design and execution.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1594,7 +1594,7 @@
       "requirements": "Experience Required: \r\n•\tOverall: 6+ Years \r\n•\tSFCC OMS: 3–5 Years (Strong Hands-on Mandatory) \r\n•\tSalesforce Commerce Cloud: 2–3 Years",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1635,7 +1635,7 @@
       "requirements": "Experience Required: \r\n•\tOverall: 6+ Years \r\n•\tSFCC (B2C Commerce): 3-6 Years (Hands-on Mandatory) \r\n•\tStrong PWA Implementation Experience \r\nRole Overview \r\nWe are looking for a highly skilled SFCC + PWA Developer with strong hands-on experience in Salesforce Commerce Cloud (B2C) and Progressive Web App (PWA) architecture. The ideal candidate should have experience building scalable, high-performance eCommerce storefronts using modern front-end frameworks integrated with SFCC.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1682,7 +1682,7 @@
       "requirements": "Position Summary: \r\nResponsible for designing, developing, testing, maintaining, and supporting Workday integrations. This role reports to the HRIS Senior Director, HR IT & Reporting, and collaborates closely with Workday HRIS teams.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1723,7 +1723,7 @@
       "requirements": "WHAT YOU'LL NEED\r\n\r\n• 4.5+ years (Sr. Engineer) / 7+ years (Module Lead)AWS/DevOps production experience\r\n• Scripting: Python/Bash/Groovy/Java(CI/CD, EKS, FastAPI/Spring Boot)\r\n• CI/CD: Jenkins (declarative pipelines, Groovy),Spinnaker, CodePipeline /CodeBuild, Gradle, Maven, Artifactory, GitHub Actions\r\n• IaC:Terraform, AWS CloudFormation\r\n• Containers: EKS + Istio/ Gloo/ Karpenter, ECS, Docker, Buildah\r\n• AWS: VPC/IAM/GuardDuty/AWS Config, S3/ DynamoDB /Lambda /SageMaker /EMR, cost optimization\r\n• Observability: Splunk, CloudWatch, Prometheus/Grafana, New Relic, Azure Monitor\r\n• GitHub: Actions automation, branch/PR governance\r\n• DNS management (NS1/Cloudflare/GoDaddy)\r\nEXPERIENCE-\r\n• Sr. Engineer Devops AWS (Automation)- 4.5 years+",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1762,7 +1762,7 @@
       "requirements": "Key Responsibilities\r\nPrism Analytics Development\r\n•\tDesign, develop, and support Workday Prism Analytics datasets, including ingestion, transformation, and modeling.\r\n•\tIntegrate Workday and non-Workday data sources using delivered connectors, EIBs, and data files.\r\n•\tBuild calculated fields, derived datasets, and business logic within Prism.\r\n•\tTroubleshoot Prism data issues related to data loads, transformations, and performance.\r\nReporting & Insights\r\n•\tDevelop advanced reports and dashboards leveraging Prism-enabled data.\r\n•\tSupport complex reporting requirements beyond standard Workday reporting capabilities.\r\n•\tPartner with functional teams to translate business requirements into analytical solutions.\r\n•\tEnsure data accuracy, consistency, and reconciliation with source systems.\r\nSecurity & Data Governance\r\n•\tImplement and maintain Prism security, including domain and dataset access controls.\r\n•\tEnsure compliance with data privacy regulations (GDPR, SOX, etc.).\r\n•\tSupport data audits and access reviews related to Prism datasets.\r\nRelease & Environment Management\r\n•\tSupport Workday bi-annual releases, including impact analysis and testing for Prism objects.\r\n•\tManage Prism data loads and refresh cycles across Sandbox, Preview, and Production environments.\r\n•\tCoordinate with Workday Support for Prism-related defects and escalations.\r\nDocumentation & Knowledge Transfer\r\n•\tCreate and maintain documentation for datasets, transformations, and reports.\r\n•\tProvide knowledge transfer and training to internal teams and business users.\r\n•\tMaintain runbooks and support documentation for ongoing Prism operations.\r\nRequired Skills & Experience\r\n•\tStrong hands-on experience with Workday Prism Analytics.\r\n•\tSolid understanding of Workday HCM and/or Financials data model.\r\n•\tExpertise in data transformation, joins, aggregations, and calculated fields.\r\n•\tProficiency in Workday Reporting (Advanced, Matrix, Composite).\r\n•\tExperience supporting integrations or data ingestion processes.\r\n•\tKnowledge of Workday security framework.\r\n•\tStrong analytical and problem-solving skills.\r\nWhy Join Us?\r\n•\tOpportunity to work with Jade Global, a leading global IT services company.\r\n•\tFully remote work flexibility.\r\n•\tExposure to advanced Workday analytics projects.\r\n•\tCollaborative and growth-driven work environment.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1799,7 +1799,7 @@
       "requirements": "Sector - Distribution RTH - Y No of Position - 1 No Of years experience - 3+ years  Work location city - KOLKATA Package Consultant-Workday Absence, Time Tracking, Payroll Workday Absence, Time Tracking, Payroll",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1836,7 +1836,7 @@
       "requirements": "RTH Y.  FSS  No of position: 1  Total & rel years of Exp: 3-5 Years.  Location : Any IBM location.  Threshold Band: 6B OMTA  JD:  Supports data migration, validation, and transformation in Workday.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1871,7 +1871,7 @@
       "requirements": "RTH Y.  FSS  No of position: 1  Threshold Band: 8 OMTA.  Location: Any IBM location.  Total & Relevant years of Exp: 9+ Years.  JD:   Implements and secures Workday Core HCM functionalities, ensuring compliance.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1910,7 +1910,7 @@
       "requirements": "Qualifications\r\n\r\nMust Have Skills/Project Experience/Certifications: \r\n\r\n•\t5+ years of software development experience in enterprise application development\r\n•\t3+ years of hands-on experience in Loan IQ SDK development/customization\r\n•\tStrong experience in Java / J2EE technologies\r\n•\tHands-on experience in Loan IQ SDK, Scripted APIs, and Loan IQ integrations\r\n•\tStrong Oracle SQL / PL-SQL development skills\r\n•\tExperience in developing and supporting backend services, batch jobs, and integrations\r\n•\tGood understanding of REST/SOAP services, XML, JSON, and interface design\r\n•\tStrong understanding of the commercial lending / syndicated lending lifecycle\r\n•\tExperience in troubleshooting and resolving issues across Loan IQ, middleware, and database layers\r\n•\tExperience with code reviews, defect fixing, unit testing, and release support\r\n•\tAbility to work with onsite/offshore teams and independently deliver assigned work items.\r\n\r\nEducation: \r\n\r\n•\tBE/B. Tech/M.C.A./M.Sc. (CS) degree or equivalent from accredited university   \r\nLocation: \r\n\r\n•\tBLR/HYD/CHN/PUN\r\n\r\nShift Timings: \r\n\r\n•\t11 AM to 8 PM or 2 PM to 11 PM IST as per business requirements",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -1955,7 +1955,7 @@
       "requirements": "Key Responsibilities (GRC/IRM)\r\n•\tConfigure and customize ServiceNow GRC/IRM modules including Policy & Compliance, Risk Management, Audit Management, BCM, TPRM, and CCM\r\n•\tDevelop and customize IRM Workspaces, Portals, forms, dashboards, and reports\r\n•\tBuild and maintain client-side and server-side scripts including Business Rules, UI Policies, and Script Includes\r\n•\tIntegrate ServiceNow with external systems using REST and SOAP APIs\r\n•\tPerform system administration activities including configuration changes, user support, and upgrades\r\n•\tWork closely with stakeholders to understand business, risk, and compliance requirements\r\n•\tSupport governance: audit-ready evidence, change/release management, documentation/runbooks, and role-based access controls.\r\nOptional Responsibilities (Other use cases)\r\nSupport SecOps modules such as Security Incident Response (SIR) and Vulnerability Response (VR)\r\nRequired Qualifications\r\n•\t3-8 years of ServiceNow development experience\r\n•\tHands-on experience with ServiceNow GRC/IRM modules\r\n•\tStrong scripting experience using JavaScript and ServiceNow APIs\r\n•\tExperience in workspace and portal development\r\n•\tExposure to API-based integrations\r\n•\tUnderstanding of risk, compliance, audit, and regulatory concepts\r\nPreferred / Nice to Have\r\n•\tServiceNow CSA (Mandatory), CAD and GRC/IRM-related CIS-certifications.\r\n•\tScripting (ServiceNow JavaScript), performance tuning, and large-scale data ingestion.\r\n\r\nEducation: \r\n\r\n•\tBachelor’s/ Master’s degree in information technology or related field",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2002,7 +2002,7 @@
       "requirements": "Key Responsibilities (Vulnerability Response)\r\n•\tConfigure and administer ServiceNow Vulnerability Response: sources, vulnerability items, state model, assignment, SLAs, notifications, and remediation tasking.\r\n•\tIntegrate and maintain ingestion from vulnerability scanners/tools to ServiceNow VR application (e.g., Qualys, Tenable, Rapid7) and validate data mapping, schedules, and error handling.\r\n•\tDrive normalization and data quality: CI/asset matching to ServiceNow CMDB, deduplication rules, exception handling, lifecycle management, and backlog hygiene.\r\n•\tBuild automations with Flow Designer/Integration Hub for routing, enrichment, reminders/escalations, and remediation verification/closure.\r\n•\tPartner with IT Ops/app owners to coordinate workflow alignments in ServiceNow for patching/remediation, manage dependencies, and resolve ownership gaps.\r\n•\tDefine and publish dashboards/KPIs (e.g., vuln aging, SLA compliance, remediation throughput, critical exposure by service/BU) in ServiceNow.\r\n•\tSupport governance: audit-ready evidence, change/release management, documentation/runbooks, and role-based access controls.\r\nOptional Responsibilities (Security Incident Response)\r\n•\tSupport SIR intake/triage workflows and create linked tasks from high-risk vulnerability situations (e.g., exploited CVEs) when needed.\r\nRequired Qualifications\r\n•\t3-10 years of ServiceNow experience (Admin/Developer/Platform).\r\n•\tHands-on experience implementing or operating ServiceNow Vulnerability Response.\r\n•\tStrong understanding of vulnerability management lifecycle (scan → triage → prioritize → remediate → verify/close).\r\n•\tExperience with CMDB/asset data concepts and how they affect VR accuracy (CI matching, ownership, criticality).\r\n•\tWorking knowledge of integrations (REST/API; MID Server where applicable) and automation (Flow Designer).\r\nPreferred / Nice to Have\r\n•\tServiceNow CSA (Mandatory), CAD and VR/SecOps-related CIS-certifications.\r\n•\tScripting (ServiceNow JavaScript), performance tuning, and large-scale data ingestion.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2043,7 +2043,7 @@
       "requirements": "Good to have: \r\n• Experience working with Kiosk applications & Windows Presentation Foundation. \r\n• Exposure to cloud-based services (GCP, Azure, AWS, Firebase, etc.). \r\n• Experience working with peripheral hardware devices (e.g., printers, barcode scanners, \r\npayment POS). \r\n• Experience integrating with online payment gateways and transaction APIs. \r\nQualifications: \r\n• B.E/ B.Tech in Computer Science, Engineering or relevant field  \r\n• Good Problem-Solving attitude and ability to dive deep into logs. \r\n• Decent Communication to collaborate with the stakeholders and team. \r\n• Strong collaboration attitude is a must.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2086,7 +2086,7 @@
       "requirements": "Workday Studio, EIB, Reporting, API Calls, Core Connectors, Workday Certification",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2129,7 +2129,7 @@
       "requirements": "Palo Alto, Cisco Firewall, Cisco ISE, Azure, AWS, Routing & Switching",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2172,7 +2172,7 @@
       "requirements": "Palo Alto, Cisco Firewall, Cisco ISE, Azure, AWS, Routing & Switching",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2211,7 +2211,7 @@
       "requirements": "ETL, Cloud, Data Governance, Google Cloud",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2254,7 +2254,7 @@
       "requirements": "SQL Server DBA, Appian, T-SQL, Performance Tuning, SSMS, Azure Data Studio",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2299,7 +2299,7 @@
       "requirements": "C++, OOP, STL, UNIX, Python, Git, CI/CD",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2340,7 +2340,7 @@
       "requirements": "SAP BAM, BCM, EBS, CLM, Payments",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2377,7 +2377,7 @@
       "requirements": "Oracle Payroll, Payroll Configuration, Earnings & Deduction Codes",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2414,7 +2414,7 @@
       "requirements": "Statistical Modeling, Machine Learning, Tableau, A/B Testing, ETL",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2459,7 +2459,7 @@
       "requirements": "Key Skills:\r\n• Native iOS development using Swift & latest iOS SDK\r\n• CoreBluetooth, GATT, BLE communication, scanning & device connectivity\r\n• MVVM, Clean Architecture & Dependency Injection\r\n• Swift Concurrency, async/await, Combine & GCD\r\n• REST/GraphQL APIs, JWT, Keychain & SSL Pinning\r\n• XCTest/XCUITest, Crashlytics & production debugging\r\n• IoT/connected-device and OTA experience is preferred",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2520,7 +2520,7 @@
       "requirements": "8+ years of experience in AI/ML, software engineering, or related technologies.\r\nStrong hands-on experience with Generative AI, LLMs, RAG, and AI Agents.\r\nProven experience designing and deploying GenAI solutions on Azure or AWS.\r\nExperience building production-grade RAG pipelines, chatbots, and agentic AI applications.\r\nStrong knowledge of LLM integration, model customization, embeddings, and vector databases.\r\nExperience with cloud deployment, scalability, performance optimization, and CI/CD.\r\nExperience with Kubernetes/OpenShift is an advantage.\r\nStrong architectural and technical leadership capabilities.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2583,7 +2583,7 @@
       "requirements": "Mandatory Skills\r\n🔹 RHEL, Ubuntu, IBM AIX, SUSE Linux, and CentOS\r\n🔹 Linux/Unix administration and troubleshooting\r\n🔹 Strong communication and problem-solving skills\r\n🔹 Ability to work independently and collaboratively\r\n\r\nGood to Have\r\n🔹 Lenovo server hardware troubleshooting (SR630, SR650, SR550, x3250 M6)\r\n🔹 Unix PaaS experience in Microsoft Azure\r\n🔹 End-compute networking experience\r\n\r\nInterested candidates can share their updated resume or connect with us for more details.\r\n\r\n#Hiring #LinuxAdministrator #UnixAdministrator #LinuxJobs #AIX #RHEL #Ubuntu #SUSELinux #CentOS #SystemAdministrator #ITJobs #HyderabadJobs #BangaloreJobs #UHG #TechnologyHiring",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2636,7 +2636,7 @@
       "requirements": "Key Responsibilities\r\nConduct market sizing using TAM, SAM, and SOM.\r\nPerform primary and secondary market research.\r\nAnalyze competitive landscapes and identify whitespace opportunities.\r\nBuild detailed client profiles covering organizational structure, strategic priorities, buying behavior, and recent engagements.\r\nUse multiple research tools and external sources to gather intelligence.\r\nCollaborate with sales leaders and global bid managers.\r\nSupport campaign planning, target-account identification, and stakeholder mapping.\r\nMonitor competitive activity and industry trends.\r\nTranslate research into actionable sales and proposal insights.\r\nSupport pipeline development and origination efforts.\r\nRequired Qualifications\r\n5–7 years of experience in market research, sales intelligence, or strategic account support.\r\nStrong understanding of B2B sales cycles and account-based marketing.\r\nAbility to translate research into actionable sales insights.\r\nExcellent written and verbal communication.\r\nProficiency in Microsoft Office.\r\nWorking knowledge of research tools.\r\nPreferred Qualifications\r\nExperience in US healthcare, provider, or payer markets.\r\nExposure to strategic account planning or pursuit strategy.\r\nSelf-starter mindset and ability to work independently.\r\nTop Skills — Comma-Separated\r\n\r\nMarket Research, Sales Intelligence, Competitive Intelligence, Market Sizing, TAM SAM SOM, Client Profiling, Primary Research, Secondary Research, Account-Based Marketing, B2B Sales, Strategic Account Planning, Stakeholder Mapping, Microsoft Office, Research Tools, US Healthcare Market",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2683,7 +2683,7 @@
       "requirements": "Key Responsibilities\r\n🔹 Develop and maintain ServiceNow → Databricks integrations using Informatica.\r\n🔹 Work with ServiceNow schemas, database structures, and CMDB data.\r\n🔹 Design, develop, and troubleshoot enterprise data integration workflows.\r\n🔹 Ensure data quality, reliability, and seamless integration across platforms.\r\n🔹 Collaborate with stakeholders to support enterprise service management initiatives.\r\n\r\nRequired Skills\r\n✅ Databricks\r\n✅ Informatica\r\n✅ ServiceNow / CMDB\r\n✅ Integration Development\r\n✅ ServiceNow Schema / Database Structure\r\n✅ Enterprise Service Management Knowledge\r\n\r\n📩 Interested candidates can share their updated resume or connect with us for more details.\r\n\r\n#Hiring #Databricks #Informatica #ServiceNow #CMDB #DataIntegration #ETL #DataEngineering #DatabricksJobs #InformaticaDeveloper #ServiceNowIntegration #BengaluruJobs #ITJobs #TechnologyHiring",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2764,7 +2764,7 @@
       "requirements": "Key Skills\r\nPython, TensorFlow, PyTorch, Machine Learning, Deep Learning, CNNs, Vision Transformers, NLP, LLMs, Prompt Engineering, LangGraph, RAG, Agentic AI, MLOps, Databricks, Microsoft Azure, UNIX/Linux.\r\n\r\nGood to Have: Hugging Face, GPT, Claude, Llama, Gemini, YOLO, ResNet, Object Detection, Image Segmentation, AI Security & Governance.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2797,7 +2797,7 @@
       "requirements": "Must-Have Skills\r\n\r\n✅ Azure / AWS / GCP Cloud Architecture\r\n✅ 3+ years of AI/ML/GenAI Platform experience\r\n✅ Kubernetes, OpenShift & Docker\r\n✅ Terraform / Bicep\r\n✅ Databricks, Azure AI Foundry, AWS Bedrock, SageMaker, Vertex AI\r\n✅ LLMs, RAG & Agentic AI\r\n✅ Vector Databases\r\n✅ MCP, A2A, WebSockets, SSE & Streaming HTTP\r\n✅ Hybrid, On-prem & Air-gapped Deployments\r\n✅ AI Governance, Security & Cost Optimization\r\n\r\nGood to Have: LangGraph, Semantic Kernel, CrewAI, GPU Optimization & AI FinOps.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2830,7 +2830,7 @@
       "requirements": "What You’ll Work On\r\n\r\n• Perform Teamcenter functional analysis and solution design.\r\n• Configure and customize Teamcenter PLM solutions based on business requirements.\r\n• Develop customizations using Teamcenter ITK.\r\n• Work across Teamcenter architecture including Database, Application Server, Web Server & Dispatcher.\r\n• Configure BMIDE, workflows, organization structures, and ACLs.\r\n• Work with SOA, TCXML & XSLT.\r\n• Manage BOM and product lifecycle processes.\r\n• Support integrations with CAD, SAP, ERP, and in-house applications.\r\n\r\n🔹 Key Skills\r\n\r\nTeamcenter PLM | ITK | BMIDE | SOA | TCXML | XSLT | Workflow | ACL | BOM | Teamcenter Architecture | CAD/SAP/ERP Integration",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2863,7 +2863,7 @@
       "requirements": "Key Requirements\r\n\r\n✅ 8+ years of Full Stack Development\r\n✅ 5–6 years hands-on Adobe AEM & Web SDK\r\n✅ Strong JavaScript, Python, Node.js & Git\r\n✅ Frontend + Backend Development\r\n✅ Analytics Implementation & Data Governance\r\n✅ CMS & GCP knowledge is a plus\r\n✅ Excellent communication & collaboration skills\r\n✅ Ability to deliver scalable, business-driven solutions",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2922,7 +2922,7 @@
       "requirements": "Greenfield Service & ERD Architecture\r\n\r\n\r\n• ACH/NACHA Batch & Return File Processing\r\n\r\n\r\n• Immutable Double-Entry Accounting Engine\r\n\r\n\r\n• Idempotency, Tokenization & Security Compliance (PCI DSS, SOC 2, GLBA)\r\n\r\n\r\n• Provider-Agnostic Abstraction Layers",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -2967,7 +2967,7 @@
       "requirements": "🔹 Role: SAP ABAP on HANA Developer\r\n📍 Location: Bangalore\r\n🏢 Work Mode: To be confirmed\r\n💼 Experience: 3–5 Years\r\n⏳ Notice Period: Immediate\r\n🌍 Preferred Location: Pan India\r\n👥 Open Positions: 3\r\n\r\n🔑 Key Skills\r\n\r\n• Core SAP ABAP\r\n• SAP HANA\r\n• Smart Forms\r\n• Adobe Forms\r\n• RICEF Objects\r\n• CDS Views\r\n• AMDP\r\n\r\n🎯 What We’re Looking For\r\n\r\nProfessionals with hands-on experience in ABAP development and HANA-based solutions, along with strong expertise in forms, RICEF, CDS, and AMDP.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3010,7 +3010,7 @@
       "requirements": "ServiceNow integration development experience.\r\nStrong experience with ServiceNow integrations and APIs.\r\nHands-on REST/API integration experience.\r\nExperience with Okta integrations.\r\nExperience with inbound/outbound email integrations.\r\nCRM integration experience.\r\nKnowledge of AI data enablement requirements is preferred.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3059,7 +3059,7 @@
       "requirements": "✅ Strong experience in PeopleSoft Administration\r\n✅ Knowledge of PeopleTools architecture & environment management\r\n✅ Experience with Application Server Administration\r\n✅ Experience with Process Scheduler Administration\r\n✅ Experience with Web Server Administration (PIA)\r\n✅ Hands-on knowledge of Integration Broker\r\n✅ Experience with Change Assistant & DPK Deployments\r\n✅ Skilled in Environment Cloning & Refresh Activities\r\n✅ Experience with Oracle Database administration concepts",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3118,7 +3118,7 @@
       "requirements": "Define technical standards, reference architectures, and reusable patterns for GenAI/Agentic AI solutions.\r\nArchitect and build end-to-end GenAI, RAG, LLM orchestration, and multi-agent solutions.\r\nOwn solution architecture across backend services, APIs, databases, and cloud infrastructure (Azure, AWS, GCP).\r\nCreate/review HLD, LLD, sequence diagrams, and integration specifications.\r\nImplement AI evaluation, guardrails, monitoring, hallucination checks, and retrieval-quality metrics.\r\nSupport client-facing solutioning and presales activities, including effort estimation.\r\n12–17+ years of overall software engineering experience, with 2–3+ years of recent hands-on GenAI/Agentic AI experience.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3159,7 +3159,7 @@
       "requirements": "✅ Basic to intermediate Java development knowledge\r\n✅ Understanding of Java application architecture & deployments\r\n✅ Experience with WebLogic Server administration\r\n✅ Familiarity with Java-based integrations & APIs\r\n✅ Hands-on with REST/SOAP services\r\n✅ Strong troubleshooting skills",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3216,7 +3216,7 @@
       "requirements": "5+ years of experience in QA Automation & Software Testing.\r\nDesign and execute automated test cases using Playwright/TypeScript and Cypress.\r\nDevelop and maintain automation frameworks, test scripts, and perform API, UI, integration, regression, and backend testing.\r\nValidate data using SQL/MySQL and track/document defects.\r\nExperience with Gen AI / Agentic AI-based automation tools (GitHub Copilot, Claude Code, OpenAI Codex, VS Code).\r\nStrong understanding of test automation frameworks, test strategy, test design, and CI/CD in Agile/Scrum (Jira).\r\nAPI automation testing experience using Playwright API, Postman, or REST APIs.\r\nSalesforce (SFDC) Sales Cloud testing experience is an added advantage.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3257,7 +3257,7 @@
       "requirements": "12–15 years of experience in SAP BW\r\nEnd-to-end SAP BW development & enhancement experience\r\nSAP BW/S4HANA Upgrade experience is a plus\r\nStrong hands-on SAP BW ABAP, extractor enhancements & data extraction from S/4HANA\r\nDefine BW architecture, data modelling standards & best practices\r\nTechnical guidance to developers, design & code reviews\r\nStrong grip on SDLC, transport management & documentation standards\r\nSupport Unit/SIT/UAT testing & production issue resolution\r\nS4HANA embedded analytics – ABAP CDS (added advantage)\r\nStrong leadership & stakeholder communication skills",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3300,7 +3300,7 @@
       "requirements": "Configure and develop ServiceNow Case Management solutions.\r\nConfigure and customize Knowledge Management.\r\nDevelop workflows and automation.\r\nBuild AI-driven user experiences and support AI-enabled automation capabilities.\r\nCustomize ServiceNow based on business requirements.\r\nTroubleshoot and resolve application issues.\r\nCollaborate with technical and business teams.\r\n4+ years of ServiceNow development experience.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3361,7 +3361,7 @@
       "requirements": "Design, develop, and maintain scalable automated test frameworks for UI, API, integration, and regression testing.\r\nDevelop automation scripts using C#/.NET and unit testing frameworks (NUnit, xUnit, MSTest).\r\nImplement BDD-based automation using SpecFlow and Gherkin.\r\nPerform extensive API functional and integration testing (Postman, RestSharp, REST Assured) and validate payloads, JSON/XML, authentication, and error handling.\r\nExecute database and backend validation using SQL (queries, joins, stored procedures, data reconciliation).\r\nIntegrate automated tests into CI/CD pipelines and work with Git workflows.\r\nMaintain test artifacts and documentation in Azure DevOps, Jira, or TestRail.\r\nPreferred: Banking / Financial Services domain experience.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3404,7 +3404,7 @@
       "requirements": "- Design & implement integrations using Azure Integration Services (Logic Apps, API Management, Service Bus, Event Grid)\r\n- Enable application decoupling & event-driven modernization\r\n- Refactor legacy integrations for API-first, cloud-native patterns\r\n- Leverage Copilot for API definition, mapping logic & workflow generation\r\n- Ensure secure, scalable & observable integrations\r\n- Good to have: AKS or container apps knowledge",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3467,7 +3467,7 @@
       "requirements": "Strong hands-on experience in GenAI, LLMs, RAG, and Machine Learning.\r\nExperience with LangChain / LlamaIndex, prompt engineering, and LLM integration.\r\nWork with Vector Databases (FAISS, Pinecone, Chroma, Weaviate) and OpenAI / Azure OpenAI / Hugging Face models.\r\nBuild REST APIs and cloud-based AI/ML solutions.\r\nExperience building and deploying production-grade RAG/LLM applications and AI-powered solutions.\r\nPreferred: MLOps, Docker, and Kubernetes.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3526,7 +3526,7 @@
       "requirements": "Strong experience in GCP Cloud Platform (BigQuery, Dataflow, Cloud Storage, Pub/Sub).\r\nBuild and manage scalable ETL/ELT pipelines and data engineering solutions.\r\nHands-on experience with Apache Spark / PySpark.\r\nExpertise in data warehousing, data modeling, and cloud-based data solutions.\r\nGood understanding of CI/CD and Agile methodologies.\r\n6+ years of relevant data engineering experience.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3583,7 +3583,7 @@
       "requirements": "Manage and maintain GCP infrastructure, GKE, Kubernetes, and Docker containers.\r\nImplement Infrastructure as Code (IaC) using Terraform.\r\nDesign, build, and optimize CI/CD pipelines using Jenkins, GitLab, or Cloud Build.\r\nWrite automation scripts using Python or Shell scripting.\r\nManage Git repositories and version control workflows.\r\nSet up and maintain system monitoring, logging, and alerting solutions.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3630,7 +3630,7 @@
       "requirements": "- Design & manage CI/CD pipelines, deployment automation & Infrastructure as Code\r\n- Hands-on with GitHub Actions, Azure DevOps, Jenkins, Terraform & Bicep\r\n- Automate deployments across Azure PaaS services\r\n- Integrate security & compliance controls into pipelines\r\n- Support reliable release management\r\n- Collaborate with application, cloud, infra & Agile teams\r\n- Drive standardized DevOps practices & operational readiness",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3671,7 +3671,7 @@
       "requirements": "- 8 years of customer service experience; chat support preferred\r\n- Strong written English communication & typing accuracy\r\n- Familiarity with CRM tools or chat platforms\r\n- Exposure to healthcare, insurance or managed care processes preferred\r\n- Ability to resolve customer queries with attention to detail\r\n- Eligible qualifications: BSc, BBA, BA, MBA only (B.Tech/M.Tech/MCA/BCA not eligible)",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3716,7 +3716,7 @@
       "requirements": "3–5 years of experience in Frontend Development.\r\nStrong hands-on experience with React.js and Redux.\r\nStrong knowledge of JavaScript (ES6+), HTML5, and CSS3.\r\nAbility to develop responsive and user-friendly web applications.\r\nProven experience in building reusable UI components.\r\nSkill in troubleshooting, debugging, and optimizing frontend performance.\r\nStrong problem-solving, analytical, and communication skills.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3761,7 +3761,7 @@
       "requirements": "• 3–5 years of experience in Full Stack Development\r\n• Strong core programming skills in Java\r\n• Hands-on frontend development experience with React.js\r\n• Working knowledge of GoLang\r\n• Solid experience in both Frontend and Backend Application Development\r\n• Ability to develop, integrate, and deploy full-stack applications\r\n• Proven ability to troubleshoot, debug, and resolve complex technical issues\r\n• Strong analytical, problem-solving, and communication skills",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3806,7 +3806,7 @@
       "requirements": "• 3–5 years of experience in SAP ABAP Development\r\n• Strong expertise in Core ABAP and Object-Oriented ABAP (OOPS ABAP)\r\n• Hands-on experience with SmartForms and Adobe Forms\r\n• Strong understanding and hands-on experience with RICEF Objects\r\n• Ability to develop, maintain, and optimize SAP applications\r\n• Proven track record in debugging and troubleshooting complex SAP programs\r\n• Strong analytical, problem-solving, and communication skills",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3853,7 +3853,7 @@
       "requirements": "• 3–5 years of experience in SAP ABAP Development\r\n• Strong knowledge of Core ABAP and Object-Oriented ABAP\r\n• Hands-on experience with SAP HANA and CDS Views\r\n• Strong understanding and practical experience with the RESTful ABAP Programming Model (RAP)\r\n• Hands-on experience with SAP Business Technology Platform (BTP)\r\n• Knowledge of Adobe Forms\r\n• Proven ability to develop scalable SAP solutions, debug, and troubleshoot complex programs\r\n• Strong analytical, problem-solving, communication, and collaboration skills",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3900,7 +3900,7 @@
       "requirements": "• 3–5 years of experience in SAP ABAP Development\r\n• Strong expertise in Core ABAP\r\n• Hands-on development experience with SAP HANA\r\n• Solid experience with CDS Views and AMDP (ABAP Managed Database Procedures)\r\n• Hands-on experience with SmartForms and Adobe Forms\r\n• Strong understanding and experience with RICEF Objects\r\n• Ability to develop, enhance, maintain, and optimize SAP applications\r\n• Strong troubleshooting, analytical, and problem-solving skills\r\n• Excellent communication and collaboration skills",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -3973,7 +3973,7 @@
       "requirements": "- Experience: 5 to 8 years in full-stack development and program maintenance.\r\n- Frontend Skills: React JS, Angular, HTML5, CSS, Bootstrap, JavaScript, Responsive Web Applications.\r\n- Backend Skills: Java/J2EE, Spring Boot, Spring MVC, Node.js, REST APIs, SOAP APIs, Microservices Architecture, OOPs principles.\r\n- Database Expertise: MongoDB (NoSQL) and RDBMS (SQL databases like Oracle, MySQL, SQL Server).\r\n- Cloud & Infrastructure: Azure/AWS, Docker containers, Kubernetes.\r\n- Mobile Tech: Hands-on experience or exposure to Flutter / React Native.\r\n- Soft Skills: Excellent communication and client-handling skills (mandatory for client calls).\r\n- Mobility: Open to travelling as required.",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     },
     {
@@ -4032,7 +4032,7 @@
       "requirements": "🔹 Experience: 12–17 Years🔹 Location: Remote | Permanent WFH🔹 Team Meetups: 2–3 times per year in India\r\n🔥 What We’re Looking For✅ Expert-level AWS amp; Snowflake✅ Strong experience in Data Engineering amp; Architecture✅ Data Integration amp; CDC✅ Data Pipelines | Airflow | dbt✅ Data Warehousing amp; Kimball Dimensional Modelling✅ Semantic / BI Layer✅ Exposure to AI/ML Data Products✅ Expert SQL, Python amp; PySpark✅ Hands-on experience with AI development tools such as GitHub Copilot, Cursor, Claude Code, etc.\r\n\r\n⭐ Nice to Have• Financial Services / Debt Settlement / Consumer Finance experience• GenAI / RAG / LLMOps exposure• AWS / SnowPro certifications",
       "category": "Engineering Opening",
       "source": "Legacy Career Ingestion",
-      "isRequisition": true,
+      "isRequisition": false,
       "postedDate": "2026-11-24"
     }
   ],

@@ -230,7 +230,7 @@ router.get('/openings', async (req, res) => {
     try {
       const dbJobs = await JobRequirement.find({
         isRequisition: false,
-        status: { $in: ['Active', 'Approved', 'Published'] },
+        status: { $in: ['Active', 'active', 'Approved', 'approved', 'Published', 'published', 'Open', 'open'] },
         isDeleted: { $ne: true },
       })
         .sort({ createdAt: -1 })
@@ -296,7 +296,8 @@ router.get('/openings', async (req, res) => {
   // Issue #202: Exclude unapproved inbound requisitions and closed jobs from public listings
   const activeJobs = sourceOpenings.filter((job) => {
     if (job.isRequisition === true) return false;
-    if (job.status && !['Active', 'Approved', 'Published'].includes(job.status)) {
+    const s = String(job.status || '').toLowerCase();
+    if (s && !['active', 'approved', 'published', 'open'].includes(s)) {
       return false;
     }
     return true;
