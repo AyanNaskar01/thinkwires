@@ -28,6 +28,7 @@ flowchart LR
 | **Milestone 10: CSRF & Cross-Site Cookie Architecture Unification** | SameSite=None; Secure cookie sync, shared custom domain support, timingSafeEqual double-submit, multi-path logout clearance | SEC-CSRF-03–06 | Sprint 10 | **Completed** |
 | **Milestone 11: File Upload Validation & Malware Defense Engine** | Magic-byte checking, malware/web shell signature scanning, DOCX zip bomb & Zip Slip defense, PDF structure/action bounds, quarantine isolation | SEC-03-A–E | Sprint 10 | **Completed** |
 | **Milestone 12: Redis Fallback Behavior & Distributed Resilience** | Security-critical fail-closed revocation, structured degradation alerting, explicit rate-limit scope headers, 50% tightened local memory policy | SEC-04-A–E | Sprint 10 | **Completed** |
+| **Milestone 13: Reverse Proxy Trust & Network Topology Hardening** | Subnet range compilation (loopback, linklocal, uniquelocal), Cloudflare CIDR support, hop count parsing, client IP anti-spoofing | SEC-05-A–D | Sprint 10 | **Completed** |
 
 ---
 
@@ -246,7 +247,24 @@ flowchart LR
 
 ---
 
-## 14. Verification & Definition of Done
+## 14. Milestone 13: Reverse Proxy Trust & Network Topology Hardening (4 Issues)
+
+*Verification Suites:*
+- Reverse Proxy Trust & Anti-Spoofing Unit Tests: [`apps/backend/src/test/unit/trustProxy.test.js`](../apps/backend/src/test/unit/trustProxy.test.js) (13 tests passing)
+- Full Backend Unit Suite: 341/341 tests passing (27 test files)
+- Full Backend Integration Suite: 70/70 tests passing (8 test files)
+- Full Frontend Suite: 325/325 tests passing (63 test files)
+
+| Issue Key | Severity | Target Scope | Problem Statement | Remediation Status |
+| :--- | :---: | :--- | :--- | :--- |
+| **SEC-05-A** | **HIGH** | `apps/backend/src/app.js`<br>`apps/backend/src/configs/proxy.config.js` | Hardcoded `app.set('trust proxy', 1)` unconditionally trusted direct connections from public IPs, enabling direct socket client IP spoofing via `X-Forwarded-For` | **Resolved**: Implemented `getTrustProxyFunction` compiling trusted network topologies via `proxy-addr`. By default, only trusted private subnets (`loopback`, `uniquelocal` [RFC 1918 / RFC 4193], `linklocal`) are trusted. Direct connections from untrusted public IPs are rejected and cannot spoof `X-Forwarded-For`. |
+| **SEC-05-B** | **HIGH** | `apps/backend/src/configs/proxy.config.js` | Inability to adapt to multi-tier hosting topologies (e.g. Cloudflare WAF -> Render reverse proxy -> Node) caused edge proxy IPs to be treated as client IPs | **Resolved**: Created `resolveTrustProxyConfig(envVal)` supporting dynamic topology configuration via `TRUST_PROXY`: numeric hop counts (`1`, `2`), comma-separated CIDRs, booleans, and dedicated `'cloudflare'` preset expanding to all published Cloudflare IPv4 & IPv6 edge CIDRs alongside private subnets. |
+| **SEC-05-C** | **HIGH** | `apps/backend/src/test/unit/trustProxy.test.js` | Lack of end-to-end verification for forwarded-header multi-IP injection and anti-spoofing | **Resolved**: Added comprehensive integration test coverage asserting that Express stops traversing at the first untrusted IP in chained `X-Forwarded-For` headers (e.g. `X-Forwarded-For: 198.51.100.99, 203.0.113.50` yields `203.0.113.50`), completely discarding attacker-injected client addresses. |
+| **SEC-05-D** | **MEDIUM** | `apps/backend/src/routes/*.route.js` | Express rate limiters could produce proxy header collision warnings under custom proxy configurations | **Resolved**: Maintained explicit `{ xForwardedForHeader: false, forwardedHeader: false }` validation overrides across all route rate limiters, harmonizing Express `req.ip` resolution with distributed Redis IP rate limiting. |
+
+---
+
+## 15. Verification & Definition of Done
 
 Each milestone requires the following verification steps prior to closure:
 1. **Automated Unit & Integration Tests**: New test cases written under `apps/backend/src/test/` or `apps/frontend/src/test/` validating the security control.

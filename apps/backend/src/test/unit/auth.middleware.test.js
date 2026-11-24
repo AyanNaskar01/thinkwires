@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import mongoose from 'mongoose';
 import {
   requireCandidateAuth,
   requireAuth,
@@ -23,6 +24,14 @@ describe('Auth Middleware (Unit Tests)', () => {
     const res = {
       statusCode: 200,
       jsonData: null,
+      headers: {},
+      setHeader: vi.fn().mockImplementation(function (name, val) {
+        this.headers[name] = val;
+        return this;
+      }),
+      getHeader: vi.fn().mockImplementation(function (name) {
+        return this.headers[name];
+      }),
       status: vi.fn().mockImplementation(function (code) {
         this.statusCode = code;
         return this;
@@ -36,8 +45,28 @@ describe('Auth Middleware (Unit Tests)', () => {
     return { req, res, next };
   };
 
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalVitest = process.env.VITEST;
+  let readyStateSpy;
+
   beforeEach(async () => {
+    process.env.NODE_ENV = 'test';
+    process.env.VITEST = 'true';
+    readyStateSpy = vi.spyOn(mongoose.connection, 'readyState', 'get').mockReturnValue(0);
     await clearRevocationStore();
+  });
+
+  afterEach(() => {
+    if (readyStateSpy) {
+      readyStateSpy.mockRestore();
+    }
+    process.env.NODE_ENV = originalNodeEnv;
+    if (originalVitest !== undefined) {
+      process.env.VITEST = originalVitest;
+    } else {
+      delete process.env.VITEST;
+    }
+    setMockRedisClient(null);
   });
 
   describe('requireCandidateAuth', () => {

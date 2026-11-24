@@ -57,8 +57,10 @@ export const requireAuth = (
       }
 
       if (revocationStatus.failClosed) {
-        res.setHeader('Retry-After', '5');
-        res.setHeader('X-Backend-Degraded', 'redis-revocation-unavailable');
+        if (typeof res.setHeader === 'function') {
+          res.setHeader('Retry-After', '5');
+          res.setHeader('X-Backend-Degraded', 'redis-revocation-unavailable');
+        }
         return res.status(503).json({
           success: false,
           authenticated: false,
@@ -381,7 +383,7 @@ export const requireCandidateAuth = async (req, res, next) => {
       });
     }
 
-    if (revocationStatus.isDegraded) {
+    if (revocationStatus.isDegraded && typeof res.setHeader === 'function') {
       res.setHeader('X-Session-Degraded', 'true');
     }
 

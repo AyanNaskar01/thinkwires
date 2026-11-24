@@ -26,6 +26,7 @@ import { isRedisConnected } from './configs/redis.js';
 import healthRoutes from './routes/health.route.js';
 import compression from 'compression';
 import { publicContentCache, privateNoStore } from './middlewares/cache.middleware.js';
+import { getTrustProxyFunction } from './configs/proxy.config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,8 +53,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Trust reverse proxy (Render, Vercel, Cloudflare, AWS ALB) for accurate client IP in req.ip
-app.set('trust proxy', 1);
+// SEC-05: Configure trusted reverse proxy ranges matching actual network topology
+// (Render internal router, AWS ALB, Docker/K8s overlays, Cloudflare, loopback)
+app.set('trust proxy', getTrustProxyFunction());
 
 app.disable('x-powered-by');
 
