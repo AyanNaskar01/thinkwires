@@ -205,9 +205,23 @@ const QuickApplyModal = ({ isOpen, onClose, jobData = {}, roleTitle = '' }) => {
         }
         if (p.skillSet && !skills) setSkills(p.skillSet);
         setAutoFillNotice('Resume analyzed. Form auto-filled with your details.');
+      } else {
+        const cleanName = (file.name || '')
+          .replace(/\.[^/.]+$/, '')
+          .replace(/[-_]/g, ' ')
+          .replace(/\bresume\b|\bcv\b/gi, '')
+          .trim();
+        if (cleanName && !fullName) setFullName(cleanName);
+        setAutoFillNotice('Resume uploaded. Please verify your details below.');
       }
     } catch {
-      // Non-blocking fallback
+      const cleanName = (file.name || '')
+        .replace(/\.[^/.]+$/, '')
+        .replace(/[-_]/g, ' ')
+        .replace(/\bresume\b|\bcv\b/gi, '')
+        .trim();
+      if (cleanName && !fullName) setFullName(cleanName);
+      setAutoFillNotice('Resume uploaded. Please verify your details below.');
     } finally {
       setParsingResume(false);
     }

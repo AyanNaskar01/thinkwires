@@ -290,12 +290,45 @@ const GlobalJobApplicationForm = ({ isOpen, onClose, jobData = {} }) => {
             candidateNote: p.candidateNote || prev.candidateNote,
           }));
           setAutoFillNotice('Resume parsed. Details auto-filled.');
+        } else {
+          const cleanName = (file.name || '')
+            .replace(/\.[^/.]+$/, '')
+            .replace(/[-_]/g, ' ')
+            .replace(/\bresume\b|\bcv\b/gi, '')
+            .trim();
+          if (cleanName) {
+            const parts = cleanName.split(/\s+/).filter(Boolean);
+            if (parts.length >= 1) {
+              setFormData((prev) => ({
+                ...prev,
+                firstName: prev.firstName || parts[0],
+                lastName: prev.lastName || parts.slice(1).join(' '),
+              }));
+            }
+          }
+          setAutoFillNotice('Resume attached. Please verify your details below.');
         }
       } catch (parseErr) {
         console.warn(
           'AI resume auto-fill non-blocking warning:',
           parseErr.message
         );
+        const cleanName = (file.name || '')
+          .replace(/\.[^/.]+$/, '')
+          .replace(/[-_]/g, ' ')
+          .replace(/\bresume\b|\bcv\b/gi, '')
+          .trim();
+        if (cleanName) {
+          const parts = cleanName.split(/\s+/).filter(Boolean);
+          if (parts.length >= 1) {
+            setFormData((prev) => ({
+              ...prev,
+              firstName: prev.firstName || parts[0],
+              lastName: prev.lastName || parts.slice(1).join(' '),
+            }));
+          }
+        }
+        setAutoFillNotice('Resume attached. Please verify your details below.');
       } finally {
         setParsingResume(false);
       }

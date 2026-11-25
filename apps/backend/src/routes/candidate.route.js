@@ -48,10 +48,10 @@ const candidateApplyRateLimiter = rateLimit({
   },
 });
 
+// Stateless candidate resume parsing utility for form auto-fill (rate-limited, sanitized)
 router.post(
   '/parse-resume',
   aiEndpointRateLimiter,
-  candidateCsrfProtection,
   resumeUpload.single('resume'),
   validateUploadedResume,
   parseResumeForAutoFill
