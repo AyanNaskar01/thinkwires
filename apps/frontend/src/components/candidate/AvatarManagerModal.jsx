@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setUserAvatar } from '../../store/slices/authSlice';
+import { getApiBaseUrl } from '../../utils/apiConfig';
 
 const PRESET_AVATARS = [
   { id: 1, label: 'Staff Architect', path: '/avatars/presets/tech-engineer-1.svg' },
@@ -35,7 +36,7 @@ const AvatarManagerModal = ({ isOpen, onClose, onAvatarChanged }) => {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/candidate/avatar/preset', {
+      const res = await fetch(`${getApiBaseUrl()}/candidate/avatar/preset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -79,7 +80,7 @@ const AvatarManagerModal = ({ isOpen, onClose, onAvatarChanged }) => {
       const formData = new FormData();
       formData.append('avatar', file);
 
-      const res = await fetch('/api/candidate/avatar/upload', {
+      const res = await fetch(`${getApiBaseUrl()}/candidate/avatar/upload`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -105,7 +106,7 @@ const AvatarManagerModal = ({ isOpen, onClose, onAvatarChanged }) => {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/candidate/avatar', {
+      const res = await fetch(`${getApiBaseUrl()}/candidate/avatar`, {
         method: 'DELETE',
         credentials: 'include',
       });

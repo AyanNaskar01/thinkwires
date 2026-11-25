@@ -5,6 +5,7 @@ import {
   resetTimesheetState,
 } from '../../store/slices/candidatePortalSlice';
 import { CloseIcon } from '../../admin/AdminIcons';
+import { getApiBaseUrl } from '../../utils/apiConfig';
 
 const CandidatePayoutAndCompliance = ({ data = {} }) => {
   const dispatch = useDispatch();
@@ -21,7 +22,7 @@ const CandidatePayoutAndCompliance = ({ data = {} }) => {
   const handlePayslipDownload = async () => {
     setPayslipLoading(true);
     try {
-      const response = await fetch('/api/candidate/payslip/download', {
+      const response = await fetch(`${getApiBaseUrl()}/candidate/payslip/download`, {
         method: 'GET',
         headers: {
           'Accept': 'application/pdf',

@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { getApiBaseUrl } from '../../utils/apiConfig';
 
 export const fallbackFindTalentData = {
   hero: {
@@ -191,7 +192,7 @@ export const fetchFindTalentData = createAsyncThunk(
   'findTalent/fetchData',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch('/api/find-talent');
+      const response = await fetch(`${getApiBaseUrl()}/find-talent`);
       if (!response.ok) {
         throw new Error('Failed to fetch Find Talent data');
       }
@@ -207,7 +208,7 @@ export const submitTalentRequisition = createAsyncThunk(
   'findTalent/submitRequisition',
   async (formData, { rejectWithValue }) => {
     try {
-      const response = await fetch('/api/find-talent/requisition', {
+      const response = await fetch(`${getApiBaseUrl()}/find-talent/requisition`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

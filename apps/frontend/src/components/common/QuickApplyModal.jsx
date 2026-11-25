@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { loginUser, registerUser } from '../../store/slices/authSlice';
+import { getApiBaseUrl } from '../../utils/apiConfig';
 import SkillTagInput from './SkillTagInput';
 
 /**
@@ -186,7 +187,7 @@ const QuickApplyModal = ({ isOpen, onClose, jobData = {}, roleTitle = '' }) => {
     try {
       const parseData = new FormData();
       parseData.append('resume', file);
-      const res = await fetch('/api/candidate/parse-resume', {
+      const res = await fetch(`${getApiBaseUrl()}/candidate/parse-resume`, {
         method: 'POST',
         credentials: 'include',
         body: parseData,
@@ -343,7 +344,7 @@ const QuickApplyModal = ({ isOpen, onClose, jobData = {}, roleTitle = '' }) => {
       }
 
       // Step 3: Transmit Application
-      const res = await fetch('/api/candidate/apply', {
+      const res = await fetch(`${getApiBaseUrl()}/candidate/apply`, {
         method: 'POST',
         credentials: 'include',
         body: payload,

@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/common/Navbar';
 import Footer from '../../components/common/Footer';
+import { getApiBaseUrl } from '../../utils/apiConfig';
 import './auth.css';
 
 const ForgotPasswordPage = () => {
@@ -25,7 +26,7 @@ const ForgotPasswordPage = () => {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/forgot-password', {
+      const response = await fetch(`${getApiBaseUrl()}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim() }),

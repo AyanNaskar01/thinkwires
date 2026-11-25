@@ -5,6 +5,7 @@ import {
   bookTalentInterview,
   resetBookingStatus,
 } from '../../store/slices/benchSlice';
+import { getApiBaseUrl } from '../../utils/apiConfig';
 
 const BenchDossierDrawer = () => {
   const dispatch = useDispatch();
@@ -38,7 +39,7 @@ const BenchDossierDrawer = () => {
     let isMounted = true;
     const talentId = selectedTalent.id || selectedTalent._id || selectedTalent.code;
 
-    fetch(`/api/bench/dossier/${talentId}`)
+    fetch(`${getApiBaseUrl()}/bench/dossier/${talentId}`)
       .then((res) => {
         if (!res.ok) throw new Error('Dossier unavailable');
         return res.json();

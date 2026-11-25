@@ -38,6 +38,36 @@ export const getApiBaseUrl = () => {
 
 export const API_BASE = getApiBaseUrl();
 
+// Global fetch interceptor to guarantee all relative '/api/' calls dynamically resolve to getApiBaseUrl()
+if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
+  const originalFetch = window.fetch;
+  window.fetch = function (resource, init) {
+    const apiBase = getApiBaseUrl();
+    if (apiBase && !apiBase.startsWith('/api')) {
+      if (
+        typeof resource === 'string' &&
+        (resource.startsWith('/api/') || resource === '/api' || resource.startsWith('/api?'))
+      ) {
+        resource = resource.replace(/^\/api/, apiBase);
+      } else if (resource && typeof resource === 'object' && resource.url && resource.url.includes('/api')) {
+        try {
+          const parsed = new URL(resource.url, window.location.origin);
+          if (
+            parsed.origin === window.location.origin &&
+            (parsed.pathname.startsWith('/api/') || parsed.pathname === '/api')
+          ) {
+            const newUrl = parsed.pathname.replace(/^\/api/, apiBase) + parsed.search;
+            resource = new Request(newUrl, resource);
+          }
+        } catch {
+          // Keep original resource on error
+        }
+      }
+    }
+    return originalFetch.call(this, resource, init);
+  };
+}
+
 const CANDIDATE_TOKEN_KEY = 'thinkwires_candidate_jwt';
 
 // Pure in-memory session token fallback to prevent XSS extraction from localStorage (SEC-FE-05)

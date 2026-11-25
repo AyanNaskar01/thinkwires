@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import ScreeningAssessmentModal from './ScreeningAssessmentModal';
 import SkillTagInput from './SkillTagInput';
+import { getApiBaseUrl } from '../../utils/apiConfig.js';
 
 /**
  * GlobalJobApplicationForm
@@ -265,7 +266,7 @@ const GlobalJobApplicationForm = ({ isOpen, onClose, jobData = {} }) => {
       try {
         const parseData = new FormData();
         parseData.append('resume', file);
-        const res = await fetch('/api/candidate/parse-resume', {
+        const res = await fetch(`${getApiBaseUrl()}/candidate/parse-resume`, {
           method: 'POST',
           credentials: 'include',
           body: parseData,
@@ -392,7 +393,7 @@ const GlobalJobApplicationForm = ({ isOpen, onClose, jobData = {} }) => {
         dataPayload.append('resumeUrl', user.resumeUrl);
       }
 
-      const response = await fetch('/api/candidate/apply', {
+      const response = await fetch(`${getApiBaseUrl()}/candidate/apply`, {
         method: 'POST',
         credentials: 'include',
         body: dataPayload,
