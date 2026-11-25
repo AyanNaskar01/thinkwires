@@ -189,6 +189,19 @@ const BenchPage = () => {
       result = result.filter((t) => t.location === activeLocation);
     }
 
+    // Candidate Vetting Benchmark: Only candidates with vetting or assessment score >= 75% can be seen on the bench
+    result = result.filter((t) => {
+      const score =
+        typeof t.vettingScore === 'number' && !isNaN(t.vettingScore)
+          ? t.vettingScore
+          : typeof t.assessmentScore === 'number' && !isNaN(t.assessmentScore)
+            ? t.assessmentScore
+            : typeof t.score === 'number' && !isNaN(t.score)
+              ? t.score
+              : 0;
+      return score >= 75;
+    });
+
     // Helper to extract actual AI assessment score from backend data
     const getAiScore = (candidate) => {
       if (typeof candidate.assessmentScore === 'number' && !isNaN(candidate.assessmentScore)) {

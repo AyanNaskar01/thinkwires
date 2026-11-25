@@ -81,7 +81,10 @@ router.get('/bench', async (req, res) => {
     try {
       const assessed = await Candidate.find({
         isDeleted: { $ne: true },
-        $or: [{ workMode: 'On-Bench' }, { assessmentScore: { $ne: null } }],
+        $or: [
+          { vettingScore: { $gte: 75 } },
+          { assessmentScore: { $gte: 75 } },
+        ],
       }).limit(15);
 
       assessed.forEach((c) => {
@@ -107,9 +110,10 @@ router.get('/bench', async (req, res) => {
                 : 'lead',
           experience: `${c.experience || 5}+ Yrs Exp`,
           location: c.location || 'Remote Global',
-          technicalRating: c.assessmentScore || c.vettingScore || 90,
-          score: c.assessmentScore || c.vettingScore || 90,
+          technicalRating: c.vettingScore || c.assessmentScore || 90,
+          score: c.vettingScore || c.assessmentScore || 90,
           assessmentScore: c.assessmentScore,
+          vettingScore: c.vettingScore,
           fitScore: c.fitScore,
           availability: c.noticePeriod || 'Immediate (24-48h)',
           urgency: c.noticePeriod || 'Immediate (24-48h)',
@@ -119,7 +123,7 @@ router.get('/bench', async (req, res) => {
           engagementType: c.workMode === 'Full-Time Looking' ? 'full-time' : 'contract',
           engineeringProof:
             c.bio ||
-            `Cleared Thinkwires technical screening assessment (${c.assessmentScore || 90}%).`,
+            `Cleared Thinkwires technical screening assessment (${c.vettingScore || c.assessmentScore || 90}%).`,
           skills:
             c.technicalSkills && c.technicalSkills.length > 0
               ? c.technicalSkills
@@ -209,6 +213,19 @@ router.get('/bench', async (req, res) => {
     };
   });
 
+  // Strict vetting benchmark: only candidates whose vetting or assessment score >= 75% can be seen on the bench
+  const qualifiedTalents = normalizedTalents.filter((t) => {
+    const s =
+      typeof t.vettingScore === 'number' && !isNaN(t.vettingScore)
+        ? t.vettingScore
+        : typeof t.assessmentScore === 'number' && !isNaN(t.assessmentScore)
+          ? t.assessmentScore
+          : typeof t.score === 'number' && !isNaN(t.score)
+            ? t.score
+            : 0;
+    return s >= 75;
+  });
+
   const specialtyFilters = [
     { label: 'All Engineering', count: 142 },
     { label: 'GenAI & LLMs', count: 38 },
@@ -262,8 +279,8 @@ router.get('/bench', async (req, res) => {
     },
     specialtyFilters,
     filterOptions,
-    talents: normalizedTalents,
-    candidates: rawCandidates,
+    talents: qualifiedTalents,
+    candidates: qualifiedTalents,
     dossierFeatures:
       bench.dossierFeatures?.map((f, i) => ({
         step: `0${i + 1}`,
@@ -312,7 +329,10 @@ router.get('/bench/talents', async (req, res) => {
     try {
       const assessed = await Candidate.find({
         isDeleted: { $ne: true },
-        $or: [{ workMode: 'On-Bench' }, { assessmentScore: { $ne: null } }],
+        $or: [
+          { vettingScore: { $gte: 75 } },
+          { assessmentScore: { $gte: 75 } },
+        ],
       }).limit(15);
 
       assessed.forEach((c) => {
@@ -338,9 +358,10 @@ router.get('/bench/talents', async (req, res) => {
                 : 'lead',
           experience: `${c.experience || 5}+ Yrs Exp`,
           location: c.location || 'Remote Global',
-          technicalRating: c.assessmentScore || c.vettingScore || 90,
-          score: c.assessmentScore || c.vettingScore || 90,
+          technicalRating: c.vettingScore || c.assessmentScore || 90,
+          score: c.vettingScore || c.assessmentScore || 90,
           assessmentScore: c.assessmentScore,
+          vettingScore: c.vettingScore,
           fitScore: c.fitScore,
           availability: 'Immediate (24-48h)',
           expectedSalary: c.expectedSalary,
@@ -348,7 +369,7 @@ router.get('/bench/talents', async (req, res) => {
           engagementType: c.workMode === 'Full-Time Looking' ? 'full-time' : 'contract',
           engineeringProof:
             c.bio ||
-            `Cleared Thinkwires technical screening assessment (${c.assessmentScore || 90}%).`,
+            `Cleared Thinkwires technical screening assessment (${c.vettingScore || c.assessmentScore || 90}%).`,
           skills:
             c.technicalSkills && c.technicalSkills.length > 0
               ? c.technicalSkills
@@ -462,16 +483,33 @@ router.get('/bench/talents', async (req, res) => {
     );
   }
 
-  const noticePeriodQuery = req.query.noticePeriod;
-  const minScore = req.query.minScore ? parseInt(req.query.minScore, 10) : 85;
+  // Strict candidate vetting benchmark: only candidates whose vetting or assessment score >= 75% can be seen on the bench
+  filtered = filtered.filter((t) => {
+    const score =
+      typeof t.vettingScore === 'number' && !isNaN(t.vettingScore)
+        ? t.vettingScore
+        : typeof t.assessmentScore === 'number' && !isNaN(t.assessmentScore)
+          ? t.assessmentScore
+          : typeof t.score === 'number' && !isNaN(t.score)
+            ? t.score
+            : 0;
+    return score >= 75;
+  });
 
-  // Issue #166: Notice Period & AI Score Benchmark Strictness
-  // - Candidates with notice periods > 15 days filtered out by default, and scores < 85%.
+  const noticePeriodQuery = req.query.noticePeriod;
+  const minScore = req.query.minScore ? parseInt(req.query.minScore, 10) : 75;
+
+  // Notice Period Benchmark Strictness: Candidates with notice periods > 15 days filtered out by default unless explicitly specified
   if (!noticePeriodQuery || noticePeriodQuery === 'All Notice Periods' || noticePeriodQuery === 'All Notice' || noticePeriodQuery === 'All') {
     if (req.query.strict !== 'false' && req.query.all !== 'true') {
       filtered = filtered.filter((t) => {
         const days = parseNoticeDays(t.noticePeriod || t.urgency || t.availability);
-        const score = typeof t.assessmentScore === 'number' && !isNaN(t.assessmentScore) ? t.assessmentScore : (t.score || 0);
+        const score =
+          typeof t.vettingScore === 'number' && !isNaN(t.vettingScore)
+            ? t.vettingScore
+            : typeof t.assessmentScore === 'number' && !isNaN(t.assessmentScore)
+              ? t.assessmentScore
+              : (t.score || 0);
         return days <= 15 && score >= minScore;
       });
     }
@@ -498,7 +536,12 @@ router.get('/bench/talents', async (req, res) => {
 
     if (req.query.strict !== 'false' && req.query.all !== 'true' && !req.query.includeUnscored) {
       filtered = filtered.filter((t) => {
-        const score = typeof t.assessmentScore === 'number' && !isNaN(t.assessmentScore) ? t.assessmentScore : (t.score || 0);
+        const score =
+          typeof t.vettingScore === 'number' && !isNaN(t.vettingScore)
+            ? t.vettingScore
+            : typeof t.assessmentScore === 'number' && !isNaN(t.assessmentScore)
+              ? t.assessmentScore
+              : (t.score || 0);
         return score >= minScore;
       });
     }
