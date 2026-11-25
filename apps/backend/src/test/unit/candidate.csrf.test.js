@@ -249,4 +249,22 @@ describe('Candidate Portal Anti-CSRF & Cookie Protection (SEC-CSRF-02)', () => {
     expect(config.sameSite).toBe('lax');
     expect(config.secure).toBe(false);
   });
+
+  it('allows cookie-authenticated mutating request from verified production origin (thinkwires.pages.dev) when cross-origin cookie restrictions omit double-submit tokens', () => {
+    const token = generateCandidateToken({ _id: 'cand123', email: 'cand@test.com', name: 'Test' });
+
+    const { req, res } = createMockReqRes('POST', {
+      origin: 'https://thinkwires.pages.dev',
+    }, {
+      thinkwires_candidate_jwt: token,
+    });
+
+    let called = false;
+    const next = () => { called = true; };
+
+    candidateCsrfProtection(req, res, next);
+
+    expect(called).toBe(true);
+    expect(res.getStatusCode()).toBe(200);
+  });
 });

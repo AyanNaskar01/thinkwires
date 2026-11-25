@@ -39,10 +39,48 @@ export const getApiBaseUrl = () => {
 export const API_BASE = getApiBaseUrl();
 
 // Global fetch interceptor to guarantee all relative '/api/' calls dynamically resolve to getApiBaseUrl()
+// and automatically attach CSRF & Authorization credentials where needed
+let currentCsrfToken = null;
+
+export const setCsrfToken = (token) => {
+  currentCsrfToken = token || null;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      if (token) localStorage.setItem('tw_csrf_token', token);
+      else localStorage.removeItem('tw_csrf_token');
+    }
+  } catch {}
+};
+
+export const getCsrfToken = () => {
+  if (currentCsrfToken) return currentCsrfToken;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem('tw_csrf_token');
+      if (stored) {
+        currentCsrfToken = stored;
+        return currentCsrfToken;
+      }
+    }
+    if (typeof document !== 'undefined' && document.cookie) {
+      const match = document.cookie.match(/(?:^|;\s*)thinkwires_csrf_token=([^;]+)/);
+      if (match) {
+        currentCsrfToken = decodeURIComponent(match[1]);
+        return currentCsrfToken;
+      }
+    }
+  } catch {}
+  return null;
+};
+
 if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
   const originalFetch = window.fetch;
-  window.fetch = function (resource, init) {
+  window.fetch = function (resource, init = {}) {
     const apiBase = getApiBaseUrl();
+    const isApiCall =
+      (typeof resource === 'string' && (resource.startsWith(apiBase) || resource.startsWith('/api/') || resource === '/api' || resource.startsWith('/api?'))) ||
+      (resource && typeof resource === 'object' && resource.url && (resource.url.includes(apiBase) || resource.url.includes('/api')));
+
     if (apiBase && !apiBase.startsWith('/api')) {
       if (
         typeof resource === 'string' &&
@@ -64,6 +102,45 @@ if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
         }
       }
     }
+
+    // Automatically ensure credentials and inject CSRF / Authorization for state mutations
+    if (isApiCall) {
+      init = init ? { ...init } : {};
+      if (!init.credentials) {
+        init.credentials = 'include';
+      }
+
+      const method = (init.method || 'GET').toUpperCase();
+      const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+
+      if (isMutation) {
+        let headers = init.headers;
+        if (!headers) {
+          headers = {};
+          init.headers = headers;
+        }
+
+        const candidateToken = getCandidateToken();
+        const csrf = getCsrfToken();
+
+        if (headers instanceof Headers) {
+          if (candidateToken && !headers.has('Authorization')) {
+            headers.set('Authorization', `Bearer ${candidateToken}`);
+          }
+          if (csrf && !headers.has('X-CSRF-Token')) {
+            headers.set('X-CSRF-Token', csrf);
+          }
+        } else if (typeof headers === 'object') {
+          if (candidateToken && !headers['Authorization'] && !headers['authorization']) {
+            headers['Authorization'] = `Bearer ${candidateToken}`;
+          }
+          if (csrf && !headers['X-CSRF-Token'] && !headers['x-csrf-token']) {
+            headers['X-CSRF-Token'] = csrf;
+          }
+        }
+      }
+    }
+
     return originalFetch.call(this, resource, init);
   };
 }

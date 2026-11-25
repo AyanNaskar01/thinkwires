@@ -116,6 +116,7 @@ export const registerCandidate = async (req, res) => {
       success: true,
       message: 'Registration successful! Welcome to Thinkwires.',
       token,
+      csrfToken,
       candidate: {
         id: candidate._id || candidate.id,
         name: candidate.name,
@@ -185,6 +186,7 @@ export const loginCandidate = async (req, res) => {
       success: true,
       message: 'Login successful.',
       token,
+      csrfToken,
       candidate: {
         id: candidate._id || candidate.id,
         name: candidate.name,

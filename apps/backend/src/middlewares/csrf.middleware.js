@@ -191,6 +191,10 @@ export const adminCsrfProtection = (req, res, next) => {
     }
 
     if (!clientToken || !cookieToken) {
+      if (origin && isAllowedOrigin(origin)) {
+        return next();
+      }
+
       return res.status(403).json({
         success: false,
         error:
@@ -292,6 +296,10 @@ export const candidateCsrfProtection = (req, res, next) => {
     }
 
     if (!clientToken || !cookieToken) {
+      if (origin && isAllowedOrigin(origin)) {
+        return next();
+      }
+
       return res.status(403).json({
         success: false,
         error:

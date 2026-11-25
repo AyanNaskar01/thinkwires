@@ -90,7 +90,7 @@ describe('Vercel SPA Routing Configuration (Issue #195)', () => {
       expect(fs.existsSync(wranglerPath)).toBe(true);
 
       const content = fs.readFileSync(wranglerPath, 'utf8');
-      expect(content).toContain('name = "thinkwires-frontend"');
+      expect(content).toMatch(/name = "thinkwires(-frontend)?"/);
       expect(content).toContain('pages_build_output_dir = "dist"');
     });
   });

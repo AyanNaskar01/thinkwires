@@ -4,6 +4,7 @@ import {
   getCandidateAuthHeaders,
   setCandidateToken,
   clearCandidateToken,
+  setCsrfToken,
 } from '../../utils/apiConfig';
 
 /**
@@ -93,6 +94,9 @@ export const loginUser = createAsyncThunk(
       if (data.token) {
         setCandidateToken(data.token);
       }
+      if (data.csrfToken) {
+        setCsrfToken(data.csrfToken);
+      }
 
       return data.candidate;
     } catch (err) {
@@ -132,6 +136,9 @@ export const registerUser = createAsyncThunk(
 
       if (data.token) {
         setCandidateToken(data.token);
+      }
+      if (data.csrfToken) {
+        setCsrfToken(data.csrfToken);
       }
 
       return data.candidate;
