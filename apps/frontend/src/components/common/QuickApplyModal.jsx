@@ -71,6 +71,8 @@ const QuickApplyModal = ({ isOpen, onClose, jobData = {}, roleTitle = '' }) => {
     return user.skills || '';
   });
   const [noticePeriod, setNoticePeriod] = useState('Immediate');
+  const [linkedInLink, setLinkedInLink] = useState(() => (isAuthenticated && user?.linkedinUrl) || '');
+  const [githubLink, setGithubLink] = useState(() => (isAuthenticated && user?.githubUrl) || '');
   const [candidateNote, setCandidateNote] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(true);
 
@@ -129,6 +131,9 @@ const QuickApplyModal = ({ isOpen, onClose, jobData = {}, roleTitle = '' }) => {
       } else if (user.skills) {
         setSkills(user.skills);
       }
+      if (user.linkedinUrl) setLinkedInLink(user.linkedinUrl);
+      if (user.githubUrl) setGithubLink(user.githubUrl);
+      if (user.bio) setCandidateNote(user.bio);
     }
   }
 
@@ -204,6 +209,9 @@ const QuickApplyModal = ({ isOpen, onClose, jobData = {}, roleTitle = '' }) => {
           setExperienceYears(String(p.totalExperienceYears));
         }
         if (p.skillSet && !skills) setSkills(p.skillSet);
+        if (p.linkedInLink && !linkedInLink) setLinkedInLink(p.linkedInLink);
+        if (p.githubLink && !githubLink) setGithubLink(p.githubLink);
+        if (p.candidateNote && !candidateNote) setCandidateNote(p.candidateNote);
         setAutoFillNotice('Resume analyzed. Form auto-filled with your details.');
       } else {
         const cleanName = (file.name || '')
@@ -346,6 +354,8 @@ const QuickApplyModal = ({ isOpen, onClose, jobData = {}, roleTitle = '' }) => {
       payload.append('mobileNumber', phone.trim());
       payload.append('totalExperienceYears', experienceYears.trim() || '3');
       payload.append('skillSet', skills.trim());
+      payload.append('linkedInLink', linkedInLink.trim());
+      payload.append('githubLink', githubLink.trim());
       payload.append('noticePeriod', noticePeriod);
       payload.append('candidateNote', candidateNote.trim());
       payload.append('agreedToTerms', 'true');
@@ -678,6 +688,55 @@ const QuickApplyModal = ({ isOpen, onClose, jobData = {}, roleTitle = '' }) => {
                   <option value="90 Days">90 Days</option>
                 </select>
               </div>
+            </div>
+
+            {/* Professional Links */}
+            <div className="ApplyModal-row">
+              <div className="ApplyModal-fieldGroup">
+                <label htmlFor="quick-apply-linkedin">LinkedIn Link</label>
+                <input
+                  id="quick-apply-linkedin"
+                  type="url"
+                  name="linkedInLink"
+                  placeholder="https://linkedin.com/in/username"
+                  value={linkedInLink}
+                  onChange={(e) => setLinkedInLink(e.target.value)}
+                />
+              </div>
+
+              <div className="ApplyModal-fieldGroup">
+                <label htmlFor="quick-apply-github">GitHub Link (Optional)</label>
+                <input
+                  id="quick-apply-github"
+                  type="url"
+                  name="githubLink"
+                  placeholder="https://github.com/username"
+                  value={githubLink}
+                  onChange={(e) => setGithubLink(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Candidate Note */}
+            <div className="ApplyModal-fieldGroup" style={{ marginTop: '0.75rem' }}>
+              <label htmlFor="quick-apply-candidatenote">Candidate Note</label>
+              <textarea
+                id="quick-apply-candidatenote"
+                name="candidateNote"
+                rows="2"
+                placeholder="Highlight your domain strengths, notice period flexibility, or preferred shift timings..."
+                value={candidateNote}
+                onChange={(e) => setCandidateNote(e.target.value)}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '6px',
+                  border: '1px solid #d1d5db',
+                  fontSize: '0.875rem',
+                  resize: 'vertical',
+                }}
+              />
             </div>
 
             {/* Guest One-Step Account Setup (when unauthenticated) */}

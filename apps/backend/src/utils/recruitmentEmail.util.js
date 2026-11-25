@@ -75,6 +75,7 @@ export const buildRecruitmentEmailHtml = (data) => {
     expectedCTC = 'Negotiable',
     skillSet = '',
     linkedInLink = '',
+    githubLink = '',
     facebookLink = '',
     candidateNote = '',
   } = data;
@@ -215,11 +216,11 @@ export const buildRecruitmentEmailHtml = (data) => {
             </td>
           </tr>
           <tr>
-            <td style="color: #64748b; font-weight: 600; padding: 6px 0;">Facebook Link:</td>
+            <td style="color: #64748b; font-weight: 600; padding: 6px 0;">GitHub Link:</td>
             <td style="padding: 6px 0;">
               ${
-                facebookLink
-                  ? `<a href="${escapeHtml(facebookLink)}" style="color: #2563eb; text-decoration: underline;" target="_blank">${escapeHtml(facebookLink)}</a>`
+                githubLink
+                  ? `<a href="${escapeHtml(githubLink)}" style="color: #2563eb; text-decoration: underline;" target="_blank">${escapeHtml(githubLink)}</a>`
                   : '<span style="color: #94a3b8;">Not Provided</span>'
               }
             </td>

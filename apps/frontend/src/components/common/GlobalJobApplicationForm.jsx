@@ -33,7 +33,7 @@ import { getApiBaseUrl } from '../../utils/apiConfig.js';
  *      - Expected CTC
  *      - Skill Set
  *      - LinkedIn Link
- *      - Facebook Link (optional)
+ *      - GitHub Link (optional)
  *      - Candidate Note
  *
  * Note: Profile values are offered strictly as editable prefilled defaults,
@@ -131,7 +131,7 @@ const GlobalJobApplicationForm = ({ isOpen, onClose, jobData = {} }) => {
       ? user.technicalSkills.join(', ')
       : user?.skills || '',
     linkedInLink: user?.linkedinUrl || '',
-    facebookLink: '',
+    githubLink: user?.githubUrl || '',
     candidateNote: '',
     agreedToTerms: false,
   }));
@@ -202,7 +202,7 @@ const GlobalJobApplicationForm = ({ isOpen, onClose, jobData = {} }) => {
         ? user.technicalSkills.join(', ')
         : user?.skills || '',
       linkedInLink: user?.linkedinUrl || '',
-      facebookLink: '',
+      githubLink: user?.githubUrl || '',
       candidateNote: user?.bio || '',
     });
     setAutoFillNotice('Form pre-filled from profile.');
@@ -228,7 +228,7 @@ const GlobalJobApplicationForm = ({ isOpen, onClose, jobData = {} }) => {
       expectedCTC: '',
       skillSet: '',
       linkedInLink: '',
-      facebookLink: '',
+      githubLink: '',
       candidateNote: '',
       agreedToTerms: false,
     });
@@ -287,6 +287,7 @@ const GlobalJobApplicationForm = ({ isOpen, onClose, jobData = {} }) => {
               p.totalExperienceYears || prev.totalExperienceYears,
             skillSet: p.skillSet || prev.skillSet,
             linkedInLink: p.linkedInLink || prev.linkedInLink,
+            githubLink: p.githubLink || prev.githubLink,
             candidateNote: p.candidateNote || prev.candidateNote,
           }));
           setAutoFillNotice('Resume parsed. Details auto-filled.');
@@ -414,7 +415,7 @@ const GlobalJobApplicationForm = ({ isOpen, onClose, jobData = {} }) => {
       dataPayload.append('expectedCTC', formData.expectedCTC.trim());
       dataPayload.append('skillSet', formData.skillSet.trim());
       dataPayload.append('linkedInLink', formData.linkedInLink.trim());
-      dataPayload.append('facebookLink', formData.facebookLink.trim());
+      dataPayload.append('githubLink', formData.githubLink.trim());
       dataPayload.append('candidateNote', formData.candidateNote.trim());
       dataPayload.append('agreedToTerms', 'true');
 
@@ -1140,13 +1141,13 @@ const GlobalJobApplicationForm = ({ isOpen, onClose, jobData = {} }) => {
                 />
               </div>
               <div className="ApplyModal-fieldGroup">
-                <label htmlFor="apply-facebook">Facebook Link (Optional)</label>
+                <label htmlFor="apply-github">GitHub Link (Optional)</label>
                 <input
-                  id="apply-facebook"
+                  id="apply-github"
                   type="url"
-                  name="facebookLink"
-                  placeholder="https://facebook.com/username"
-                  value={formData.facebookLink}
+                  name="githubLink"
+                  placeholder="https://github.com/username"
+                  value={formData.githubLink}
                   onChange={handleChange}
                 />
               </div>

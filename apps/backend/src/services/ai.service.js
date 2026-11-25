@@ -22,6 +22,8 @@ const COMMON_TECH_SKILLS = [
   'Next.js',
   'Node.js',
   'Express',
+  'Express.js',
+  'NestJS',
   'PostgreSQL',
   'MongoDB',
   'MySQL',
@@ -33,8 +35,11 @@ const COMMON_TECH_SKILLS = [
   'GCP',
   'GraphQL',
   'REST APIs',
+  'RESTful APIs',
   'Tailwind CSS',
   'Redux',
+  'Redux Toolkit',
+  'Zustand',
   'Git',
   'CI/CD',
   'FastAPI',
@@ -45,8 +50,11 @@ const COMMON_TECH_SKILLS = [
   'Spring',
   'C#',
   '.NET',
+  'ASP.NET Core',
   'C++',
+  'C',
   'Go',
+  'Golang',
   'Rust',
   'Linux',
   'Microservices',
@@ -56,10 +64,12 @@ const COMMON_TECH_SKILLS = [
   'TensorFlow',
   'PyTorch',
   'Pandas',
+  'NumPy',
   'Scikit-Learn',
   'HTML5',
   'CSS3',
   'Jest',
+  'Vitest',
   'Terraform',
   'Ansible',
   'Helm',
@@ -74,7 +84,96 @@ const COMMON_TECH_SKILLS = [
   'SOAP Web Services',
   'Relational Database Design',
   'Vue.js',
+  'Vue',
   'Angular',
+  'Svelte',
+  'SvelteKit',
+  'Nuxt.js',
+  'Bootstrap',
+  'Material UI',
+  'Ant Design',
+  'Sass',
+  'SCSS',
+  'Vite',
+  'Webpack',
+  'Babel',
+  'Prisma',
+  'TypeORM',
+  'Mongoose',
+  'Sequelize',
+  'SQLite',
+  'Cassandra',
+  'DynamoDB',
+  'Oracle',
+  'SQL Server',
+  'MariaDB',
+  'Firebase',
+  'Supabase',
+  'RabbitMQ',
+  'Celery',
+  'GitHub Actions',
+  'GitLab CI',
+  'Jenkins',
+  'CircleCI',
+  'Nginx',
+  'Apache',
+  'OpenShift',
+  'SAP ABAP',
+  'SAP HANA',
+  'SAP Fiori',
+  'SAP MM',
+  'SAP SD',
+  'SAP S/4HANA',
+  'ABAP',
+  'Salesforce',
+  'Apex',
+  'ServiceNow',
+  'Snowflake',
+  'Databricks',
+  'Power BI',
+  'Tableau',
+  'BigQuery',
+  'Apache Spark',
+  'PySpark',
+  'Hadoop',
+  'Airflow',
+  'Machine Learning',
+  'Deep Learning',
+  'Artificial Intelligence',
+  'NLP',
+  'LLMs',
+  'LangChain',
+  'Computer Vision',
+  'OpenCV',
+  'Cypress',
+  'Playwright',
+  'Selenium',
+  'Mocha',
+  'Chai',
+  'Swagger',
+  'OpenAPI',
+  'WebSockets',
+  'gRPC',
+  'OAuth2',
+  'JWT',
+  'Bash',
+  'Shell Scripting',
+  'PowerShell',
+  'PHP',
+  'Laravel',
+  'Symfony',
+  'Ruby',
+  'Ruby on Rails',
+  'Swift',
+  'Kotlin',
+  'Flutter',
+  'React Native',
+  'Dart',
+  'R',
+  'Scala',
+  'Agile',
+  'Scrum',
+  'JIRA',
 ];
 
 export const ADVERSARIAL_PROMPT_PATTERNS = [
@@ -515,17 +614,82 @@ class AIServiceClient {
     const firstName = nameParts[0] || 'Applicant';
     const lastName = nameParts.slice(1).join(' ') || '';
 
+    // Raw buffer strings for PDF annotation and DOCX hyperlink scanning
+    let rawLatin1 = '';
+    let rawUtf8 = '';
+    if (fileBuffer) {
+      try {
+        rawLatin1 = fileBuffer.toString('latin1');
+      } catch {
+        rawLatin1 = '';
+      }
+      try {
+        rawUtf8 = fileBuffer.toString('utf-8');
+      } catch {
+        rawUtf8 = '';
+      }
+    }
+    const combinedRawStrings = `${rawLatin1} ${rawUtf8}`;
+
+    // 1. LinkedIn URL Extraction (Plain text + embedded PDF/DOCX hyperlinks)
     let linkedinUrl = '';
     const linkedinMatch = text.match(
-      /(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/[\w-]+(?:\/)?/i
+      /(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/([a-zA-Z0-9_\-%]+)(?:\/[^\s)"]*)?/i
     );
-    if (linkedinMatch) linkedinUrl = linkedinMatch[0];
+    if (linkedinMatch) {
+      linkedinUrl = linkedinMatch[0].startsWith('http')
+        ? linkedinMatch[0]
+        : `https://${linkedinMatch[0]}`;
+    }
 
+    if (!linkedinUrl && combinedRawStrings) {
+      // PDF Annotations: /URI (https://www.linkedin.com/in/username) or DOCX Target="https://..."
+      const binLinkedinMatch = combinedRawStrings.match(
+        /https?:\/\/(?:www\.)?linkedin\.com\/in\/([a-zA-Z0-9_\-%]+)(?:\/[^\s)"'\\<>]*)?/i
+      ) || combinedRawStrings.match(
+        /(?:www\.)?linkedin\.com\/in\/([a-zA-Z0-9_\-%]+)(?:\/[^\s)"'\\<>]*)?/i
+      );
+      if (binLinkedinMatch) {
+        linkedinUrl = binLinkedinMatch[0].startsWith('http')
+          ? binLinkedinMatch[0]
+          : `https://${binLinkedinMatch[0]}`;
+      }
+    }
+    if (linkedinUrl) {
+      linkedinUrl = linkedinUrl.replace(/[)>,;"'\\]+$/, '').trim();
+    }
+
+    // 2. GitHub URL Extraction (Plain text + embedded PDF/DOCX hyperlinks)
     let githubUrl = '';
     const githubMatch = text.match(
-      /(?:https?:\/\/)?(?:www\.)?github\.com\/[\w-]+(?:\/)?/i
+      /(?:https?:\/\/)?(?:www\.)?github\.com\/([a-zA-Z0-9_\-%]+)(?:\/[^\s)"]*)?/i
     );
-    if (githubMatch) githubUrl = githubMatch[0];
+    const nonProfileSlugs = new Set([
+      'features', 'about', 'pricing', 'enterprise', 'topics', 'trending',
+      'collections', 'explore', 'security', 'customer-stories', 'readme'
+    ]);
+
+    if (githubMatch && !nonProfileSlugs.has(githubMatch[1]?.toLowerCase())) {
+      githubUrl = githubMatch[0].startsWith('http')
+        ? githubMatch[0]
+        : `https://${githubMatch[0]}`;
+    }
+
+    if (!githubUrl && combinedRawStrings) {
+      const binGithubMatch = combinedRawStrings.match(
+        /https?:\/\/(?:www\.)?github\.com\/([a-zA-Z0-9_\-%]+)(?:\/[^\s)"'\\<>]*)?/i
+      ) || combinedRawStrings.match(
+        /(?:www\.)?github\.com\/([a-zA-Z0-9_\-%]+)(?:\/[^\s)"'\\<>]*)?/i
+      );
+      if (binGithubMatch && !nonProfileSlugs.has(binGithubMatch[1]?.toLowerCase())) {
+        githubUrl = binGithubMatch[0].startsWith('http')
+          ? binGithubMatch[0]
+          : `https://${binGithubMatch[0]}`;
+      }
+    }
+    if (githubUrl) {
+      githubUrl = githubUrl.replace(/[)>,;"'\\]+$/, '').trim();
+    }
 
     let portfolioUrl = '';
     const portfolioMatch = text.match(
@@ -533,8 +697,11 @@ class AIServiceClient {
     );
     if (portfolioMatch) portfolioUrl = portfolioMatch[0];
 
+    // 3. Comprehensive Skills Extraction
     const matchedSkills = [];
     const seen = new Set();
+
+    // 3a. Match known technical skills across entire resume
     for (const skill of COMMON_TECH_SKILLS) {
       const regex = new RegExp(
         `(?<!\\w)${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!\\w)`,
@@ -545,6 +712,45 @@ class AIServiceClient {
         if (!seen.has(canonical.toLowerCase())) {
           seen.add(canonical.toLowerCase());
           matchedSkills.push(canonical);
+        }
+      }
+    }
+
+    // 3b. Dynamic skills section parser (extracts skills directly written by candidate)
+    const skillsSectionMatch = text.match(
+      /(?:TECHNICAL\s+SKILLS|CORE\s+COMPETENCIES|KEY\s+SKILLS|SKILLS\s*&(?:\s*EXPERTISE|\s*COMPETENCIES|\s*ABILITIES|\s*TOOLS)?|SKILLS|TECHNOLOGIES|AREAS\s+OF\s+EXPERTISE)[\s:\-\n]+(.*?)(?=\n\s*(?:PROFESSIONAL\s+EXPERIENCE|WORK\s+EXPERIENCE|EXPERIENCE|EMPLOYMENT|EDUCATION|PROJECTS|CERTIFICATIONS|ACADEMIC|PUBLICATIONS|AWARDS)\b|\n[A-Z\s]{4,}|$)/is
+    );
+
+    if (skillsSectionMatch && skillsSectionMatch[1]) {
+      const sectionText = skillsSectionMatch[1];
+      const tokens = sectionText
+        .split(/[\n,;|•*▪\-–—]/)
+        .map((s) => s.replace(/^[A-Za-z0-9\s/&]+:/, '').trim())
+        .map((s) => s.replace(/^[•*▪\-–—\s]+|[•*▪\-–—\s]+$/g, '').trim())
+        .filter(Boolean);
+
+      const STOP_WORDS = new Set([
+        'experience', 'years', 'strong', 'good', 'proficient', 'knowledge',
+        'hands-on', 'familiar', 'solid', 'skills', 'tools', 'technologies',
+        'various', 'multiple', 'advanced', 'intermediate', 'basic', 'etc',
+        'including', 'such', 'well', 'high', 'level', 'understanding',
+        'worked', 'working', 'ability', 'excellent', 'expertise', 'primary',
+        'secondary', 'other', 'overview', 'proficiencies', 'key'
+      ]);
+
+      for (const token of tokens) {
+        const cleaned = token.replace(/[^\w\s.#+\-/]/g, '').trim();
+        if (
+          cleaned.length >= 2 &&
+          cleaned.length <= 35 &&
+          !STOP_WORDS.has(cleaned.toLowerCase()) &&
+          /[a-zA-Z]/.test(cleaned)
+        ) {
+          const lower = cleaned.toLowerCase();
+          if (!seen.has(lower)) {
+            seen.add(lower);
+            matchedSkills.push(cleaned);
+          }
         }
       }
     }
@@ -580,6 +786,9 @@ class AIServiceClient {
       'Data Scientist',
       'System Architect',
       'Cloud Engineer',
+      'SAP ABAP Consultant',
+      'SAP Consultant',
+      'Salesforce Developer',
     ];
     let currentRole = '';
     for (const title of roleTitles) {
@@ -606,6 +815,8 @@ class AIServiceClient {
         currentRole = 'Backend Software Engineer';
       } else if (matchedSkills.includes('React')) {
         currentRole = 'Frontend Developer';
+      } else if (matchedSkills.includes('SAP ABAP') || matchedSkills.includes('SAP HANA')) {
+        currentRole = 'SAP ABAP Consultant';
       } else {
         currentRole = 'Software Engineer';
       }
@@ -657,16 +868,33 @@ class AIServiceClient {
 
     if (!location) location = 'Remote';
 
+    // 4. Candidate Note / Professional Summary Extraction (up to 1000 characters)
     let summary = '';
     const summaryMatch = text.match(
-      /(?:PROFESSIONAL SUMMARY|SUMMARY|ABOUT ME|PROFILE)[\s:\-\n]+(.*?)(?=\n[A-Z\s]{4,}|\Z)/is
+      /(?:PROFESSIONAL\s+SUMMARY|EXECUTIVE\s+SUMMARY|CAREER\s+SUMMARY|PROFILE\s+SUMMARY|SUMMARY|ABOUT\s+ME|ABOUT|PROFILE|CAREER\s+OBJECTIVE|OBJECTIVE|PERSONAL\s+STATEMENT|BIOGRAPHY)[\s:\-\n]+(.*?)(?=\n\s*(?:SKILLS|TECHNICAL\s+SKILLS|EXPERIENCE|WORK\s+EXPERIENCE|EMPLOYMENT|EDUCATION|PROJECTS|CERTIFICATIONS)\b|\n[A-Z\s]{4,}|$)/is
     );
-    if (summaryMatch && summaryMatch[1].trim().length > 30) {
-      summary = summaryMatch[1].trim().replace(/\s+/g, ' ').slice(0, 300);
+    if (summaryMatch && summaryMatch[1].trim().length > 25) {
+      const cleanSummary = summaryMatch[1]
+        .replace(/^[•*▪\-–—\s:]+/, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (cleanSummary.length <= 1000) {
+        summary = cleanSummary;
+      } else {
+        const candidateSlice = cleanSummary.slice(0, 1000);
+        const lastPeriod = candidateSlice.lastIndexOf('. ');
+        if (lastPeriod > 400) {
+          summary = candidateSlice.slice(0, lastPeriod + 1);
+        } else {
+          summary = candidateSlice.trim();
+        }
+      }
     } else {
       const topSkills =
-        matchedSkills.slice(0, 4).join(', ') || 'modern software technologies';
-      summary = `Accomplished ${currentRole} with hands-on expertise building scalable solutions using ${topSkills}.`;
+        matchedSkills.slice(0, 6).join(', ') || 'modern software technologies';
+      summary = `Experienced ${currentRole} with ${
+        expYears > 0 ? expYears + '+ years of industry experience' : 'demonstrated proficiency'
+      } specializing in ${topSkills}. Proven track record delivering scalable enterprise solutions and collaborating effectively across cross-functional engineering teams.`;
     }
 
     const headlineSkills =

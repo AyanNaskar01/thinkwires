@@ -179,6 +179,11 @@ const jobApplicationSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    githubLink: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     facebookLink: {
       type: String,
       default: '',
