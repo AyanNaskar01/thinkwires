@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -9,8 +9,45 @@ const venvPy = isWin
     ? path.join(__dirname, 'venv', 'bin', 'python')
     : path.join(__dirname, 'venv', 'bin', 'python3');
 
-const systemPy = isWin ? 'python' : 'python3';
-const pythonExe = fs.existsSync(venvPy) ? venvPy : systemPy;
+function isWorkingPython(binPath) {
+  if (!binPath) return false;
+  try {
+    const res = spawnSync(binPath, ['--version'], { encoding: 'utf8', shell: !path.isAbsolute(binPath) && isWin });
+    return !res.error && res.status === 0;
+  } catch {
+    return false;
+  }
+}
+
+function resolvePythonExe() {
+  if (fs.existsSync(venvPy) && isWorkingPython(venvPy)) {
+    return venvPy;
+  }
+
+  const localAppData = process.env.LOCALAPPDATA || '';
+  const standardWinPaths = isWin
+    ? [
+        path.join(localAppData, 'Programs', 'Python', 'Python312', 'python.exe'),
+        path.join(localAppData, 'Programs', 'Python', 'Python311', 'python.exe'),
+        path.join(localAppData, 'Programs', 'Python', 'Python310', 'python.exe'),
+        'C:\\Python312\\python.exe',
+        'C:\\Python311\\python.exe',
+        'C:\\Python310\\python.exe',
+      ].filter(fs.existsSync)
+    : [];
+
+  const candidates = isWin
+    ? [...standardWinPaths, 'python', 'py']
+    : ['python3', 'python'];
+
+  for (const c of candidates) {
+    if (isWorkingPython(c)) return c;
+  }
+
+  return isWin ? 'python' : 'python3';
+}
+
+const pythonExe = resolvePythonExe();
 
 const isDev = process.argv.includes('--dev');
 const args = [

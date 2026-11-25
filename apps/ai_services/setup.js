@@ -13,12 +13,26 @@ console.log(`Detected Platform: ${process.platform} (${process.arch})`);
 
 // 1. Detect base Python binary
 function detectPython() {
-  const candidates = isWin ? ['python', 'py'] : ['python3', 'python'];
+  const localAppData = process.env.LOCALAPPDATA || '';
+  const standardWinPaths = isWin
+    ? [
+        path.join(localAppData, 'Programs', 'Python', 'Python312', 'python.exe'),
+        path.join(localAppData, 'Programs', 'Python', 'Python311', 'python.exe'),
+        path.join(localAppData, 'Programs', 'Python', 'Python310', 'python.exe'),
+        'C:\\Python312\\python.exe',
+        'C:\\Python311\\python.exe',
+        'C:\\Python310\\python.exe',
+      ].filter(fs.existsSync)
+    : [];
+
+  const candidates = isWin
+    ? [...standardWinPaths, 'python', 'py']
+    : ['python3', 'python'];
 
   for (const cmd of candidates) {
     const test = spawnSync(cmd, ['--version'], {
       encoding: 'utf8',
-      shell: isWin,
+      shell: !path.isAbsolute(cmd) && isWin,
     });
     if (!test.error && test.status === 0) {
       console.log(
@@ -56,7 +70,25 @@ const venvPip = isWin
   ? path.join(venvDir, 'Scripts', 'pip.exe')
   : path.join(venvDir, 'bin', 'pip');
 
-if (!fs.existsSync(venvDir) || !fs.existsSync(venvPy)) {
+function isVenvHealthy(py) {
+  if (!fs.existsSync(py)) return false;
+  try {
+    const res = spawnSync(py, ['--version'], { encoding: 'utf8' });
+    return !res.error && res.status === 0;
+  } catch {
+    return false;
+  }
+}
+
+if (!fs.existsSync(venvDir) || !isVenvHealthy(venvPy)) {
+  if (fs.existsSync(venvDir) && !isVenvHealthy(venvPy)) {
+    console.log(`\n⚠ Existing virtual environment is broken or points to a missing host Python. Recreating...`);
+    try {
+      fs.rmSync(venvDir, { recursive: true, force: true });
+    } catch {
+      // Continue and let venv overwrite
+    }
+  }
   console.log(`\n📦 Creating Python virtual environment in '${venvDir}'...`);
   const createResult = spawnSync(basePy, ['-m', 'venv', 'venv'], {
     cwd: __dirname,
